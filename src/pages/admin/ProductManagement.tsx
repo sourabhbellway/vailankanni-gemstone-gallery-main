@@ -53,6 +53,8 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  bulkUpdateProductPrices,
+  bulkUpdateProductStatus,
 } from "@/lib/api/productController";
 import {
   getCategories,
@@ -93,6 +95,21 @@ const ProductManagement = () => {
   const [editStock, setEditStock] = useState("");
   const [editStatusActive, setEditStatusActive] = useState(false);
   const [editImageUrl, setEditImageUrl] = useState<string>("");
+
+  // Bulk price update state
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<
+    (number | string)[]
+  >([]);
+  const [bulkPrices, setBulkPrices] = useState<Record<string, string>>({});
+  const [bulkApplyAll, setBulkApplyAll] = useState<string>("");
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+  // Bulk status update state
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatuses, setBulkStatuses] = useState<Record<string, string>>({});
+  const [bulkStatusApplyAll, setBulkStatusApplyAll] = useState<string>("");
+  const [bulkStatusSubmitting, setBulkStatusSubmitting] = useState(false);
 
   // Category CRUD state
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
@@ -780,6 +797,21 @@ const ProductManagement = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>
+                      <Checkbox
+                        checked={
+                          selectedProductIds.length > 0 &&
+                          selectedProductIds.length === products.length
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedProductIds(products.map((p) => p.id));
+                          } else {
+                            setSelectedProductIds([]);
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead>Product ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
@@ -815,6 +847,18 @@ const ProductManagement = () => {
                       statusText === "Active" ? "default" : "destructive";
                     return (
                       <TableRow key={product.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedProductIds.includes(product.id)}
+                            onCheckedChange={(checked) => {
+                              setSelectedProductIds((prev) =>
+                                checked
+                                  ? Array.from(new Set([...prev, product.id]))
+                                  : prev.filter((id) => id !== product.id)
+                              );
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {product.id}
                         </TableCell>
@@ -1046,11 +1090,356 @@ const ProductManagement = () => {
                   Import Products (CSV)
                 </Button>
                 <Button variant="outline">Export Products (CSV)</Button>
-                <Button variant="outline">Bulk Price Update</Button>
-                <Button variant="outline">Bulk Status Update</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Initialize price map for selected rows
+                    const map: Record<string, string> = {};
+                    selectedProductIds.forEach((id) => {
+                      const p = products.find((pp) => pp.id === id);
+                      if (p) map[String(id)] = p.price ? String(p.price) : "";
+                    });
+                    setBulkPrices(map);
+                    setBulkApplyAll("");
+                    setBulkDialogOpen(true);
+                  }}
+                >
+                  Bulk Price Update
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const map: Record<string, string> = {};
+                    selectedProductIds.forEach((id) => {
+                      const p = products.find((pp) => pp.id === id);
+                      if (p) {
+                        const val = p.status;
+                        const isActive =
+                          val === 1 ||
+                          val === "1" ||
+                          val === true ||
+                          val === "active";
+                        map[String(id)] = isActive ? "1" : "0";
+                      }
+                    });
+                    setBulkStatuses(map);
+                    setBulkStatusApplyAll("");
+                    setBulkStatusDialogOpen(true);
+                  }}
+                >
+                  Bulk Status Update
+                </Button>
               </div>
             </CardContent>
           </Card>
+
+          <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Bulk Price Update</DialogTitle>
+                <DialogDescription>
+                  Update prices for selected products. Provide new price per row
+                  or apply one value to all.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="applyAll">Apply one price to all</Label>
+                    <Input
+                      id="applyAll"
+                      type="number"
+                      placeholder="e.g. 1500"
+                      value={bulkApplyAll}
+                      onChange={(e) => setBulkApplyAll(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const next: Record<string, string> = { ...bulkPrices };
+                      selectedProductIds.forEach((id) => {
+                        next[String(id)] = bulkApplyAll;
+                      });
+                      setBulkPrices(next);
+                    }}
+                  >
+                    Apply to all
+                  </Button>
+                </div>
+
+                {selectedProductIds.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No products selected. Go to the Products tab and select rows
+                    with the checkbox.
+                  </div>
+                ) : (
+                  <div className="max-h-[50vh] overflow-y-auto border rounded">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px]">
+                            Product ID
+                          </TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="w-[160px]">
+                            New Price (₹)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedProductIds.map((id) => {
+                          const p = products.find((pp) => pp.id === id);
+                          if (!p) return null;
+                          return (
+                            <TableRow key={String(id)}>
+                              <TableCell className="font-mono">{id}</TableCell>
+                              <TableCell className="truncate max-w-xs">
+                                {p.name}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  placeholder="e.g. 1500"
+                                  value={bulkPrices[String(id)] ?? ""}
+                                  onChange={(e) =>
+                                    setBulkPrices((prev) => ({
+                                      ...prev,
+                                      [String(id)]: e.target.value,
+                                    }))
+                                  }
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setBulkDialogOpen(false)}
+                    disabled={bulkSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (selectedProductIds.length === 0) {
+                        toast("Select at least one product");
+                        return;
+                      }
+                      const items = selectedProductIds
+                        .map((id) => ({
+                          id,
+                          price: Number(bulkPrices[String(id)]),
+                        }))
+                        .filter((x) => !Number.isNaN(x.price) && x.price > 0);
+                      if (items.length === 0) {
+                        toast("Provide valid prices");
+                        return;
+                      }
+                      try {
+                        setBulkSubmitting(true);
+                        try {
+                          await bulkUpdateProductPrices(token as string, {
+                            products: items as any,
+                          });
+                        } catch (err) {
+                          for (const it of items) {
+                            await updateProduct(token as string, it.id, {
+                              price: it.price,
+                            });
+                          }
+                        }
+                        toast("Prices updated successfully");
+                        setBulkDialogOpen(false);
+                        const res = await getProducts(token as string);
+                        setProducts(res.data?.data ?? res.data ?? []);
+                      } catch (e) {
+                        toast("Failed to update prices");
+                      } finally {
+                        setBulkSubmitting(false);
+                      }
+                    }}
+                    disabled={bulkSubmitting}
+                  >
+                    {bulkSubmitting ? "Updating..." : "Update Prices"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={bulkStatusDialogOpen}
+            onOpenChange={setBulkStatusDialogOpen}
+          >
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Bulk Status Update</DialogTitle>
+                <DialogDescription>
+                  Activate or deactivate selected products. Choose per row or
+                  apply one value to all.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="applyAllStatus">
+                      Apply one status to all
+                    </Label>
+                    <Select
+                      value={bulkStatusApplyAll}
+                      onValueChange={setBulkStatusApplyAll}
+                    >
+                      <SelectTrigger id="applyAllStatus">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Active</SelectItem>
+                        <SelectItem value="0">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const next: Record<string, string> = { ...bulkStatuses };
+                      selectedProductIds.forEach((id) => {
+                        if (bulkStatusApplyAll !== "") {
+                          next[String(id)] = bulkStatusApplyAll;
+                        }
+                      });
+                      setBulkStatuses(next);
+                    }}
+                  >
+                    Apply to all
+                  </Button>
+                </div>
+
+                {selectedProductIds.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No products selected. Go to the Products tab and select rows
+                    with the checkbox.
+                  </div>
+                ) : (
+                  <div className="max-h-[50vh] overflow-y-auto border rounded">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px]">
+                            Product ID
+                          </TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="w-[200px]">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedProductIds.map((id) => {
+                          const p = products.find((pp) => pp.id === id);
+                          if (!p) return null;
+                          return (
+                            <TableRow key={String(id)}>
+                              <TableCell className="font-mono">{id}</TableCell>
+                              <TableCell className="truncate max-w-xs">
+                                {p.name}
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={bulkStatuses[String(id)] ?? ""}
+                                  onValueChange={(val) =>
+                                    setBulkStatuses((prev) => ({
+                                      ...prev,
+                                      [String(id)]: val,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1">Active</SelectItem>
+                                    <SelectItem value="0">Inactive</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setBulkStatusDialogOpen(false)}
+                    disabled={bulkStatusSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (selectedProductIds.length === 0) {
+                        toast("Select at least one product");
+                        return;
+                      }
+                      const items = selectedProductIds
+                        .map((id) => ({
+                          id,
+                          status: Number(bulkStatuses[String(id)]),
+                        }))
+                        .filter((x) => x.status === 0 || x.status === 1);
+                      if (items.length === 0) {
+                        toast("Provide valid statuses");
+                        return;
+                      }
+                      try {
+                        setBulkStatusSubmitting(true);
+                        try {
+                          const uniqueStatuses = Array.from(
+                            new Set(items.map((i) => i.status))
+                          );
+                          if (uniqueStatuses.length === 1) {
+                            await bulkUpdateProductStatus(token as string, {
+                              ids: items.map((i) => i.id) as any,
+                              status: uniqueStatuses[0],
+                            });
+                          } else {
+                            await bulkUpdateProductStatus(token as string, {
+                              products: items as any,
+                            });
+                          }
+                        } catch (err) {
+                          for (const it of items) {
+                            await updateProduct(token as string, it.id, {
+                              status: it.status,
+                            });
+                          }
+                        }
+                        toast("Statuses updated successfully");
+                        setBulkStatusDialogOpen(false);
+                        const res = await getProducts(token as string);
+                        setProducts(res.data?.data ?? res.data ?? []);
+                      } catch (e) {
+                        toast("Failed to update statuses");
+                      } finally {
+                        setBulkStatusSubmitting(false);
+                      }
+                    }}
+                    disabled={bulkStatusSubmitting}
+                  >
+                    {bulkStatusSubmitting ? "Updating..." : "Update Statuses"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

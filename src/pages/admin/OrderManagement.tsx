@@ -1,110 +1,210 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Eye, Download, MessageSquare, Package, Truck } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
+import {
+  Search,
+  Eye,
+  Download,
+  MessageSquare,
+  Package,
+  Truck,
+  Copy,
+  Check,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useAuth } from "@/context/AuthContext";
+import { getOrders } from "@/lib/api/ordersController";
 const OrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
+  const [statusCounts, setStatusCounts] = useState({
+    pending: 0,
+    processing: 0,
+    shipped: 0,
+    completed: 0,
+  });
 
-  // Mock data
-  const orders = [
-    {
-      id: "ORD001",
-      customer: "Priya Sharma",
-      email: "priya@email.com",
-      phone: "+91 98765 43210",
-      product: "Diamond Engagement Ring",
-      quantity: 1,
-      amount: "₹45,000",
-      status: "Pending",
-      orderDate: "2024-01-15",
-      expectedDelivery: "2024-01-25",
-      paymentMethod: "UPI",
-      address: "123 MG Road, Panjim, Goa - 403001"
-    },
-    {
-      id: "ORD002",
-      customer: "Rajesh Kumar",
-      email: "rajesh@email.com",
-      phone: "+91 87654 32109",
-      product: "Gold Chain Necklace",
-      quantity: 1,
-      amount: "₹28,000",
-      status: "Processing",
-      orderDate: "2024-01-14",
-      expectedDelivery: "2024-01-22",
-      paymentMethod: "Card",
-      address: "456 Church Street, Margao, Goa - 403601"
-    },
-    {
-      id: "ORD003",
-      customer: "Anita Desai",
-      email: "anita@email.com",
-      phone: "+91 76543 21098",
-      product: "Silver Bangles Set",
-      quantity: 2,
-      amount: "₹12,000",
-      status: "Shipped",
-      orderDate: "2024-01-12",
-      expectedDelivery: "2024-01-18",
-      paymentMethod: "NetBanking",
-      address: "789 Beach Road, Calangute, Goa - 403516"
-    },
-    {
-      id: "ORD004",
-      customer: "Vikram Singh",
-      email: "vikram@email.com",
-      phone: "+91 65432 10987",
-      product: "Bridal Jewelry Set",
-      quantity: 1,
-      amount: "₹85,000",
-      status: "Completed",
-      orderDate: "2024-01-10",
-      expectedDelivery: "2024-01-16",
-      paymentMethod: "EMI",
-      address: "321 Market Square, Vasco, Goa - 403802"
-    },
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
+
+  const copyToClipboard = useCallback((value?: string) => {
+    if (!value) return;
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(value)
+        .then(() => {
+          setCopiedValue(value);
+          setTimeout(() => setCopiedValue(null), 1500);
+        })
+        .catch(() => {
+          // Silently ignore copy failures
+        });
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getOrders(token);
+      const apiOrders = response?.data?.data ?? [];
+      const counts = response?.data?.status_counts ?? null;
+
+      const formatDate = (iso?: string) => {
+        if (!iso) return "";
+        try {
+          const d = new Date(iso);
+          return d.toLocaleString();
+        } catch {
+          return String(iso);
+        }
+      };
+
+      const formatStatus = (status?: string) => {
+        if (!status) return "Pending";
+        const s = status.replace(/_/g, " ");
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      };
+
+      const normalized = apiOrders.map((o: any) => ({
+        id: o.id,
+        orderCode: o.order_code,
+        customerId: o.customer_id,
+        customer: o.customer ?? null,
+        totalAmount: o.total_amount,
+        finalAmount: o.final_amount,
+        discountAmount: o.discount_amount,
+        status: formatStatus(o.status),
+        rawStatus: o.status ?? "pending",
+        deliveryAddress: o.delivery_address ?? "",
+        orderDate: formatDate(o.order_date),
+        expectedDelivery: o.expected_delivery
+          ? formatDate(o.expected_delivery)
+          : "—",
+        paymentMethod: o.payment_method ?? "",
+        razorpayOrderId: o.razorpay_order_id ?? "—",
+        razorpayPaymentId: o.razorpay_payment_id ?? "—",
+        razorpaySignature: o.razorpay_signature ?? "—",
+        notes: o.notes ?? "",
+      }));
+
+      setOrders(normalized);
+      if (counts) {
+        setStatusCounts({
+          pending: counts.pending ?? 0,
+          processing: counts.processing ?? 0,
+          shipped: counts.shipped ?? 0,
+          completed: counts.completed ?? 0,
+        });
+      }
+      console.log(response.data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      setError("Failed to fetch orders. Please try again.");
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
+  const statusOptions = [
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Completed",
+    "Cancelled",
   ];
 
-  const statusOptions = ["Pending", "Processing", "Shipped", "Completed", "Cancelled"];
-  
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pending": return "bg-yellow-100 text-yellow-800";
-      case "Processing": return "bg-blue-100 text-blue-800";
-      case "Shipped": return "bg-purple-100 text-purple-800";
-      case "Completed": return "bg-green-100 text-green-800";
-      case "Cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Processing":
+        return "bg-blue-100 text-blue-800";
+      case "Shipped":
+        return "bg-purple-100 text-purple-800";
+      case "Completed":
+        return "bg-green-100 text-green-800";
+      case "Cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const OrderDetailsModal = ({ order }: { order: typeof orders[0] }) => (
+  const OrderDetailsModal = ({ order }: { order: (typeof orders)[0] }) => (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <h3 className="font-semibold mb-2">Customer Information</h3>
           <div className="space-y-1 text-sm">
-            <p><strong>Name:</strong> {order.customer}</p>
-            <p><strong>Email:</strong> {order.email}</p>
-            <p><strong>Phone:</strong> {order.phone}</p>
+            <p>
+              <strong>Order Code:</strong> {order.orderCode}
+            </p>
+            <p>
+              <strong>Payment:</strong> {order.paymentMethod}
+            </p>
           </div>
         </div>
         <div>
           <h3 className="font-semibold mb-2">Order Details</h3>
           <div className="space-y-1 text-sm">
-            <p><strong>Order ID:</strong> {order.id}</p>
-            <p><strong>Date:</strong> {order.orderDate}</p>
-            <p><strong>Payment:</strong> {order.paymentMethod}</p>
+            <p>
+              <strong>Order ID:</strong> {order.id}
+            </p>
+            <p>
+              <strong>Order Date:</strong> {order.orderDate}
+            </p>
+            <p>
+              <strong>Expected Delivery:</strong> {order.expectedDelivery}
+            </p>
+            <p>
+              <strong>Status:</strong> {order.status}
+            </p>
           </div>
         </div>
       </div>
@@ -112,21 +212,21 @@ const OrderManagement = () => {
       <div>
         <h3 className="font-semibold mb-2">Product Information</h3>
         <div className="space-y-1 text-sm">
-          <p><strong>Product:</strong> {order.product}</p>
-          <p><strong>Quantity:</strong> {order.quantity}</p>
-          <p><strong>Amount:</strong> {order.amount}</p>
+          <p>
+            <strong>Final Amount:</strong> {order.finalAmount}
+          </p>
         </div>
       </div>
 
       <div>
         <h3 className="font-semibold mb-2">Delivery Address</h3>
-        <p className="text-sm">{order.address}</p>
+        <p className="text-sm">{order.deliveryAddress}</p>
       </div>
 
       <div>
         <h3 className="font-semibold mb-2">Update Order Status</h3>
         <div className="flex gap-4">
-          <Select defaultValue={order.status.toLowerCase()}>
+          <Select defaultValue={(order.status || "").toLowerCase()}>
             <SelectTrigger className="flex-1">
               <SelectValue />
             </SelectTrigger>
@@ -170,7 +270,9 @@ const OrderManagement = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Order Management</h1>
-          <p className="text-muted-foreground">Manage customer orders and deliveries</p>
+          <p className="text-muted-foreground">
+            Manage customer orders and deliveries
+          </p>
         </div>
       </div>
 
@@ -222,25 +324,29 @@ const OrderManagement = () => {
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">23</div>
-                <p className="text-xs text-muted-foreground">Pending Orders</p>
+                <div className="text-2xl font-bold">{statusCounts.pending}</div>
+                <p className="text-xs text-muted-foreground">Pending</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">45</div>
+                <div className="text-2xl font-bold">
+                  {statusCounts.processing}
+                </div>
                 <p className="text-xs text-muted-foreground">Processing</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">12</div>
+                <div className="text-2xl font-bold">{statusCounts.shipped}</div>
                 <p className="text-xs text-muted-foreground">Shipped</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold">156</div>
+                <div className="text-2xl font-bold">
+                  {statusCounts.completed}
+                </div>
                 <p className="text-xs text-muted-foreground">Completed</p>
               </CardContent>
             </Card>
@@ -257,9 +363,9 @@ const OrderManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order ID</TableHead>
+                    <TableHead>Order Code</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Final Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Order Date</TableHead>
                     <TableHead>Expected Delivery</TableHead>
@@ -267,44 +373,134 @@ const OrderManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{order.customer}</div>
-                          <div className="text-sm text-muted-foreground">{order.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell className="font-medium">{order.amount}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{order.orderDate}</TableCell>
-                      <TableCell>{order.expectedDelivery}</TableCell>
-                      <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Order Details - {order.id}</DialogTitle>
-                              <DialogDescription>
-                                View and manage order information
-                              </DialogDescription>
-                            </DialogHeader>
-                            <OrderDetailsModal order={order} />
-                          </DialogContent>
-                        </Dialog>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Loading orders...
+                        </p>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="text-red-500 mb-2">
+                          <p className="text-sm font-medium">
+                            Error loading orders
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {error}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchOrders()}
+                          className="mt-2"
+                        >
+                          Retry
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ) : orders && orders.length > 0 ? (
+                    orders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          {order.id}
+                        </TableCell>
+                        <TableCell>{order.orderCode}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="capitalize font-semibold">
+                              {order.customer?.name}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <span>{order.customer?.email}</span>
+                              {order.customer?.email ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label="Copy email"
+                                  className="h-6 w-6"
+                                  onClick={() =>
+                                    copyToClipboard(order.customer?.email)
+                                  }
+                                >
+                                  {copiedValue === order.customer?.email ? (
+                                    <Check className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span>{order.customer?.mobile}</span>
+                              {order.customer?.mobile ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label="Copy mobile"
+                                  className="h-6 w-6"
+                                  onClick={() =>
+                                    copyToClipboard(order.customer?.mobile)
+                                  }
+                                >
+                                  {copiedValue === order.customer?.mobile ? (
+                                    <Check className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {order.finalAmount}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(order.status)}>
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{order.orderDate}</TableCell>
+                        <TableCell>{order.expectedDelivery}</TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>
+                                  Order Details - {order.id}
+                                </DialogTitle>
+                                <DialogDescription>
+                                  View and manage order information
+                                </DialogDescription>
+                              </DialogHeader>
+                              <OrderDetailsModal order={order} />
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <Package className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          No orders found
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -315,7 +511,9 @@ const OrderManagement = () => {
           <Card>
             <CardHeader>
               <CardTitle>Custom Orders</CardTitle>
-              <CardDescription>Manage custom jewelry orders and uploads</CardDescription>
+              <CardDescription>
+                Manage custom jewelry orders and uploads
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
@@ -338,11 +536,13 @@ const OrderManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">Order analytics chart will be displayed here</p>
+                  <p className="text-muted-foreground">
+                    Order analytics chart will be displayed here
+                  </p>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Top Products</CardTitle>

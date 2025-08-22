@@ -93,3 +93,37 @@ export const deleteProduct = async (token: string, id: number | string) => {
   });
   return response;
 };
+
+export const bulkUpdateProductPrices = async (
+  token: string,
+  payload: { products: { id: number | string; price: number }[] }
+) => {
+  const response = await axios.post(
+    `${API_BASE_URL}/admin/products/bulk-price-update`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response;
+};
+
+export const bulkUpdateProductStatus = async (
+  token: string,
+  payload:
+    | { products: { id: number | string; status: number | boolean }[] }
+    | { ids: (number | string)[]; status: number | boolean }
+) => {
+  const response = await axios.post(
+    `${API_BASE_URL}/admin/products/bulk-status-update`,
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response;
+};
