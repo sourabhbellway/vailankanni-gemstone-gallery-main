@@ -64,9 +64,10 @@ import {
   deleteCategory as deleteCategoryApi,
 } from "@/lib/api/categoriesController";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/config";
 const ProductManagement = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [categories, setCategories] = useState([]);
@@ -190,7 +191,11 @@ const ProductManagement = () => {
         payload = formData;
       }
       await createProduct(token, payload);
-      toast.success("Product added successfully");
+      toast({
+        title: "Success",
+        description: "Product added successfully",
+        variant: "success",
+      });
       const refreshed = await getProducts(token);
       const data = (refreshed?.data?.data ?? []) as any[];
       setProducts(Array.isArray(data) ? data : []);
@@ -324,7 +329,11 @@ const ProductManagement = () => {
     };
     try {
       await updateProduct(token, editingProductId, jsonPayload);
-      toast.success("Product updated successfully");
+      toast({
+        title: "Success",
+        description: "Product updated successfully",
+        variant: "success",
+      });
       const refreshed = await getProducts(token);
       const data = (refreshed?.data?.data ?? []) as any[];
       setProducts(Array.isArray(data) ? data : []);
@@ -338,7 +347,11 @@ const ProductManagement = () => {
   const handleDeleteProduct = async (id: number) => {
     if (!token) return;
     await deleteProduct(token, id);
-    toast.success("Product deleted successfully");
+    toast({
+      title: "Success",
+      description: "Product deleted successfully",
+      variant: "success",
+    });
     const refreshed = await getProducts(token);
     const data = (refreshed?.data?.data ?? []) as any[];
     setProducts(Array.isArray(data) ? data : []);
@@ -352,14 +365,22 @@ const ProductManagement = () => {
       const name = newCategoryName.trim();
       if (!name) return;
       await createCategory(token, { name });
-      toast.success("Category created successfully");
+      toast({
+        title: "Success",
+        description: "Category created successfully",
+        variant: "success",
+      });
       await refreshCategories();
       setCategoryCreateOpen(false);
       setNewCategoryName("");
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
-      toast.error("Failed to create category");
+      toast({
+        title: "Error",
+        description: "Failed to create category",
+        variant: "destructive",
+      });
     }
   };
 
@@ -384,7 +405,11 @@ const ProductManagement = () => {
       const name = categoryEditName.trim();
       if (!name) return;
       await updateCategory(token, categoryEditId, { name });
-      toast.success("Category updated successfully");
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+        variant: "success",
+      });
       await refreshCategories();
       setCategoryEditOpen(false);
       setCategoryEditId(null);
@@ -392,7 +417,11 @@ const ProductManagement = () => {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
-      toast.error("Failed to update category");
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      });
     }
   };
 
@@ -400,12 +429,20 @@ const ProductManagement = () => {
     if (!token) return;
     try {
       await deleteCategoryApi(token, id);
-      toast.success("Category deleted successfully");
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+        variant: "success",
+      });
       await refreshCategories();
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
-      toast.error("Failed to delete category");
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1229,7 +1266,11 @@ const ProductManagement = () => {
                   <Button
                     onClick={async () => {
                       if (selectedProductIds.length === 0) {
-                        toast("Select at least one product");
+                        toast({
+                          title: "Warning",
+                          description: "Select at least one product",
+                          variant: "warning",
+                        });
                         return;
                       }
                       const items = selectedProductIds
@@ -1239,7 +1280,11 @@ const ProductManagement = () => {
                         }))
                         .filter((x) => !Number.isNaN(x.price) && x.price > 0);
                       if (items.length === 0) {
-                        toast("Provide valid prices");
+                        toast({
+                          title: "Warning",
+                          description: "Provide valid prices",
+                          variant: "warning",
+                        });
                         return;
                       }
                       try {
@@ -1255,12 +1300,20 @@ const ProductManagement = () => {
                             });
                           }
                         }
-                        toast("Prices updated successfully");
+                        toast({
+                          title: "Success",
+                          description: "Prices updated successfully",
+                          variant: "success",
+                        });
                         setBulkDialogOpen(false);
                         const res = await getProducts(token as string);
                         setProducts(res.data?.data ?? res.data ?? []);
                       } catch (e) {
-                        toast("Failed to update prices");
+                        toast({
+                          title: "Error",
+                          description: "Failed to update prices",
+                          variant: "destructive",
+                        });
                       } finally {
                         setBulkSubmitting(false);
                       }
@@ -1386,7 +1439,11 @@ const ProductManagement = () => {
                   <Button
                     onClick={async () => {
                       if (selectedProductIds.length === 0) {
-                        toast("Select at least one product");
+                        toast({
+                          title: "Warning",
+                          description: "Select at least one product",
+                          variant: "warning",
+                        });
                         return;
                       }
                       const items = selectedProductIds
@@ -1396,7 +1453,11 @@ const ProductManagement = () => {
                         }))
                         .filter((x) => x.status === 0 || x.status === 1);
                       if (items.length === 0) {
-                        toast("Provide valid statuses");
+                        toast({
+                          title: "Warning",
+                          description: "Provide valid statuses",
+                          variant: "warning",
+                        });
                         return;
                       }
                       try {
@@ -1422,12 +1483,20 @@ const ProductManagement = () => {
                             });
                           }
                         }
-                        toast("Statuses updated successfully");
+                        toast({
+                          title: "Success",
+                          description: "Statuses updated successfully",
+                          variant: "success",
+                        });
                         setBulkStatusDialogOpen(false);
                         const res = await getProducts(token as string);
                         setProducts(res.data?.data ?? res.data ?? []);
                       } catch (e) {
-                        toast("Failed to update statuses");
+                        toast({
+                          title: "Error",
+                          description: "Failed to update statuses",
+                          variant: "destructive",
+                        });
                       } finally {
                         setBulkStatusSubmitting(false);
                       }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -8,8 +9,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -31,22 +30,15 @@ import {
   Search,
   Eye,
   Download,
-  MessageSquare,
   Package,
-  Truck,
   Copy,
   Check,
+  Loader2,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { getOrders } from "@/lib/api/ordersController";
+
 const OrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -54,6 +46,7 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
+  const { toast } = useToast();
   const [statusCounts, setStatusCounts] = useState({
     pending: 0,
     processing: 0,
@@ -62,6 +55,7 @@ const OrderManagement = () => {
   });
 
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const copyToClipboard = useCallback((value?: string) => {
     if (!value) return;
@@ -133,15 +127,19 @@ const OrderManagement = () => {
           completed: counts.completed ?? 0,
         });
       }
-      console.log(response.data);
     } catch (error) {
       console.error("Error fetching orders:", error);
       setError("Failed to fetch orders. Please try again.");
       setOrders([]);
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, toast]);
 
   useEffect(() => {
     if (token) {
@@ -149,7 +147,7 @@ const OrderManagement = () => {
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, fetchOrders]);
 
   const statusOptions = [
     "Pending",
@@ -175,95 +173,6 @@ const OrderManagement = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  const OrderDetailsModal = ({ order }: { order: (typeof orders)[0] }) => (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <h3 className="font-semibold mb-2">Customer Information</h3>
-          <div className="space-y-1 text-sm">
-            <p>
-              <strong>Order Code:</strong> {order.orderCode}
-            </p>
-            <p>
-              <strong>Payment:</strong> {order.paymentMethod}
-            </p>
-          </div>
-        </div>
-        <div>
-          <h3 className="font-semibold mb-2">Order Details</h3>
-          <div className="space-y-1 text-sm">
-            <p>
-              <strong>Order ID:</strong> {order.id}
-            </p>
-            <p>
-              <strong>Order Date:</strong> {order.orderDate}
-            </p>
-            <p>
-              <strong>Expected Delivery:</strong> {order.expectedDelivery}
-            </p>
-            <p>
-              <strong>Status:</strong> {order.status}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-2">Product Information</h3>
-        <div className="space-y-1 text-sm">
-          <p>
-            <strong>Final Amount:</strong> {order.finalAmount}
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-2">Delivery Address</h3>
-        <p className="text-sm">{order.deliveryAddress}</p>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-2">Update Order Status</h3>
-        <div className="flex gap-4">
-          <Select defaultValue={(order.status || "").toLowerCase()}>
-            <SelectTrigger className="flex-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((status) => (
-                <SelectItem key={status} value={status.toLowerCase()}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button>Update Status</Button>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-2">Add Order Notes</h3>
-        <Textarea placeholder="Add internal notes about this order..." />
-        <Button className="mt-2">Add Note</Button>
-      </div>
-
-      <div className="flex gap-2">
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Download Invoice
-        </Button>
-        <Button variant="outline">
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Contact Customer
-        </Button>
-        <Button variant="outline">
-          <Package className="mr-2 h-4 w-4" />
-          Track Package
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="container py-6">
@@ -460,7 +369,7 @@ const OrderManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {order.finalAmount}
+                          ₹{order.finalAmount}
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(order.status)}>
@@ -470,24 +379,15 @@ const OrderManagement = () => {
                         <TableCell>{order.orderDate}</TableCell>
                         <TableCell>{order.expectedDelivery}</TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle>
-                                  Order Details - {order.id}
-                                </DialogTitle>
-                                <DialogDescription>
-                                  View and manage order information
-                                </DialogDescription>
-                              </DialogHeader>
-                              <OrderDetailsModal order={order} />
-                            </DialogContent>
-                          </Dialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/admin/orders/${order.id}`)
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))

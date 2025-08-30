@@ -11,7 +11,10 @@ export type NormalizedLogin = {
   message?: string;
 };
 
-export async function adminLogin(username: string, password: string): Promise<NormalizedLogin> {
+export async function adminLogin(
+  username: string,
+  password: string
+): Promise<NormalizedLogin> {
   const payload = username.includes("@")
     ? { email: username, password }
     : { username, password };
@@ -79,7 +82,9 @@ export type AdminProfileResponse = {
   data: AdminProfileData;
 };
 
-export async function adminGetProfile(token: string): Promise<AdminProfileData> {
+export async function adminGetProfile(
+  token: string
+): Promise<AdminProfileData> {
   const res = await fetch(`${API_BASE_URL}/admin/getProfile`, {
     method: "GET",
     headers: {
@@ -102,5 +107,3 @@ export async function adminGetProfile(token: string): Promise<AdminProfileData> 
   const json = (await res.json()) as AdminProfileResponse;
   return json.data;
 }
-
-

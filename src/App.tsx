@@ -18,6 +18,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProductManagement from "./pages/admin/ProductManagement";
 import OrderManagement from "./pages/admin/OrderManagement";
+import OrderDetails from "./pages/admin/OrderDetails";
 import UserManagement from "./pages/admin/UserManagement";
 import BannerManagement from "./pages/admin/BannerManagement";
 import CouponManagement from "./pages/admin/CouponManagement";
@@ -76,6 +77,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <OrderManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/orders/:orderId"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <OrderDetails />
                   </AdminLayout>
                 </ProtectedRoute>
               }

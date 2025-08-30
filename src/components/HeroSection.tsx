@@ -29,7 +29,7 @@ const banners = [
     subtitle: "Unlock the Best Jewellery Deals—See How Much You Can Save!",
     badge: "Certified Diamond Collection",
     primaryButton: "Price comparision",
-  }
+  },
 ];
 
 const HeroSection = () => {
@@ -53,18 +53,21 @@ const HeroSection = () => {
   const currentBannerData = banners[currentBanner];
 
   return (
-    <section id="home" className="relative -mt-20 min-h-[99vh] flex items-center justify-center overflow-hidden">
+    <section
+      id="home"
+      className="relative -mt-20 min-h-[99vh] flex items-center justify-center overflow-hidden"
+    >
       {/* Background Images with Transition */}
       <div className="absolute inset-0 z-0">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
             className={`absolute inset-0 transition-opacity duration-300 ${
-              index === currentBanner ? 'opacity-100' : 'opacity-0'
+              index === currentBanner ? "opacity-100" : "opacity-0"
             }`}
           >
-            <img 
-              src={banner.image} 
+            <img
+              src={banner.image}
               alt={banner.title}
               className="w-full h-full object-cover"
             />
@@ -94,9 +97,9 @@ const HeroSection = () => {
             key={index}
             onClick={() => setCurrentBanner(index)}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              index === currentBanner 
-                ? 'bg-secondary scale-125' 
-                : 'bg-white/50 hover:bg-white/70'
+              index === currentBanner
+                ? "bg-secondary scale-125"
+                : "bg-white/50 hover:bg-white/70"
             }`}
           />
         ))}
@@ -106,16 +109,20 @@ const HeroSection = () => {
       <div className="relative  z-10 container mx-auto px-4 text-center text-primary-foreground">
         <div className="max-w-4xl mx-auto animate-fade-in">
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-8 animate-scale-in font-serif" >
+          <div className="inline-flex items-center space-x-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-8 animate-scale-in font-serif">
             <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
-            <span className="text-sm font-medium text-secondary">{currentBannerData.badge}</span>
+            <span className="text-sm font-medium text-secondary">
+              {currentBannerData.badge}
+            </span>
           </div>
 
           {/* Main Heading with Transition */}
           <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight animate-fade-in font-serif">
-            <span className="block leading-tight">{currentBannerData.title.split(' ')[0]}</span>
+            <span className="block leading-tight">
+              {currentBannerData.title.split(" ")[0]}
+            </span>
             <span className="block bg-gradient-to-r from-secondary to-secondary-light leading-tight bg-clip-text text-transparent">
-              {currentBannerData.title.split(' ')[1]}
+              {currentBannerData.title.split(" ")[1]}
             </span>
           </h1>
 
@@ -128,7 +135,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
             {currentBannerData.primaryButton === "Book an Appointment" ? (
               <a href="/gold-services#appointment">
-                <Button 
+                <Button
                   size="lg"
                   className=" bg-gradient-to-r from-[#8e6e00] via-[#fce56b] to-[#fff2b2] text-black font-semibold px-6 py-2 rounded-full  transition-all duration-300 hover:brightness-125  hover:scale-105 relative overflow-hidden shimmer-btn"
                 >
@@ -138,7 +145,7 @@ const HeroSection = () => {
               </a>
             ) : (
               <a href="/gold-services#compare">
-                <Button 
+                <Button
                   size="lg"
                   className=" bg-gradient-to-r from-[#8e6e00] via-[#fce56b] to-[#fff2b2] text-black font-semibold px-6 py-2 rounded-full  transition-all duration-300 hover:brightness-125  hover:scale-105 relative overflow-hidden shimmer-btn"
                 >
@@ -151,26 +158,34 @@ const HeroSection = () => {
 
           {/* Trust Indicators */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
-            {[{
-              value: '35+',
-              label: 'Years Experience',
-              delay: '200ms',
-            }, {
-              value: '15K+',
-              label: 'Happy Customers',
-              delay: '400ms',
-            }, {
-              value: '100%',
-              label: 'Certified Gold',
-              delay: '600ms',
-            }].map((item, idx) => (
+            {[
+              {
+                value: "35+",
+                label: "Years Experience",
+                delay: "200ms",
+              },
+              {
+                value: "15K+",
+                label: "Happy Customers",
+                delay: "400ms",
+              },
+              {
+                value: "100%",
+                label: "Certified Gold",
+                delay: "600ms",
+              },
+            ].map((item, idx) => (
               <div
                 key={item.label}
                 className="text-center animate-scale-in transition-transform duration-300 bg-white/10 backdrop-blur-xl rounded-2xl shadow-lg border border-secondary/30 hover:scale-105 hover:shadow-2xl hover:border-secondary/60 p-6 flex flex-col items-center cursor-pointer"
                 style={{ animationDelay: item.delay }}
               >
-                <div className="text-3xl font-extrabold text-secondary mb-2 drop-shadow-sm">{item.value}</div>
-                <div className="text-sm text-primary-foreground/80 font-medium">{item.label}</div>
+                <div className="text-3xl font-extrabold text-secondary mb-2 drop-shadow-sm">
+                  {item.value}
+                </div>
+                <div className="text-sm text-primary-foreground/80 font-medium">
+                  {item.label}
+                </div>
               </div>
             ))}
           </div>
