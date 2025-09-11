@@ -28,8 +28,11 @@ import NotificationManagement from "./pages/admin/NotificationManagement";
 import Settings from "./pages/admin/Settings";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { UserAuthProvider } from "./context/UserAuthContext";
+import ProtectedUserRoute from "./components/ProtectedUserRoute";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminProfile from "./pages/admin/AdminProfile";
+import Profile from "./pages/Profile";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -38,7 +41,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
+        <UserAuthProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/category/:categorySlug" element={<CategoryPage />} />
@@ -50,6 +54,14 @@ const App = () => (
             <Route path="/payments" element={<Payments />} />
             <Route path="/bridal-collection" element={<BridalCollection />} />
             <Route path="/explore-collection" element={<ExploreCollection />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedUserRoute>
+                  <Profile />
+                </ProtectedUserRoute>
+              }
+            />
             <Route path="/login" element={<AdminLogin />} />
             <Route
               path="/admin"
@@ -174,7 +186,8 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+        </UserAuthProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

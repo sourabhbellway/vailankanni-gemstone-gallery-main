@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAnalytics } from "@/lib/api/dashboardController";
 import {
   Table,
   TableBody,
@@ -29,27 +30,26 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  TrendingUp,
-  Package,
-  Users,
-  IndianRupee,
-  Bell,
-  Settings,
-} from "lucide-react";
+import { ShoppingBag, TrendingUp, DollarSign, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const AdminDashboard = () => {
-  const { name, email } = useAuth();
-  // Mock data for demonstration (will use dynamic admin name/email below where applicable)
-  const overviewStats = [
-    { title: "Total Orders", value: "1,234", change: "+12%", icon: Package },
-    { title: "Revenue", value: "₹12,34,567", change: "+8%", icon: IndianRupee },
-    { title: "Active Users", value: "456", change: "+5%", icon: Users },
-    { title: "Pending Orders", value: "23", change: "-2%", icon: Bell },
-  ];
-
+  const { token } = useAuth();
+  const [stats, setStats] = useState([]);
+  // const statsArray = Object.entries(stats);
+  useEffect(() => {
+    getAnalytics(token)
+      .then((response) => {
+        const data = response;
+        console.log(data);
+        setStats(data.data.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }, []);
   const salesData = [
     { month: "Jan", sales: 65000 },
     { month: "Feb", sales: 59000 },
@@ -96,36 +96,10 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">
-                Vailankanni Admin
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                {email || "admin@example.com"}
-              </p>
-            </div>
-            <Badge variant="secondary">{name || "Admin"}</Badge>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-            <LogoutButton />
-          </div>
-        </div>
-      </div>
-
-      <div className="container py-6">
+    <div className="">
+      <div className="px-6 ">
         {/* Overview Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           {overviewStats.map((stat, index) => (
             <Card key={index}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -143,46 +117,79 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           ))}
+        </div> */}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {/* Total Orders */}
+          <Card className="rounded-2xl shadow bg-blue-50 ">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Orders
+              </CardTitle>
+              <ShoppingBag className="h-6 w-6 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {stats.total_orders}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Orders placed till date
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Total Revenue */}
+          <Card className="rounded-2xl shadow bg-emerald-50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Revenue
+              </CardTitle>
+              <DollarSign className="h-6 w-6 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                ₹{stats.total_revenue}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Gross earnings so far
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Average Order Value */}
+          <Card className="rounded-2xl shadow bg-purple-50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Avg. Order Value
+              </CardTitle>
+              <TrendingUp className="h-6 w-6 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                ₹{stats.average_order_value}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Per order on average</p>
+            </CardContent>
+          </Card>
+
+          {/* Active Customers */}
+          <Card className="rounded-2xl shadow bg-rose-50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Active Customers
+              </CardTitle>
+              <Users className="h-6 w-6 text-rose-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {stats.active_customers}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Engaged this month</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Current Metal Rates */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Today's Metal Rates</CardTitle>
-            <CardDescription>Current prices per gram</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Gold (24K)</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    ₹{currentRates.gold.rate}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-green-600">
-                  {currentRates.gold.change}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Silver</p>
-                  <p className="text-2xl font-bold text-gray-600">
-                    ₹{currentRates.silver.rate}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-red-600">
-                  {currentRates.silver.change}
-                </Badge>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Input placeholder="Gold rate per gram" className="flex-1" />
-              <Input placeholder="Silver rate per gram" className="flex-1" />
-              <Button>Update Rates</Button>
-            </div>
-          </CardContent>
-        </Card>
+       
 
         {/* Charts and Analytics */}
         <div className="grid gap-6 md:grid-cols-2 mb-8">
@@ -282,20 +289,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
-const LogoutButton = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => {
-        logout();
-        navigate("/login", { replace: true });
-      }}
-    >
-      Logout
-    </Button>
-  );
-};

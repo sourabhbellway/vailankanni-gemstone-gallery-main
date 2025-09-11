@@ -10,6 +10,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import logo from "@/assets/logo.jpg";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useUserAuth } from "@/context/UserAuthContext";
 
 // Add shimmer animation styles
 const shimmerStyle = `
@@ -110,6 +111,13 @@ const Header = () => {
     { name: "Silver Jewelry", href: "#silver" },
     { name: "Gemstone Jewelry", href: "#gemstone" },
   ];
+
+  const { isAuthenticated, logout } = useUserAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/signin");
+  };
 
   return (
     <>
@@ -249,19 +257,21 @@ const Header = () => {
               >
                 Sign In
               </Link> */}
-              <Link
-                to="/signup"
-                className={`${
-                  isScrolled
-                    ? "bg-[#084526] text-white"
-                    : isHome || isSchemes
-                    ? "bg-white text-[#084526]"
-                    : "bg-white text-[#084526]"
-                } font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80`}
-                type="button"
-              >
-                Sign Up
-              </Link>
+              {!isAuthenticated && (
+                <Link
+                  to="/signup"
+                  className={`${
+                    isScrolled
+                      ? "bg-[#084526] text-white"
+                      : isHome || isSchemes
+                      ? "bg-white text-[#084526]"
+                      : "bg-white text-[#084526]"
+                  } font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80`}
+                  type="button"
+                >
+                  Sign Up
+                </Link>
+              )}
               {/* User Profile Avatar */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -275,9 +285,16 @@ const Header = () => {
                   </span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-40 bg-card border-border shadow-luxury animate-scale-in">
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuItem>Logout</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  {isAuthenticated ? (
+                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link to="/signin">Sign In</Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

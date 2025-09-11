@@ -3,7 +3,10 @@ import logo from "@/assets/logo.jpg";
 import signinImg from "@/assets/signin.png";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { registerUser } from "@/lib/api/userController";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useNavigate } from "react-router-dom";
+import { registerUser, verifyRegisterOtp } from "@/lib/api/userController";
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +16,17 @@ const SignUp = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showOtp, setShowOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [timer, setTimer] = useState(60);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (showOtp && timer > 0) {
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [showOtp, timer]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,9 +42,10 @@ const SignUp = () => {
     setMessage("");
 
     try {
-      const response = await registerUser(formData);
-      setMessage("Registration successful! Please check your email for OTP.");
-      setFormData({ name: "", email: "", mobile: "" });
+      await registerUser(formData);
+      setShowOtp(true);
+      setTimer(60);
+      setMessage("");
     } catch (error: any) {
       setMessage(
         error.response?.data?.message ||
@@ -38,6 +53,25 @@ const SignUp = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const maskMobile = (mobile: string) => {
+    if (!mobile) return "";
+    if (mobile.length <= 6) return mobile;
+    return `${mobile.slice(0, 4)}xxxxxx${mobile.slice(-2)}`;
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await verifyRegisterOtp({ mobile: formData.mobile, otp });
+      setShowOtp(false);
+      setOtp("");
+      setFormData({ name: "", email: "", mobile: "" });
+      navigate("/signin");
+    } catch (error: any) {
+      setMessage(error.response?.data?.message || "Invalid OTP. Please try again.");
     }
   };
 
@@ -142,6 +176,24 @@ const SignUp = () => {
             </form>
           </div>
         </div>
+        <Dialog open={showOtp} onOpenChange={setShowOtp}>
+          <DialogContent className="max-w-xl p-8 font-serif">
+            <form onSubmit={handleOtpSubmit} className="flex flex-col items-center">
+              <h2 className="text-2xl font-bold my-2 text-center">Enter Your OTP</h2>
+              <div className="text-sm text-center my-4">
+                OTP sent to your registered mobile no. <br />
+                <span className="font-semibold">{maskMobile(formData.mobile)}</span>
+              </div>
+              <InputOTP maxLength={6} value={otp} onChange={setOtp} className="mb-4 ">
+                <InputOTPGroup>
+                  {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
+                </InputOTPGroup>
+              </InputOTP>
+              <div className="text-xs text-gray-500 my-4">Didn't get the code? Resend in 0:{timer.toString().padStart(2, '0')}</div>
+              <button type="submit" className="w-fit px-10 bg-black text-white py-2 font-semibold hover:bg-[#222] transition">Submit</button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
       <Footer />
     </>
