@@ -175,7 +175,7 @@ const OrderManagement = () => {
   };
 
   return (
-    <div className="container py-6">
+    <div className=" p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Order Management</h1>

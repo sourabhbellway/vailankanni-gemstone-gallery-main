@@ -73,6 +73,8 @@ export const getUserProfile = async (token: string) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/user/getProfile`, {
       headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });

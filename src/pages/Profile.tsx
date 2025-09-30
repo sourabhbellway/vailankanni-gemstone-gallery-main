@@ -21,21 +21,22 @@ const Profile = () => {
     try {
       console.log("Fetching profile with token:", token);
       const data = await getUserProfile(token);
-      console.log("Profile API response:", data);
+      // console.log("Profile API response:", data);
       setProfile(data)
      
     } catch (err: any) {
       console.error("Profile fetch error:", err);
       if (err?.code === 'ETIMEDOUT' || err?.message?.includes('timeout')) {
         setError("Request timed out. Please check your internet connection and try again.");
-      } else if (err?.response?.status === 401) {
-        setError("Session expired. Please sign in again.");
+      } else if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setError("Session expired or unauthorized. Please sign in again.");
         localStorage.removeItem("va_user_token");
         setTimeout(() => {
           window.location.href = "/signin";
         }, 2000);
       } else {
-        setError(err?.message || "Failed to load profile. Please try again.");
+        const serverMsg = err?.response?.data?.message;
+        setError(serverMsg || err?.message || "Failed to load profile. Please try again.");
       }
     } finally {
       setLoading(false);

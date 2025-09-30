@@ -127,7 +127,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* Mobile/ Desktop Top Bar */}
-      <div className=" p-5  absolute top-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-40 flex justify-between bg-white">
+      <div className=" p-5  absolute top-0 w-full md:left-64 md:w-[calc(100%-16rem)] z-40 flex justify-between bg-[#F8F8F6]">
         <p className="text-[#005B2F]">
           <span className=" text-sm font-semibold">Admin Panel</span> •{" "}
           <span className="text-gray-500 text-xs font-semibold">
