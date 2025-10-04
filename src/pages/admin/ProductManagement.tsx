@@ -47,6 +47,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   getProducts,
   createProduct,
@@ -63,6 +64,15 @@ import {
   updateCategory,
   deleteCategory as deleteCategoryApi,
 } from "@/lib/api/categoriesController";
+
+import {
+  getCollections,
+  createCollection,
+  getCollectionById,
+  updateCollection,
+  deleteCollection as deleteCollectionApi,
+} from "@/lib/api/collectionsController";
+
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/config";
@@ -70,11 +80,14 @@ const ProductManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCollection, setSelectedCollection] = useState("all");
   const [categories, setCategories] = useState([]);
+  const [collections, setCollections] = useState([]);
   const [products, setProducts] = useState<any[]>([]);
   const { token } = useAuth();
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [collectionId, setCollectionId] = useState("");
   const [purity, setPurity] = useState("");
   const [weight, setWeight] = useState("");
   const [makingCharges, setMakingCharges] = useState("");
@@ -84,11 +97,13 @@ const ProductManagement = () => {
   const [images, setImages] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement | null>(null);
   // Edit product state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editCategoryId, setEditCategoryId] = useState("");
+  const [editCollectionId, setEditCollectionId] = useState("");
   const [editPurity, setEditPurity] = useState("");
   const [editWeight, setEditWeight] = useState("");
   const [editMakingCharges, setEditMakingCharges] = useState("");
@@ -96,6 +111,8 @@ const ProductManagement = () => {
   const [editStock, setEditStock] = useState("");
   const [editStatusActive, setEditStatusActive] = useState(false);
   const [editImageUrl, setEditImageUrl] = useState<string>("");
+  const [editImageUrls, setEditImageUrls] = useState<string[]>([]);
+  const [editImages, setEditImages] = useState<File[]>([]);
 
   // Bulk price update state
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -112,12 +129,28 @@ const ProductManagement = () => {
   const [bulkStatusApplyAll, setBulkStatusApplyAll] = useState<string>("");
   const [bulkStatusSubmitting, setBulkStatusSubmitting] = useState(false);
 
+  const MAX_CREATE_IMAGES = 2;
+  const MAX_EDIT_IMAGES = 2;
+
   // Category CRUD state
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [categoryEditOpen, setCategoryEditOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryEditId, setCategoryEditId] = useState<number | null>(null);
   const [categoryEditName, setCategoryEditName] = useState("");
+
+  // Collection CRUD state
+  const [collectionCreateOpen, setCollectionCreateOpen] = useState(false);
+  const [collectionEditOpen, setCollectionEditOpen] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [newCollectionDescription, setNewCollectionDescription] = useState("");
+  const [newCollectionImage, setNewCollectionImage] = useState<File | null>(null);
+  const [collectionEditId, setCollectionEditId] = useState<number | null>(null);
+  const [collectionEditName, setCollectionEditName] = useState("");
+  const [collectionEditDescription, setCollectionEditDescription] = useState("");
+  const [collectionEditImage, setCollectionEditImage] = useState<File | null>(null);
+  const collectionCreateFileRef = useRef<HTMLInputElement | null>(null);
+  const collectionEditFileRef = useRef<HTMLInputElement | null>(null);
 
   // Edit modal shows only editable fields; no image state for edit
   const normalizePurity = (value: unknown): string => {
@@ -142,6 +175,7 @@ const ProductManagement = () => {
     getProducts(token)
       .then((response) => {
         const data = (response?.data?.data ?? []) as any[];
+        // console.log(data);
         setProducts(Array.isArray(data) ? data : []);
       })
       .catch(() => setProducts([]));
@@ -150,15 +184,14 @@ const ProductManagement = () => {
       .then((response) => {
         setCategories(response.data.data);
       })
+    getCollections(token)
+      .then((response) => {
+        setCollections(response.data.data);
+      })
 
       .catch((error) => console.log(error));
   }, [token]);
 
-  const refreshCategories = async () => {
-    if (!token) return;
-    const response = await getCategories(token);
-    setCategories(response.data.data ?? []);
-  };
 
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -166,6 +199,7 @@ const ProductManagement = () => {
     const jsonPayload = {
       name,
       category_id: categoryId,
+      collection_id: collectionId,
       purity,
       weight: weight ? Number(weight) : undefined,
       making_charges: makingCharges ? Number(makingCharges) : undefined,
@@ -178,16 +212,27 @@ const ProductManagement = () => {
         const formData = new FormData();
         formData.append("name", name);
         formData.append("category_id", categoryId);
+        formData.append("collection_id", collectionId);
         if (purity) formData.append("purity", purity.toUpperCase());
         if (weight) formData.append("weight", String(Number(weight)));
         if (makingCharges)
           formData.append("making_charges", String(Number(makingCharges)));
         if (price) formData.append("price", String(Number(price)));
         if (stock) formData.append("stock", String(Number(stock)));
-
-        if (images[0]) {
-          formData.append("image", images[0], images[0].name);
-        }
+        images.forEach((file) => {
+          formData.append("image[]", file, file.name);
+        });
+        // Debug: log form-data keys for verification
+        // eslint-disable-next-line no-console
+        try {
+          const debug: Record<string, string[]> = {};
+          // @ts-ignore - FormData iterator supported in browsers
+          for (const [k, v] of formData.entries()) {
+            const val = typeof v === "string" ? v : (v as File).name;
+            debug[k] = [...(debug[k] || []), val as string];
+          }
+          console.log("[CreateProduct] FormData:", debug);
+        } catch {}
         payload = formData;
       }
       await createProduct(token, payload);
@@ -202,6 +247,7 @@ const ProductManagement = () => {
       // reset form
       setName("");
       setCategoryId("");
+      setCollectionId("");
       setPurity("");
       setWeight("");
       setMakingCharges("");
@@ -215,12 +261,14 @@ const ProductManagement = () => {
     }
   };
 
+
   const openEditDialogForProduct = async (product: any) => {
     try {
       if (!token) return;
       const id = product?.id;
       if (!id) return;
       const response = await getProductById(token, id);
+      console.log(response);
       const details = response?.data?.data ?? {};
       const categoryIdFromProduct =
         details?.category_id ?? details?.category?.id ?? "";
@@ -228,6 +276,11 @@ const ProductManagement = () => {
       setEditName(details?.name ?? "");
       setEditCategoryId(
         categoryIdFromProduct ? String(categoryIdFromProduct) : ""
+      );
+      const collectionIdFromProduct =
+        details?.collection_id ?? details?.collection?.id ?? "";
+      setEditCollectionId(
+        collectionIdFromProduct ? String(collectionIdFromProduct) : ""
       );
       const normalizedPurity = normalizePurity(
         details?.purity ?? details?.karat ?? ""
@@ -258,13 +311,30 @@ const ProductManagement = () => {
       setEditStatusActive(
         statusVal === 1 || statusVal === "1" || statusVal === true
       );
-      const imgRaw =
+      const imgField: unknown =
         (details && (details.image_url ?? details.image)) ??
-        (details &&
-          details.images &&
-          (details.images[0]?.url ?? details.images[0])) ??
+        (details && details.images) ??
         "";
-      setEditImageUrl(String(imgRaw || ""));
+      let urls: string[] = [];
+      try {
+        if (Array.isArray(imgField)) {
+          urls = (imgField as any[])
+            .map((x) => (typeof x === "string" ? x : x?.url ?? ""))
+            .filter(Boolean);
+        } else if (typeof imgField === "string") {
+          if (imgField.trim().startsWith("[")) {
+            const parsed = JSON.parse(imgField);
+            if (Array.isArray(parsed)) {
+              urls = parsed.filter((x: any) => typeof x === "string");
+            }
+          } else if (imgField) {
+            urls = [imgField];
+          }
+        }
+      } catch {}
+      setEditImageUrls(urls);
+      setEditImageUrl(urls[0] ?? "");
+      setEditImages([]);
       setEditDialogOpen(true);
     } catch (err) {
       // fallback to opening with whatever we have
@@ -274,6 +344,11 @@ const ProductManagement = () => {
       setEditName(product?.name ?? "");
       setEditCategoryId(
         categoryIdFromProduct ? String(categoryIdFromProduct) : ""
+      );
+      const collectionIdFromProduct =
+        product?.collection_id ?? product?.collection?.id ?? "";
+      setEditCollectionId(
+        collectionIdFromProduct ? String(collectionIdFromProduct) : ""
       );
       const normalizedPurity = normalizePurity(
         product?.purity ?? product?.karat ?? ""
@@ -304,12 +379,28 @@ const ProductManagement = () => {
       setEditStatusActive(
         statusVal === 1 || statusVal === "1" || statusVal === true
       );
-      const imgRaw =
-        product?.image_url ??
-        product?.image ??
-        (product?.images && (product.images[0]?.url ?? product.images[0])) ??
-        "";
-      setEditImageUrl(String(imgRaw || ""));
+      const imgField: unknown =
+        product?.image_url ?? product?.image ?? product?.images ?? "";
+      let urls: string[] = [];
+      try {
+        if (Array.isArray(imgField)) {
+          urls = (imgField as any[])
+            .map((x) => (typeof x === "string" ? x : x?.url ?? ""))
+            .filter(Boolean);
+        } else if (typeof imgField === "string") {
+          if (imgField.trim().startsWith("[")) {
+            const parsed = JSON.parse(imgField);
+            if (Array.isArray(parsed)) {
+              urls = parsed.filter((x: any) => typeof x === "string");
+            }
+          } else if (imgField) {
+            urls = [imgField];
+          }
+        }
+      } catch {}
+      setEditImageUrls(urls);
+      setEditImageUrl(urls[0] ?? "");
+      setEditImages([]);
       setEditDialogOpen(true);
     }
   };
@@ -320,6 +411,7 @@ const ProductManagement = () => {
     const jsonPayload = {
       name: editName,
       category_id: editCategoryId ? Number(editCategoryId) : undefined,
+      collection_id: editCollectionId ? Number(editCollectionId) : undefined,
       purity: editPurity ? editPurity.toUpperCase() : undefined,
       weight: editWeight ? Number(editWeight) : undefined,
       making_charges: editMakingCharges ? Number(editMakingCharges) : undefined,
@@ -328,7 +420,41 @@ const ProductManagement = () => {
       status: editStatusActive ? 1 : 0,
     };
     try {
-      await updateProduct(token, editingProductId, jsonPayload);
+      let payload: Record<string, unknown> | FormData = jsonPayload;
+      if (editImages.length > 0) {
+        const formData = new FormData();
+        formData.append("name", editName);
+        if (editCategoryId)
+          formData.append("category_id", String(Number(editCategoryId)));
+        if (editCollectionId)
+          formData.append("collection_id", String(Number(editCollectionId)));
+        if (editPurity) formData.append("purity", editPurity.toUpperCase());
+        if (editWeight) formData.append("weight", String(Number(editWeight)));
+        if (editMakingCharges)
+          formData.append(
+            "making_charges",
+            String(Number(editMakingCharges))
+          );
+        if (editPrice) formData.append("price", String(Number(editPrice)));
+        if (editStock) formData.append("stock", String(Number(editStock)));
+        formData.append("status", editStatusActive ? "1" : "0");
+        editImages.forEach((file) => {
+          formData.append("image[]", file, file.name);
+        });
+        // Debug: log form-data keys for verification
+        // eslint-disable-next-line no-console
+        try {
+          const debug: Record<string, string[]> = {};
+          // @ts-ignore - FormData iterator supported in browsers
+          for (const [k, v] of formData.entries()) {
+            const val = typeof v === "string" ? v : (v as File).name;
+            debug[k] = [...(debug[k] || []), val as string];
+          }
+          console.log("[UpdateProduct] FormData:", debug);
+        } catch {}
+        payload = formData;
+      }
+      await updateProduct(token, editingProductId, payload);
       toast({
         title: "Success",
         description: "Product updated successfully",
@@ -358,6 +484,12 @@ const ProductManagement = () => {
   };
 
   // Category handlers
+  const refreshCategories = async () => {
+    if (!token) return;
+    const response = await getCategories(token);
+    setCategories(response.data.data ?? []);
+  };
+
   const handleCreateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!token) return;
@@ -446,6 +578,128 @@ const ProductManagement = () => {
     }
   };
 
+
+
+  // Collections handlers
+  const refreshCollections = async () => {
+    if (!token) return;
+    const response = await getCollections(token);
+    setCollections(response.data.data ?? []);
+  };
+
+  const handleCreateCollection = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const name = newCollectionName.trim();
+      if (!name) return;
+      const form = new FormData();
+      form.append("name", name);
+      if (newCollectionDescription.trim()) {
+        form.append("description", newCollectionDescription.trim());
+      }
+      if (newCollectionImage) {
+        form.append("image", newCollectionImage, newCollectionImage.name);
+      }
+      await createCollection(token, form);
+      toast({
+        title: "Success",
+        description: "Collection created successfully",
+        variant: "success",
+      });
+      await refreshCollections();
+      setCollectionCreateOpen(false);
+      setNewCollectionName("");
+      setNewCollectionDescription("");
+      setNewCollectionImage(null);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to create collection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditCollection = async (id: number) => {
+    if (!token) return;
+    setCollectionEditId(id);
+    try {
+      const response = await getCollectionById(token, id);
+      const data = response?.data?.data;
+      setCollectionEditName(data?.name ?? "");
+      setCollectionEditDescription(data?.description ?? "");
+      // Keep existing image visible by not clearing unless user selects a new one
+    } catch (error) {
+      const fallback = (collections as any[]).find((c) => c?.id === id);
+      setCollectionEditName(fallback?.name ?? "");
+    }
+    setCollectionEditOpen(true);
+  };
+
+  const handleUpdateCollection = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!token || !collectionEditId) return;
+    try {
+      const name = collectionEditName.trim();
+      if (!name) return;
+      const maybeForm = new FormData();
+      maybeForm.append("name", name);
+      if (collectionEditDescription.trim()) {
+        maybeForm.append("description", collectionEditDescription.trim());
+      }
+      if (collectionEditImage) {
+        maybeForm.append("image", collectionEditImage, collectionEditImage.name);
+      }
+      await updateCollection(token, collectionEditId, maybeForm);
+      toast({
+        title: "Success",
+        description: "Collection updated successfully",
+        variant: "success",
+      });
+      await refreshCollections();
+      setCollectionEditOpen(false);
+      setCollectionEditId(null);
+      setCollectionEditName("");
+      setCollectionEditDescription("");
+      setCollectionEditImage(null);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update collection",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCollection = async (id: number) => {
+    if (!token) return;
+    try {
+      await deleteCollectionApi(token, id);
+      toast({
+        title: "Success",
+        description: "Collection deleted successfully",
+        variant: "success",
+      });
+      await refreshCollections();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to delete collection",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+
+
   return (
     <div className="p-6 ">
       <div className="flex items-center justify-between mb-6">
@@ -470,17 +724,33 @@ const ProductManagement = () => {
             </DialogHeader>
             <form action="" method="post" onSubmit={handleAddProduct}>
               <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="productName">Product Name</Label>
-                  <Input
-                    id="productName"
-                    placeholder="Enter product name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="productName">Product Name</Label>
+                    <Input
+                      id="productName"
+                      placeholder="Enter product name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="purity">Purity</Label>
+                    <Select value={purity} onValueChange={setPurity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="24k">24K</SelectItem>
+                        <SelectItem value="22k">22K</SelectItem>
+                        <SelectItem value="18k">18K</SelectItem>
+                        <SelectItem value="925">925 Silver</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
@@ -502,19 +772,25 @@ const ProductManagement = () => {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="purity">Purity</Label>
-                    <Select value={purity} onValueChange={setPurity}>
+                    <Label htmlFor="collection">Collection</Label>
+                    <Select value={collectionId} onValueChange={setCollectionId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select purity" />
+                        <SelectValue placeholder="Select collection" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="24k">24K</SelectItem>
-                        <SelectItem value="22k">22K</SelectItem>
-                        <SelectItem value="18k">18K</SelectItem>
-                        <SelectItem value="925">925 Silver</SelectItem>
+                        {collections.map((collection) => (
+                          <SelectItem
+                            key={collection.id}
+                            value={String(collection.id)}
+                          >
+                            {collection.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -528,6 +804,8 @@ const ProductManagement = () => {
                       onChange={(e) => setWeight(e.target.value)}
                     />
                   </div>
+
+                  {/* Right column intentionally left for other fields */}
 
                   <div className="grid gap-2">
                     <Label htmlFor="makingCharges">Making Charges (₹)</Label>
@@ -566,13 +844,12 @@ const ProductManagement = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label>Product Images</Label>
+                  <Label>Product Images (max 2)</Label>
                   <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                      isDragging
-                        ? "border-primary"
-                        : "border-muted-foreground/25"
-                    }`}
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                      ? "border-primary"
+                      : "border-muted-foreground/25"
+                      }`}
                     onDragOver={(e) => {
                       e.preventDefault();
                       setIsDragging(true);
@@ -587,15 +864,33 @@ const ProductManagement = () => {
                       const dropped = Array.from(
                         e.dataTransfer.files || []
                       ).filter((f) => f.type.startsWith("image/"));
-                      if (dropped.length > 0) {
-                        setImages((prev) => [...prev, ...dropped]);
-                      }
+                      if (dropped.length === 0) return;
+                      setImages((prev) => {
+                        const available = MAX_CREATE_IMAGES - prev.length;
+                        if (available <= 0) {
+                          toast({
+                            title: "Limit reached",
+                            description: `You can upload up to ${MAX_CREATE_IMAGES} images`,
+                            variant: "warning",
+                          });
+                          return prev;
+                        }
+                        const accepted = dropped.slice(0, available);
+                        if (dropped.length > available) {
+                          toast({
+                            title: "Some files ignored",
+                            description: `Only ${available} more image(s) allowed`,
+                            variant: "warning",
+                          });
+                        }
+                        return [...prev, ...accepted];
+                      });
                     }}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Click to upload or drag and drop images
+                      Click to upload or drag and drop up to 2 images
                     </p>
                     <input
                       ref={fileInputRef}
@@ -605,17 +900,48 @@ const ProductManagement = () => {
                       multiple
                       className="hidden"
                       onChange={(e) => {
-                        const selected = Array.from(e.target.files ?? []);
-                        if (selected.length > 0) {
-                          setImages((prev) => [...prev, ...selected]);
-                        }
+                        const selected = Array.from(e.target.files ?? [])
+                          .filter((f) => f.type.startsWith("image/"));
+                        if (selected.length === 0) return;
+                        setImages((prev) => {
+                          const available = MAX_CREATE_IMAGES - prev.length;
+                          if (available <= 0) {
+                            toast({
+                              title: "Limit reached",
+                              description: `You can upload up to ${MAX_CREATE_IMAGES} images`,
+                              variant: "warning",
+                            });
+                            return prev;
+                          }
+                          const accepted = selected.slice(0, available);
+                          if (selected.length > available) {
+                            toast({
+                              title: "Some files ignored",
+                              description: `Only ${available} more image(s) allowed`,
+                              variant: "warning",
+                            });
+                          }
+                          return [...prev, ...accepted];
+                        });
                       }}
                     />
                   </div>
                   {images.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {images.length} file(s) selected
-                    </p>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {images.length} file(s) selected (max {MAX_CREATE_IMAGES})
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {images.map((file, idx) => (
+                          <img
+                            key={`${file.name}-${idx}`}
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -635,26 +961,156 @@ const ProductManagement = () => {
             </DialogHeader>
             <form action="" method="post" onSubmit={handleUpdateProduct}>
               <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="editProductName">Product Name</Label>
-                  <Input
-                    id="editProductName"
-                    placeholder="Enter product name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="editProductName">Product Name</Label>
+                    <Input
+                      id="editProductName"
+                      placeholder="Enter product name"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="editPurity">Purity</Label>
+                    <Select value={editPurity} onValueChange={setEditPurity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="24k">24K</SelectItem>
+                        <SelectItem value="22k">22K</SelectItem>
+                        <SelectItem value="18k">18K</SelectItem>
+                        <SelectItem value="925">925 Silver</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 {editImageUrl && (
                   <div className="grid gap-2">
-                    <Label>Current Image</Label>
-                    <img
-                      src={`${API_BASE_URL}/${editImageUrl}`}
-                      alt={editName || "Product image"}
-                      className="w-full h-48 object-cover rounded-md border"
-                    />
+                    <Label>Current Images</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {editImageUrls.length > 0 ? (
+                        editImageUrls.map((url, idx) => (
+                          <img
+                            key={`${url}-${idx}`}
+                            src={`https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${url}`}
+                            alt={editName || "Product image"}
+                            className="w-full h-36 object-cover rounded-md border"
+                          />
+                        ))
+                      ) : (
+                        <img
+                          src={`https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${editImageUrl}`}
+                          alt={editName || "Product image"}
+                          className="w-full h-36 object-cover rounded-md border"
+                        />
+                      )}
+                    </div>
                   </div>
                 )}
+
+                <div className="grid gap-2">
+                  <Label>Upload New Images (max 2)</Label>
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                      ? "border-primary"
+                      : "border-muted-foreground/25"
+                      }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const dropped = Array.from(
+                        e.dataTransfer.files || []
+                      ).filter((f) => f.type.startsWith("image/"));
+                      if (dropped.length === 0) return;
+                      setEditImages((prev) => {
+                        const available = MAX_EDIT_IMAGES - prev.length;
+                        if (available <= 0) {
+                          toast({
+                            title: "Limit reached",
+                            description: `You can upload up to ${MAX_EDIT_IMAGES} images`,
+                            variant: "warning",
+                          });
+                          return prev;
+                        }
+                        const accepted = dropped.slice(0, available);
+                        if (dropped.length > available) {
+                          toast({
+                            title: "Some files ignored",
+                            description: `Only ${available} more image(s) allowed`,
+                            variant: "warning",
+                          });
+                        }
+                        return [...prev, ...accepted];
+                      });
+                    }}
+                    onClick={() => editFileInputRef.current?.click()}
+                  >
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Click to upload or drag and drop up to 2 images
+                    </p>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.files ?? [])
+                          .filter((f) => f.type.startsWith("image/"));
+                        if (selected.length === 0) return;
+                        setEditImages((prev) => {
+                          const available = MAX_EDIT_IMAGES - prev.length;
+                          if (available <= 0) {
+                            toast({
+                              title: "Limit reached",
+                              description: `You can upload up to ${MAX_EDIT_IMAGES} images`,
+                              variant: "warning",
+                            });
+                            return prev;
+                          }
+                          const accepted = selected.slice(0, available);
+                          if (selected.length > available) {
+                            toast({
+                              title: "Some files ignored",
+                              description: `Only ${available} more image(s) allowed`,
+                              variant: "warning",
+                            });
+                          }
+                          return [...prev, ...accepted];
+                        });
+                      }}
+                    />
+                  </div>
+                  {editImages.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {editImages.length} new file(s) selected (max {MAX_EDIT_IMAGES})
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {editImages.map((file, idx) => (
+                          <img
+                            key={`${file.name}-${idx}`}
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -678,18 +1134,25 @@ const ProductManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="grid gap-2">
-                    <Label htmlFor="editPurity">Purity</Label>
-                    <Select value={editPurity} onValueChange={setEditPurity}>
+                    <Label htmlFor="editCollection">Collection</Label>
+                    <Select
+                      value={editCollectionId}
+                      onValueChange={setEditCollectionId}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select purity" />
+                        <SelectValue placeholder="Select collection" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="24k">24K</SelectItem>
-                        <SelectItem value="22k">22K</SelectItem>
-                        <SelectItem value="18k">18K</SelectItem>
-                        <SelectItem value="925">925 Silver</SelectItem>
+                        {collections.map((collection) => (
+                          <SelectItem
+                            key={collection.id}
+                            value={String(collection.id)}
+                          >
+                            {collection.name}
+                            
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -782,6 +1245,7 @@ const ProductManagement = () => {
         <TabsList>
           <TabsTrigger value="products">All Products</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="collections">Collections</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Actions</TabsTrigger>
         </TabsList>
 
@@ -852,6 +1316,7 @@ const ProductManagement = () => {
                     <TableHead>Product ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Collection</TableHead>
                     <TableHead>Weight</TableHead>
                     <TableHead>Purity</TableHead>
                     <TableHead>Making Charges</TableHead>
@@ -869,6 +1334,16 @@ const ProductManagement = () => {
                         : product?.category) ||
                       product?.category_name ||
                       "-";
+
+                    const collectionName =
+                      (product?.collection && typeof product.collection === "object"
+                        ? product.collection?.name
+                        : product?.collection) ||
+                      product?.collection_name ||
+                      "-";
+
+
+
                     const makingCharges =
                       product?.makingCharges ?? product?.making_charges ?? "-";
                     const statusText = (() => {
@@ -901,6 +1376,7 @@ const ProductManagement = () => {
                         </TableCell>
                         <TableCell>{product.name}</TableCell>
                         <TableCell>{categoryName}</TableCell>
+                        <TableCell>{collectionName}</TableCell>
                         <TableCell>{product.weight ?? "-"}</TableCell>
                         <TableCell>
                           {product.purity ?? product.karat ?? "-"}
@@ -1111,6 +1587,284 @@ const ProductManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+
+        <TabsContent value="collections" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Collection Management</CardTitle>
+                  <CardDescription>Manage product collections</CardDescription>
+                </div>
+                <Dialog
+                  open={collectionCreateOpen}
+                  onOpenChange={setCollectionCreateOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" /> Add Collection
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Collection</DialogTitle>
+                      <DialogDescription>Add a new Collection</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateCollection}>
+                      <div className="grid gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="newCollectionName">Name</Label>
+                          <Input
+                            id="newCollectionName"
+                            placeholder="e.g. Diamond Collection"
+                            value={newCollectionName}
+                            onChange={(e) => setNewCollectionName(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="newCollectionDescription">Description</Label>
+                          <Textarea
+                            id="newCollectionDescription"
+                            placeholder="Short description"
+                            value={newCollectionDescription}
+                            onChange={(e) => setNewCollectionDescription(e.target.value)}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Collection Image</Label>
+                          <div
+                            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                              ? "border-primary"
+                              : "border-muted-foreground/25"
+                              }`}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setIsDragging(true);
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              setIsDragging(false);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setIsDragging(false);
+                              const dropped = Array.from(e.dataTransfer.files || [])
+                                .filter((f) => f.type.startsWith("image/"));
+                              if (dropped[0]) setNewCollectionImage(dropped[0]);
+                            }}
+                            onClick={() => collectionCreateFileRef.current?.click()}
+                          >
+                            <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop image</p>
+                            <input
+                              ref={collectionCreateFileRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = (e.target.files && e.target.files[0]) || null;
+                                if (f) setNewCollectionImage(f);
+                              }}
+                            />
+                          </div>
+                          {newCollectionImage && (
+                            <img
+                              src={URL.createObjectURL(newCollectionImage)}
+                              alt="preview"
+                              className="w-full h-28 object-cover rounded border"
+                            />
+                          )}
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCollectionCreateOpen(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button type="submit">Create</Button>
+                        </div>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Dialog
+                open={collectionEditOpen}
+                onOpenChange={setCollectionEditOpen}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Collection</DialogTitle>
+                    <DialogDescription>
+                      Update the collection name
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleUpdateCollection}>
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="editCollectionName">Name</Label>
+                        <Input
+                          id="editCollectionName"
+                          placeholder="Collection name"
+                          value={collectionEditName}
+                          onChange={(e) => setCollectionEditName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="editCollectionDescription">Description</Label>
+                        <Textarea
+                          id="editCollectionDescription"
+                          placeholder="Short description"
+                          value={collectionEditDescription}
+                          onChange={(e) => setCollectionEditDescription(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Collection Image</Label>
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                            ? "border-primary"
+                            : "border-muted-foreground/25"
+                            }`}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                            const dropped = Array.from(e.dataTransfer.files || [])
+                              .filter((f) => f.type.startsWith("image/"));
+                            if (dropped[0]) setCollectionEditImage(dropped[0]);
+                          }}
+                          onClick={() => collectionEditFileRef.current?.click()}
+                        >
+                          <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                          <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop image</p>
+                          <input
+                            ref={collectionEditFileRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = (e.target.files && e.target.files[0]) || null;
+                              if (f) setCollectionEditImage(f);
+                            }}
+                          />
+                        </div>
+                        {collectionEditImage && (
+                          <img
+                            src={URL.createObjectURL(collectionEditImage)}
+                            alt="preview"
+                            className="w-full h-28 object-cover rounded border"
+                          />
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCollectionEditOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">Update</Button>
+                      </div>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {(collections as any[]).map((c) => {
+                  const img = c?.image
+                    ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${c.image}`
+                    : undefined;
+                  const statusText = c?.status === 1 || c?.status === "1" ? "Active" : "Inactive";
+                  return (
+                    <Card key={c.id}>
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="w-16 h-16 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
+                              {img ? (
+                                <img src={img} alt={c.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No image</span>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-xs text-muted-foreground">ID: {c.id}</div>
+                              <h3 className="font-medium">{c.name}</h3>
+                              <div className="text-xs text-muted-foreground">{statusText}</div>
+                              {c.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2 max-w-[280px]">{c.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditCollection(c.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete collection?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete "{c.name}" (ID: {c.id}).
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCollection(c.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         <TabsContent value="bulk" className="space-y-4">
           <Card>

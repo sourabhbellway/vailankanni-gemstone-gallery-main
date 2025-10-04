@@ -101,7 +101,7 @@ const Header = () => {
     { name: "Contact", href: "#contact" },
   ];
 
-  const categories = [
+  const collections = [
     { name: "Gold Jewelry", href: "#gold" },
     { name: "Diamond Collection", href: "#diamond" },
     { name: "Jadau Jewelry", href: "#jadau" },
@@ -230,17 +230,17 @@ const Header = () => {
                       : "text-black"
                   }`}
                 >
-                  <span>Categories</span>
+                  <span>Collections</span>
                   <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
-                  {categories.map((category) => (
+                  {collections.map((collection) => (
                     <DropdownMenuItem
-                      key={category.name}
+                      key={collection.name}
                       className="hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
                     >
-                      <a href={category.href} className="w-full">
-                        {category.name}
+                      <a href={collection.href} className="w-full">
+                        {collection.name}
                       </a>
                     </DropdownMenuItem>
                   ))}
@@ -344,14 +344,14 @@ const Header = () => {
                   <h3 className="text-primary font-semibold mb-3">
                     Categories
                   </h3>
-                  {categories.map((category) => (
+                  {collections.map((collection) => (
                     <a
-                      key={category.name}
-                      href={category.href}
+                      key={collection.name}
+                      href={collection.href}
                       className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      {category.name}
+                      {collection.name}
                     </a>
                   ))}
                 </div>
