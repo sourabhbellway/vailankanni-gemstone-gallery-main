@@ -20,6 +20,9 @@ import frame1 from "@/assets/frame1.jpg";
 import frame2 from "@/assets/frame2.jpg";
 import frame3 from "@/assets/frame3.jpg";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getPublicCollections, getPublicCategories } from "@/lib/api/publicController";
+import { API_BASE_URL } from "@/config";
 
 
 const collections = [
@@ -109,6 +112,83 @@ export const categoryData = [
 ];
 
 const CollectionsSection = () => {
+  const [collections, setCollections] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [collectionsResponse, categoriesResponse] = await Promise.all([
+          getPublicCollections(),
+          getPublicCategories()
+        ]);
+        
+        if (collectionsResponse.data.success) {
+          setCollections(collectionsResponse.data.data || []);
+        }
+        
+        if (categoriesResponse.data.success) {
+          setCategories(categoriesResponse.data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  const getCollectionImage = (collection: any) => {
+    if (collection.image) {
+      return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${collection.image}`;
+    }
+    // Fallback to static images based on collection name
+    const name = collection.name.toLowerCase();
+    if (name.includes('gold')) return goldCollection;
+    if (name.includes('diamond')) return diamondCollection;
+    if (name.includes('jadau')) return jadauCollection;
+    if (name.includes('antique')) return antiqueCollection;
+    if (name.includes('silver')) return silverCollection;
+    if (name.includes('men')) return mensCollection;
+    if (name.includes('gemstone')) return gemstoneCollection;
+    return goldCollection; // default fallback
+  };
+
+  const getCategoryImage = (category: any) => {
+    if (category.image) {
+      return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${category.image}`;
+    }
+    // Fallback to static images based on category name
+    const name = category.name.toLowerCase();
+    if (name.includes('earring')) return earrings;
+    if (name.includes('bangle')) return bangles;
+    if (name.includes('pendant')) return pendants;
+    if (name.includes('mangalsutra')) return mangalsutra;
+    if (name.includes('bracelet')) return bracelets;
+    if (name.includes('ring')) return fingerrings;
+    if (name.includes('chain')) return chain;
+    if (name.includes('gemstone')) return gemstoneCollection;
+    return earrings; // default fallback
+  };
+
+  if (loading) {
+    return (
+      <section id="collections" className="py-20 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-5xl md:text-5xl text-primary mb-6 font-serif">
+              Our Signature Collections
+            </h2>
+            <p className="text-xl text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="collections" className="py-20 bg-gradient-subtle">
       <div className="container mx-auto px-4">
@@ -133,40 +213,30 @@ const CollectionsSection = () => {
             >
               <div className="relative overflow-hidden h-full">
                 <img 
-                  src={collection.image} 
+                  src={getCollectionImage(collection)} 
                   alt={collection.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t ${collection.gradient} opacity-50 group-hover:opacity-40 transition-opacity duration-300`}></div>
-                
-                {/* Product Count Badge */}
-                <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-white text-sm font-medium">
-                  {collection.products}+ Items
-                </div>
-
-                {/* Rating Badge */}
-                <div className="absolute top-4 left-4 bg-secondary/20 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-                  <Star className="h-3 w-3 text-secondary fill-current" />
-                  <span className="text-white text-sm font-medium">{collection.rating}</span>
-                </div>
-                
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-50 group-hover:opacity-40 transition-opacity duration-300"></div>  
                 {/* Content Overlay */}
                 <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
                   <h3 className="text-xl font-bold mb-2 transform group-hover:translate-y-0 translate-y-2 transition-transform duration-300 font-serif">
                     {collection.name}
                   </h3>
                   <p className="text-white/90 text-sm mb-4 transform group-hover:translate-y-0 translate-y-4 transition-transform duration-300 delay-75 line-clamp-2">
-                    {collection.description}
+                    {collection.description || 'Explore our beautiful collection'}
                   </p>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="relative overflow-hidden bg-white/20 hover:bg-white hover:text-primary border-white/30 backdrop-blur-sm group-hover:bg-white group-hover:text-primary transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 delay-150"
-                  >
-                    <span className="absolute w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-                    View Collection
-                    <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                  <Link to={`/collection/${collection.id}`}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full relative overflow-hidden bg-white/20 hover:bg-white hover:text-primary border-white/30 backdrop-blur-sm group-hover:bg-white group-hover:text-primary transform group-hover:translate-y-0 translate-y-4 transition-all duration-300 delay-150"
+                    >
+                      <span className="absolute w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                      View Collection
+                      <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -231,11 +301,11 @@ const CollectionsSection = () => {
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-12">
-            {categoryData.slice(0, 7).map((category) => (
-              <Link to={category.link} key={category.name} className="group text-center transition-transform transform hover:-translate-y-2 duration-300">
-                <div className="h-[45vh]   rounded-lg overflow-hidden  hover:shadow-elegant transition-shadow duration-300">
+            {categories.slice(0, 7).map((category) => (
+              <Link to={`/category/${category.id}`} key={category.id} className="group text-center transition-transform transform hover:-translate-y-2 duration-300">
+                <div className="h-[45vh] rounded-lg overflow-hidden hover:shadow-elegant transition-shadow duration-300">
                   <img
-                    src={category.image}
+                    src={getCategoryImage(category)}
                     alt={category.name}
                     className="w-full h-full object-cover rounded-md"
                   />
@@ -244,9 +314,9 @@ const CollectionsSection = () => {
               </Link>
             ))}
             <Link to="#collections" className="group text-center transition-transform transform hover:-translate-y-2 duration-300">
-              <div className="h-[45vh]  bg-gradient-subtle rounded-lg flex items-center justify-center p-2 hover:shadow-elegant transition-shadow duration-300 border-2 border-dashed border-primary/20 group-hover:border-primary/40">
+              <div className="h-[45vh] bg-gradient-subtle rounded-lg flex items-center justify-center p-2 hover:shadow-elegant transition-shadow duration-300 border-2 border-dashed border-primary/20 group-hover:border-primary/40">
                 <div className="text-center text-primary">
-                  <span className="text-xl font-semibold"><span className="text-3xl text-primary font-bold">10+</span> <br /> Categories to choose</span>
+                  <span className="text-xl font-semibold"><span className="text-3xl text-primary font-bold">{categories.length}+</span> <br /> Categories to choose</span>
                 </div>
               </div>
               <h4 className="mt-4 font-semibold text-lg text-primary group-hover:text-primary-glow transition-colors duration-300">View All Categories</h4>

@@ -1,44 +1,44 @@
 import Header from "@/components/Header";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import ContactSection from "@/components/ContactSection";
-import { Heart } from "lucide-react";
+import { Heart} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getCategoryProducts, getPublicCategories } from "@/lib/api/publicController";
+import { getCollectionProducts } from "@/lib/api/publicController";
 import { API_BASE_URL } from "@/config";
 
-const CategoryPage = () => {
-  const { categorySlug } = useParams();
+const CollectionPage = () => {
+  const { collectionId } = useParams();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<any>(null);
+  const [collection, setCollection] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [categorySlug]);
+  }, [collectionId]);
 
   useEffect(() => {
-    const fetchCategoryData = async () => {
-      if (!categorySlug) return;
+    const fetchCollectionData = async () => {
+      if (!collectionId) return;
       
       try {
         setLoading(true);
-        const response = await getCategoryProducts(categorySlug);
+        const response = await getCollectionProducts(collectionId);
         if (response.data.success) {
-          setCategory(response.data.data.category);
+          setCollection(response.data.data.collection);
           setProducts(response.data.data.products || []);
         }
       } catch (error) {
-        console.error("Error fetching category data:", error);
+        console.error("Error fetching collection data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategoryData();
-  }, [categorySlug]);
+    fetchCollectionData();
+  }, [collectionId]);
 
   const getProductImages = (product: any) => {
     try {
@@ -67,9 +67,9 @@ const CategoryPage = () => {
             <div className="w-full max-w-8xl mt-8 mb-6">
               <div className="text-center">
                 <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
-                  Loading Category...
+                  Loading Collection...
                 </h1>
-                <p className="text-lg text-gray-500">Please wait while we fetch the category data.</p>
+                <p className="text-lg text-gray-500">Please wait while we fetch the collection data.</p>
               </div>
             </div>
           </div>
@@ -80,7 +80,7 @@ const CategoryPage = () => {
     );
   }
 
-  if (!category) {
+  if (!collection) {
     return (
       <>
         <Header />
@@ -89,9 +89,9 @@ const CategoryPage = () => {
             <div className="w-full max-w-8xl mt-8 mb-6">
               <div className="text-center">
                 <h1 className="text-3xl font-serif font-bold text-red-500 mb-4">
-                  Category Not Found
+                  Collection Not Found
                 </h1>
-                <p className="text-lg text-gray-500">The category you're looking for doesn't exist.</p>
+                <p className="text-lg text-gray-500">The collection you're looking for doesn't exist.</p>
               </div>
             </div>
           </div>
@@ -111,24 +111,24 @@ const CategoryPage = () => {
           <div className="w-full max-w-8xl mt-8 mb-6">
             {/* Breadcrumb */}
             <nav className="flex items-center text-sm text-gray-500 mb-2">
-              <span className="hover:underline cursor-pointer">Home</span>
+              <Link to={`/`} className="hover:underline cursor-pointer">Home</Link>
               <span className="mx-2">&#62;</span>
-              <span className="hover:underline cursor-pointer">Categories</span>
+              <span className="">Collections</span>
               <span className="mx-2">&#62;</span>
               <span className="text-primary font-semibold">
-                {category.name}
+                {collection.name}
               </span>
             </nav>
             {/* Title & Results */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
               <div className="flex items-center gap-3 mb-2 md:mb-0">
                 <h1 className="text-3xl font-serif font-bold text-gray-900">
-                  {category.name}
+                  {collection.name}
                 </h1>
                 <span className="text-lg text-gray-500">({products.length} results)</span>
               </div>
               {/* Sort Dropdown */}
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <span className="text-gray-600">Sort By:</span>
                 <select className="border rounded px-3 py-1 focus:outline-none">
                   <option>Best Matches</option>
@@ -136,18 +136,18 @@ const CategoryPage = () => {
                   <option>Price: High to Low</option>
                   <option>Newest First</option>
                 </select>
-              </div>
+              </div> */}
             </div>
-            {/* Category Description */}
-            {category.description && (
+            {/* Collection Description */}
+            {collection.description && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <p className="text-gray-700 text-lg leading-relaxed">
-                  {category.description}
+                  {collection.description}
                 </p>
               </div>
             )}
             {/* Filter Chips */}
-            <div className="flex flex-wrap gap-3 mb-6">
+            {/* <div className="flex flex-wrap gap-3 mb-6">
               <button className="flex items-center border rounded-full px-4 py-2 gap-2 text-primary hover:bg-primary/10 transition">
                 <span className="text-lg">&#43;</span> All Purity
               </button>
@@ -160,7 +160,7 @@ const CategoryPage = () => {
               <button className="flex items-center border rounded-full px-4 py-2 gap-2 text-primary hover:bg-primary/10 transition">
                 +Show More
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Product Cards Grid */}
@@ -255,10 +255,10 @@ const CategoryPage = () => {
             ) : (
               <div className="col-span-full text-center py-16">
                 <h3 className="text-2xl font-serif text-gray-500 mb-4">
-                  No products found in this category
+                  No products found in this collection
                 </h3>
                 <p className="text-lg text-gray-400">
-                  This category doesn't have any products yet.
+                  This collection doesn't have any products yet.
                 </p>
               </div>
             )}
@@ -271,4 +271,4 @@ const CategoryPage = () => {
   );
 };
 
-export default CategoryPage;
+export default CollectionPage;

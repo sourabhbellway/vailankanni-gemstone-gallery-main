@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
+import CollectionPage from "./pages/CollectionPage";
 import Schemes from "./pages/Schemes";
 import GoldServices from "./pages/GoldServices";
 import SignIn from "./pages/SignIn";
@@ -46,6 +47,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/category/:categorySlug" element={<CategoryPage />} />
+            <Route path="/collection/:collectionId" element={<CollectionPage />} />
             <Route path="/schemes" element={<Schemes />} />
             <Route path="/gold-services" element={<GoldServices />} />
             <Route path="/signin" element={<SignIn />} />

@@ -11,6 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import logo from "@/assets/logo.jpg";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
+import { getPublicCollections } from "@/lib/api/publicController";
 
 // Add shimmer animation styles
 const shimmerStyle = `
@@ -46,6 +47,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoAnim, setLogoAnim] = useState(""); // '' | 'in' | 'out'
+  const [collections, setCollections] = useState<any[]>([]);
   const prevScrolledRef = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -93,6 +95,21 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Fetch collections on component mount
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const response = await getPublicCollections();
+        if (response.data.success) {
+          setCollections(response.data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching collections:", error);
+      }
+    };
+    fetchCollections();
+  }, []);
+
   const menuItems = [
     { name: "Home", href: "/" },
     { name: "About Us", href: "#about" },
@@ -101,16 +118,7 @@ const Header = () => {
     { name: "Contact", href: "#contact" },
   ];
 
-  const collections = [
-    { name: "Gold Jewelry", href: "#gold" },
-    { name: "Diamond Collection", href: "#diamond" },
-    { name: "Jadau Jewelry", href: "#jadau" },
-    { name: "Antique Collection", href: "#antique" },
-    { name: "Bridal Sets", href: "#bridal" },
-    { name: "Men's Collection", href: "#mens" },
-    { name: "Silver Jewelry", href: "#silver" },
-    { name: "Gemstone Jewelry", href: "#gemstone" },
-  ];
+  // Collections will be populated from API
 
   const { isAuthenticated, logout } = useUserAuth();
 
@@ -236,12 +244,12 @@ const Header = () => {
                 <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
                   {collections.map((collection) => (
                     <DropdownMenuItem
-                      key={collection.name}
+                      key={collection.id}
                       className="hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
                     >
-                      <a href={collection.href} className="w-full">
+                      <Link to={`/collection/${collection.id}`} className="w-full">
                         {collection.name}
-                      </a>
+                      </Link>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -339,20 +347,20 @@ const Header = () => {
                   </a>
                 ))}
 
-                {/* Mobile Categories */}
+                {/* Mobile Collections */}
                 <div className="border-t border-border pt-4 mt-4">
                   <h3 className="text-primary font-semibold mb-3">
-                    Categories
+                    Collections
                   </h3>
                   {collections.map((collection) => (
-                    <a
-                      key={collection.name}
-                      href={collection.href}
+                    <Link
+                      key={collection.id}
+                      to={`/collection/${collection.id}`}
                       className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {collection.name}
-                    </a>
+                    </Link>
                   ))}
                 </div>
 
