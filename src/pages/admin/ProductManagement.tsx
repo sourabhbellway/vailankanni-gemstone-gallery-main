@@ -81,6 +81,10 @@ const ProductManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCollection, setSelectedCollection] = useState("all");
+  
+  // Search and filter states for categories and collections
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
+  const [collectionSearchTerm, setCollectionSearchTerm] = useState("");
   const [categories, setCategories] = useState([]);
   const [collections, setCollections] = useState([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -136,8 +140,14 @@ const ProductManagement = () => {
   const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
   const [categoryEditOpen, setCategoryEditOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [newCategoryImage, setNewCategoryImage] = useState<File | null>(null);
   const [categoryEditId, setCategoryEditId] = useState<number | null>(null);
   const [categoryEditName, setCategoryEditName] = useState("");
+  const [categoryEditDescription, setCategoryEditDescription] = useState("");
+  const [categoryEditImage, setCategoryEditImage] = useState<File | null>(null);
+  const categoryCreateFileRef = useRef<HTMLInputElement | null>(null);
+  const categoryEditFileRef = useRef<HTMLInputElement | null>(null);
 
   // Collection CRUD state
   const [collectionCreateOpen, setCollectionCreateOpen] = useState(false);
@@ -232,7 +242,7 @@ const ProductManagement = () => {
             debug[k] = [...(debug[k] || []), val as string];
           }
           console.log("[CreateProduct] FormData:", debug);
-        } catch {}
+        } catch { }
         payload = formData;
       }
       await createProduct(token, payload);
@@ -331,7 +341,7 @@ const ProductManagement = () => {
             urls = [imgField];
           }
         }
-      } catch {}
+      } catch { }
       setEditImageUrls(urls);
       setEditImageUrl(urls[0] ?? "");
       setEditImages([]);
@@ -397,7 +407,7 @@ const ProductManagement = () => {
             urls = [imgField];
           }
         }
-      } catch {}
+      } catch { }
       setEditImageUrls(urls);
       setEditImageUrl(urls[0] ?? "");
       setEditImages([]);
@@ -451,7 +461,7 @@ const ProductManagement = () => {
             debug[k] = [...(debug[k] || []), val as string];
           }
           console.log("[UpdateProduct] FormData:", debug);
-        } catch {}
+        } catch { }
         payload = formData;
       }
       await updateProduct(token, editingProductId, payload);
@@ -496,7 +506,15 @@ const ProductManagement = () => {
     try {
       const name = newCategoryName.trim();
       if (!name) return;
-      await createCategory(token, { name });
+      const form = new FormData();
+      form.append("name", name);
+      if (newCategoryDescription.trim()) {
+        form.append("description", newCategoryDescription.trim());
+      }
+      if (newCategoryImage) {
+        form.append("image", newCategoryImage, newCategoryImage.name);
+      }
+      await createCategory(token, form);
       toast({
         title: "Success",
         description: "Category created successfully",
@@ -505,6 +523,8 @@ const ProductManagement = () => {
       await refreshCategories();
       setCategoryCreateOpen(false);
       setNewCategoryName("");
+      setNewCategoryDescription("");
+      setNewCategoryImage(null);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
@@ -523,9 +543,12 @@ const ProductManagement = () => {
       const response = await getCategoryById(token, id);
       const data = response?.data?.data;
       setCategoryEditName(data?.name ?? "");
+      setCategoryEditDescription(data?.description ?? "");
+      // Keep existing image visible by not clearing unless user selects a new one
     } catch (error) {
       const fallback = (categories as any[]).find((c) => c?.id === id);
       setCategoryEditName(fallback?.name ?? "");
+      setCategoryEditDescription(fallback?.description ?? "");
     }
     setCategoryEditOpen(true);
   };
@@ -536,7 +559,15 @@ const ProductManagement = () => {
     try {
       const name = categoryEditName.trim();
       if (!name) return;
-      await updateCategory(token, categoryEditId, { name });
+      const maybeForm = new FormData();
+      maybeForm.append("name", name);
+      if (categoryEditDescription.trim()) {
+        maybeForm.append("description", categoryEditDescription.trim());
+      }
+      if (categoryEditImage) {
+        maybeForm.append("image", categoryEditImage, categoryEditImage.name);
+      }
+      await updateCategory(token, categoryEditId, maybeForm);
       toast({
         title: "Success",
         description: "Category updated successfully",
@@ -546,6 +577,8 @@ const ProductManagement = () => {
       setCategoryEditOpen(false);
       setCategoryEditId(null);
       setCategoryEditName("");
+      setCategoryEditDescription("");
+      setCategoryEditImage(null);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
@@ -702,19 +735,24 @@ const ProductManagement = () => {
 
   return (
     <div className="p-6 ">
+
       <div className="flex items-center justify-between mb-6">
+
         <div>
           <h1 className="text-3xl font-bold">Product Management</h1>
           <p className="text-muted-foreground">Manage your jewelry inventory</p>
         </div>
 
+        {/* add product modal   */}
         <Dialog>
+
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
           </DialogTrigger>
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
@@ -952,13 +990,19 @@ const ProductManagement = () => {
               </div>
             </form>
           </DialogContent>
+
         </Dialog>
+
+        {/* edit product modal */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
               <DialogDescription>Update the product details</DialogDescription>
             </DialogHeader>
+
             <form action="" method="post" onSubmit={handleUpdateProduct}>
               <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1150,7 +1194,7 @@ const ProductManagement = () => {
                             value={String(collection.id)}
                           >
                             {collection.name}
-                            
+
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1238,9 +1282,11 @@ const ProductManagement = () => {
               </div>
             </form>
           </DialogContent>
+
         </Dialog>
       </div>
 
+      {/* tabs */}
       <Tabs defaultValue="products" className="space-y-4">
         <TabsList>
           <TabsTrigger value="products">All Products</TabsTrigger>
@@ -1250,10 +1296,12 @@ const ProductManagement = () => {
         </TabsList>
 
         <TabsContent value="products" className="space-y-4">
-          {/* Filters */}
+          {/*  serach and Filters */}
           <Card>
             <CardContent className="pt-6">
+
               <div className="flex gap-4">
+
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1265,6 +1313,7 @@ const ProductManagement = () => {
                     />
                   </div>
                 </div>
+
                 <Select
                   value={selectedCategory}
                   onValueChange={setSelectedCategory}
@@ -1284,7 +1333,9 @@ const ProductManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
+
               </div>
+
             </CardContent>
           </Card>
 
@@ -1443,12 +1494,20 @@ const ProductManagement = () => {
         </TabsContent>
 
         <TabsContent value="categories" className="space-y-4">
+          {/* Search and Filters */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Category Management</CardTitle>
-                  <CardDescription>Manage product categories</CardDescription>
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search categories..."
+                      value={categorySearchTerm}
+                      onChange={(e) => setCategorySearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
                 <Dialog
                   open={categoryCreateOpen}
@@ -1459,7 +1518,7 @@ const ProductManagement = () => {
                       <Plus className="mr-2 h-4 w-4" /> Add Category
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Create Category</DialogTitle>
                       <DialogDescription>Add a new category</DialogDescription>
@@ -1476,6 +1535,60 @@ const ProductManagement = () => {
                             required
                           />
                         </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="newCategoryDescription">Description</Label>
+                          <Textarea
+                            id="newCategoryDescription"
+                            placeholder="Short description"
+                            value={newCategoryDescription}
+                            onChange={(e) => setNewCategoryDescription(e.target.value)}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Category Image</Label>
+                          <div
+                            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                              ? "border-primary"
+                              : "border-muted-foreground/25"
+                              }`}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setIsDragging(true);
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              setIsDragging(false);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setIsDragging(false);
+                              const dropped = Array.from(e.dataTransfer.files || [])
+                                .filter((f) => f.type.startsWith("image/"));
+                              if (dropped[0]) setNewCategoryImage(dropped[0]);
+                            }}
+                            onClick={() => categoryCreateFileRef.current?.click()}
+                          >
+                            <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop image</p>
+                            <input
+                              ref={categoryCreateFileRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = (e.target.files && e.target.files[0]) || null;
+                                if (f) setNewCategoryImage(f);
+                              }}
+                            />
+                          </div>
+                          {newCategoryImage && (
+                            <img
+                              src={URL.createObjectURL(newCategoryImage)}
+                              alt="preview"
+                              className="w-full h-28 object-cover rounded border"
+                            />
+                          )}
+                        </div>
                         <div className="flex justify-end gap-2">
                           <Button
                             type="button"
@@ -1491,17 +1604,25 @@ const ProductManagement = () => {
                   </DialogContent>
                 </Dialog>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Categories Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Categories ({(categories as any[]).length})</CardTitle>
+              <CardDescription>Manage product categories</CardDescription>
             </CardHeader>
             <CardContent>
               <Dialog
                 open={categoryEditOpen}
                 onOpenChange={setCategoryEditOpen}
               >
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Edit Category</DialogTitle>
                     <DialogDescription>
-                      Update the category name
+                      Update the category details
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpdateCategory}>
@@ -1515,6 +1636,60 @@ const ProductManagement = () => {
                           onChange={(e) => setCategoryEditName(e.target.value)}
                           required
                         />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="editCategoryDescription">Description</Label>
+                        <Textarea
+                          id="editCategoryDescription"
+                          placeholder="Short description"
+                          value={categoryEditDescription}
+                          onChange={(e) => setCategoryEditDescription(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Category Image</Label>
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                            ? "border-primary"
+                            : "border-muted-foreground/25"
+                            }`}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragging(true);
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDragging(false);
+                            const dropped = Array.from(e.dataTransfer.files || [])
+                              .filter((f) => f.type.startsWith("image/"));
+                            if (dropped[0]) setCategoryEditImage(dropped[0]);
+                          }}
+                          onClick={() => categoryEditFileRef.current?.click()}
+                        >
+                          <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                          <p className="mt-2 text-sm text-muted-foreground">Click to upload or drag and drop image</p>
+                          <input
+                            ref={categoryEditFileRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = (e.target.files && e.target.files[0]) || null;
+                              if (f) setCategoryEditImage(f);
+                            }}
+                          />
+                        </div>
+                        {categoryEditImage && (
+                          <img
+                            src={URL.createObjectURL(categoryEditImage)}
+                            alt="preview"
+                            className="w-full h-28 object-cover rounded border"
+                          />
+                        )}
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button
@@ -1531,71 +1706,121 @@ const ProductManagement = () => {
                 </DialogContent>
               </Dialog>
 
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {(categories as any[]).map((category) => (
-                  <Card key={category.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium">{category.name}</h3>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditCategory(category.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(categories as any[])
+                    .filter((category) =>
+                      category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+                    )
+                    .map((category) => {
+                      const statusText = category?.status === 1 || category?.status === "1" ? "Active" : "Inactive";
+                      const statusVariant = statusText === "Active" ? "default" : "destructive";
+                      const img = category?.image
+                        ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${category.image}`
+                        : undefined;
+                      
+                      return (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">{category.id}</TableCell>
+                          <TableCell>
+                            <div className="w-16 h-16 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
+                              {img ? (
+                                <img src={img} alt={category.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-xs text-muted-foreground">No image</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {category.description || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant}>{statusText}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(category.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-destructive"
+                                onClick={() => openEditCategory(category.id)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete category?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete "{category.name}" (ID:{" "}
-                                  {category.id}).
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteCategory(category.id)
-                                  }
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete category?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will
+                                      permanently delete "{category.name}" (ID:{" "}
+                                      {category.id}).
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleDeleteCategory(category.id)
+                                      }
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
 
         <TabsContent value="collections" className="space-y-4">
+          {/* Search and Filters */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Collection Management</CardTitle>
-                  <CardDescription>Manage product collections</CardDescription>
+            <CardContent className="pt-6">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search collections..."
+                      value={collectionSearchTerm}
+                      onChange={(e) => setCollectionSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
                 <Dialog
                   open={collectionCreateOpen}
@@ -1606,7 +1831,7 @@ const ProductManagement = () => {
                       <Plus className="mr-2 h-4 w-4" /> Add Collection
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Create Collection</DialogTitle>
                       <DialogDescription>Add a new Collection</DialogDescription>
@@ -1692,17 +1917,25 @@ const ProductManagement = () => {
                   </DialogContent>
                 </Dialog>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Collections Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Collections ({(collections as any[]).length})</CardTitle>
+              <CardDescription>Manage product collections</CardDescription>
             </CardHeader>
             <CardContent>
               <Dialog
                 open={collectionEditOpen}
                 onOpenChange={setCollectionEditOpen}
               >
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Edit Collection</DialogTitle>
                     <DialogDescription>
-                      Update the collection name
+                      Update the collection details
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpdateCollection}>
@@ -1786,84 +2019,104 @@ const ProductManagement = () => {
                 </DialogContent>
               </Dialog>
 
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {(collections as any[]).map((c) => {
-                  const img = c?.image
-                    ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${c.image}`
-                    : undefined;
-                  const statusText = c?.status === 1 || c?.status === "1" ? "Active" : "Inactive";
-                  return (
-                    <Card key={c.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(collections as any[])
+                    .filter((collection) =>
+                      collection.name.toLowerCase().includes(collectionSearchTerm.toLowerCase())
+                    )
+                    .map((collection) => {
+                      const statusText = collection?.status === 1 || collection?.status === "1" ? "Active" : "Inactive";
+                      const statusVariant = statusText === "Active" ? "default" : "destructive";
+                      const img = collection?.image
+                        ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${collection.image}`
+                        : undefined;
+                      
+                      return (
+                        <TableRow key={collection.id}>
+                          <TableCell className="font-medium">{collection.id}</TableCell>
+                          <TableCell>
                             <div className="w-16 h-16 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
                               {img ? (
-                                <img src={img} alt={c.name} className="w-full h-full object-cover" />
+                                <img src={img} alt={collection.name} className="w-full h-full object-cover" />
                               ) : (
                                 <span className="text-xs text-muted-foreground">No image</span>
                               )}
                             </div>
-                            <div className="space-y-1">
-                              <div className="text-xs text-muted-foreground">ID: {c.id}</div>
-                              <h3 className="font-medium">{c.name}</h3>
-                              <div className="text-xs text-muted-foreground">{statusText}</div>
-                              {c.description && (
-                                <p className="text-sm text-muted-foreground line-clamp-2 max-w-[280px]">{c.description}</p>
-                              )}
+                          </TableCell>
+                          <TableCell className="font-medium">{collection.name}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {collection.description || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant}>{statusText}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(collection.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditCollection(collection.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete collection?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. This will
+                                      permanently delete "{collection.name}" (ID:{" "}
+                                      {collection.id}).
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleDeleteCollection(collection.id)
+                                      }
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditCollection(c.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete collection?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete "{c.name}" (ID: {c.id}).
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCollection(c.id)}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         <TabsContent value="bulk" className="space-y-4">
