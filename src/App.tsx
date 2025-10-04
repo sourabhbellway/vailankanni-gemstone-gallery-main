@@ -34,6 +34,11 @@ import ProtectedUserRoute from "./components/ProtectedUserRoute";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminProfile from "./pages/admin/AdminProfile";
 import Profile from "./pages/Profile";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
+import Wishlist from "./pages/Wishlist";
+import UserOrderDetails from "./pages/OrderDetails";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -61,6 +66,46 @@ const App = () => (
               element={
                 <ProtectedUserRoute>
                   <Profile />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/cart"
+              element={
+                <ProtectedUserRoute>
+                  <Cart />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedUserRoute>
+                  <Checkout />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedUserRoute>
+                  <Orders />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/wishlist"
+              element={
+                <ProtectedUserRoute>
+                  <Wishlist />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/order-details/:orderId"
+              element={
+                <ProtectedUserRoute>
+                  <UserOrderDetails />
                 </ProtectedUserRoute>
               }
             />

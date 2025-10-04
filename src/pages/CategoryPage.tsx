@@ -3,17 +3,30 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import ContactSection from "@/components/ContactSection";
-import { Heart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getCategoryProducts, getPublicCategories } from "@/lib/api/publicController";
+import { addToCart } from "@/lib/api/cartController";
+import { addToWishlist } from "@/lib/api/wishlistController";
+import { useUserAuth } from "@/context/UserAuthContext";
+import { useToast } from "@/hooks/use-toast";
+import QuantityDialog from "@/components/QuantityDialog";
 import { API_BASE_URL } from "@/config";
 
 const CategoryPage = () => {
   const { categorySlug } = useParams();
   const navigate = useNavigate();
+  const { token, isAuthenticated } = useUserAuth();
+  const { toast } = useToast();
   const [category, setCategory] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quantityDialog, setQuantityDialog] = useState<{
+    isOpen: boolean;
+    product: any;
+  }>({ isOpen: false, product: null });
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addingToWishlist, setAddingToWishlist] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -56,6 +69,71 @@ const CategoryPage = () => {
       main: "/placeholder.svg",
       hover: "/placeholder.svg"
     };
+  };
+
+  const handleAddToCart = (product: any) => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
+    }
+    setQuantityDialog({ isOpen: true, product });
+  };
+
+  const handleConfirmAddToCart = async (quantity: number) => {
+    if (!token || !quantityDialog.product) return;
+    
+    setAddingToCart(true);
+    try {
+      const data = await addToCart(
+        { product_id: quantityDialog.product.id, quantity },
+        token
+      );
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Product added to cart successfully",
+        });
+        setQuantityDialog({ isOpen: false, product: null });
+      }
+    } catch (err: any) {
+      console.error("Add to cart error:", err);
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to add product to cart",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const handleAddToWishlist = async (product: any) => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
+    }
+    
+    if (!token) return;
+    
+    setAddingToWishlist(product.id);
+    try {
+      const data = await addToWishlist({ product_id: product.id }, token);
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Product added to wishlist successfully",
+        });
+      }
+    } catch (err: any) {
+      console.error("Add to wishlist error:", err);
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Failed to add product to wishlist",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToWishlist(null);
+    }
   };
 
   if (loading) {
@@ -128,7 +206,7 @@ const CategoryPage = () => {
                 <span className="text-lg text-gray-500">({products.length} results)</span>
               </div>
               {/* Sort Dropdown */}
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <span className="text-gray-600">Sort By:</span>
                 <select className="border rounded px-3 py-1 focus:outline-none">
                   <option>Best Matches</option>
@@ -136,7 +214,7 @@ const CategoryPage = () => {
                   <option>Price: High to Low</option>
                   <option>Newest First</option>
                 </select>
-              </div>
+              </div> */}
             </div>
             {/* Category Description */}
             {category.description && (
@@ -147,7 +225,7 @@ const CategoryPage = () => {
               </div>
             )}
             {/* Filter Chips */}
-            <div className="flex flex-wrap gap-3 mb-6">
+            {/* <div className="flex flex-wrap gap-3 mb-6">
               <button className="flex items-center border rounded-full px-4 py-2 gap-2 text-primary hover:bg-primary/10 transition">
                 <span className="text-lg">&#43;</span> All Purity
               </button>
@@ -160,7 +238,7 @@ const CategoryPage = () => {
               <button className="flex items-center border rounded-full px-4 py-2 gap-2 text-primary hover:bg-primary/10 transition">
                 +Show More
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Product Cards Grid */}
@@ -176,9 +254,10 @@ const CategoryPage = () => {
                     {/* Wishlist Icon */}
                     <button
                       className="absolute top-6 right-6 text-gray-400 hover:text-red-500 z-10 bg-white rounded-full p-2 shadow border border-gray-200"
-                      onClick={() => navigate("/signin")}
+                      onClick={() => handleAddToWishlist(product)}
+                      disabled={addingToWishlist === product.id}
                     >
-                      <Heart className="w-6 h-6" />
+                      <Heart className={`w-6 h-6 ${addingToWishlist === product.id ? 'animate-pulse' : ''}`} />
                     </button>
                     {/* Product Image */}
                     <div className="relative rounded-xl overflow-hidden border border-gray-100 mb-4 aspect-square bg-white flex items-center justify-center group">
@@ -243,7 +322,7 @@ const CategoryPage = () => {
                             ? 'bg-primary text-white hover:bg-primary/90'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
-                        onClick={() => product.stock > 0 ? navigate("/signin") : null}
+                        onClick={() => product.stock > 0 ? handleAddToCart(product) : null}
                         disabled={product.stock === 0}
                       >
                         {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
@@ -267,6 +346,16 @@ const CategoryPage = () => {
       </main>
       <ContactSection />
       <Footer />
+      
+      {/* Quantity Dialog */}
+      <QuantityDialog
+        isOpen={quantityDialog.isOpen}
+        onClose={() => setQuantityDialog({ isOpen: false, product: null })}
+        onConfirm={handleConfirmAddToCart}
+        productName={quantityDialog.product?.name || ""}
+        maxStock={quantityDialog.product?.stock || 0}
+        loading={addingToCart}
+      />
     </>
   );
 };

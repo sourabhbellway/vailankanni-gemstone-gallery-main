@@ -292,7 +292,7 @@ const Header = () => {
                     </Avatar>
                   </span>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-40 bg-card border-border shadow-luxury animate-scale-in">
+                <DropdownMenuContent className="w-40 bg-card border-border shadow-luxury animate-scale-in mr-2">
                   <DropdownMenuItem asChild>
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
