@@ -228,7 +228,7 @@ const Wishlist = () => {
                         onClick={() => navigate(`/product/${item.product.id}`)}
                         className="w-full text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white rounded-xl"
                       >
-                        <Eye className="w-4 h-4 mr-2" />
+                
                         View Details
                       </Button>
                     </div>

@@ -50,7 +50,7 @@ const Payments = () => {
           You're Just Step Away From Locking Your Gold At Today's Rate
         </span>
       </div>
-      <div className="flex flex-col md:flex-row gap-8 mx-10 mt-8">
+      <div className="flex flex-col md:flex-row gap-8 mx-10 my-8">
         {/* Payment Methods */}
         <Card className="flex-1">
           <CardContent className="p-6">

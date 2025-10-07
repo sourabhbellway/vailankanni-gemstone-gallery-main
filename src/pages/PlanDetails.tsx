@@ -8,28 +8,7 @@ import { useNavigate } from "react-router-dom";
 const DUMMY_GOLD_RATE = 4548;
 const DUMMY_GOLD_RATE_PER_GRAM = 6000;
 const DUMMY_GOLD_RATE_CHANGE = 0.5;
-const DUMMY_PLANS = [
-  {
-    icon: "💳",
-    name: "Quick Server Plan",
-    description:
-      "Start With A Monthly Investment And Build Your Gold Portfolio Systematically",
-    minAmount: "₹ 2000",
-    frequency: "Monthly",
-    lockIn: "3 Months",
-    highlight: true,
-  },
-  {
-    icon: "🪙",
-    name: "Custom Deposite",
-    description:
-      "Start With A Monthly Investment And Build Your Gold Portfolio Systematically",
-    minAmount: "₹ 1000",
-    frequency: "Flexible",
-    lockIn: "None",
-    highlight: false,
-  },
-];
+// No predefined plans here; this page is dedicated to custom plan only
 
 const PlanDetails = () => {
   const [investment, setInvestment] = useState(100000);
@@ -57,62 +36,7 @@ const PlanDetails = () => {
         </div>
       </div>
 
-      {/* Plans Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6  mx-10 mt-8">
-        {DUMMY_PLANS.map((plan, idx) => (
-          <Card
-            key={plan.name}
-            className={`relative ${
-              plan.highlight ? "border-green-600" : ""
-            } p-6`}
-          >
-            <div className="w-10 h-10 flex items-center justify-center bg-[#f5e9c6] rounded-md text-2xl">
-              {plan.icon}
-            </div>
-            <CardContent className="p-0 mt-2">
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
-                    {plan.highlight && (
-                      <span
-                        className="w-3 h-3 bg-green-500 rounded-full inline-block"
-                        title="Recommended"
-                      ></span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground mb-2">
-                    {plan.description}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Minimum Amount
-                      </span>
-                      <br />
-                      <span className="font-semibold text-green-700">
-                        {plan.minAmount}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Frequency</span>
-                      <br />
-                      <span className="font-semibold">{plan.frequency}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Lock In Period
-                      </span>
-                      <br />
-                      <span className="font-semibold">{plan.lockIn}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Custom Plan only: No static plan cards */}
 
       {/* Investment Calculator */}
       <div className="mx-0 mt-8 w-full  md:px-10 flex flex-col md:flex-row gap-6 items-stretch">

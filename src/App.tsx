@@ -39,6 +39,7 @@ import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import UserOrderDetails from "./pages/OrderDetails";
+import SchemeManagement from "./pages/admin/SchemeManagement";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -166,6 +167,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <BannerManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/schemes"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <SchemeManagement />
                   </AdminLayout>
                 </ProtectedRoute>
               }

@@ -111,11 +111,11 @@ const Header = () => {
   }, []);
 
   const menuItems = [
-    { name: "Home", href: "/" },
-    { name: "About Us", href: "#about" },
-    { name: "Schemes", href: "/schemes" },
-    { name: "Reviews", href: "#reviews" },
-    { name: "Contact", href: "#contact" },
+  { name: "Home", href: "/" },
+  { name: "About Us", href: "#about" },
+  // Schemes handled separately with dropdown
+  { name: "Reviews", href: "#reviews" },
+  { name: "Contact", href: "#contact" },
   ];
 
   // Collections will be populated from API
@@ -226,6 +226,30 @@ const Header = () => {
                   <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-secondary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
                 </a>
               ))}
+
+              {/* Schemes Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${
+                    isScrolled
+                      ? "text-[#084526]"
+                      : isHome || isSchemes
+                      ? "text-white"
+                      : "text-black"
+                  }`}
+                >
+                  <span>Schemes</span>
+                  <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
+                  <DropdownMenuItem asChild>
+                    <Link to="/schemes" className="w-full">Plans</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/plan/custom" className="w-full">Custom plan</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Categories Dropdown */}
               <DropdownMenu>
@@ -346,6 +370,25 @@ const Header = () => {
                     {item.name}
                   </a>
                 ))}
+
+                {/* Mobile Schemes */}
+                <div className="border-t border-border pt-4 mt-2">
+                  <h3 className="text-primary font-semibold mb-3">Schemes</h3>
+                  <Link
+                    to="/schemes"
+                    className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Plans
+                  </Link>
+                  <Link
+                    to="/plan/custom"
+                    className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Custom plan
+                  </Link>
+                </div>
 
                 {/* Mobile Collections */}
                 <div className="border-t border-border pt-4 mt-4">

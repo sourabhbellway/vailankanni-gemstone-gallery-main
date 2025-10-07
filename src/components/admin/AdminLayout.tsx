@@ -14,6 +14,7 @@ import {
   Menu,
   LogOut,
   TrendingUp,
+  Workflow,
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { name: "Gold Rate Management", href: "/admin/rates", icon: TrendingUp },
     { name: "Coupon Management", href: "/admin/coupons", icon: Tag },
     { name: "Banner Management", href: "/admin/banners", icon: Image },
+    { name: "Scheme Management", href: "/admin/schemes", icon: Workflow },
     { name: "Reports & Analytics", href: "/admin/reports", icon: BarChart3 },
     { name: "Notifications", href: "/admin/notifications", icon: Bell },
     { name: "Settings", href: "/admin/settings", icon: Settings },

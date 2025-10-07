@@ -162,7 +162,7 @@ const Schemes = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button className="w-full bg-gradient-gold hover:shadow-gold" onClick={() => navigate(`/plan/${scheme.name.replace(/ /g, '-')}`)}>
+                  <Button className="w-full bg-gradient-gold hover:shadow-gold" onClick={() => navigate(`/payments`)}>
                     Start This Plan
                   </Button>
                 </CardContent>
@@ -245,7 +245,7 @@ const Schemes = () => {
                 </div>
               </div>
               
-              <Button className="w-full mt-6 bg-white text-primary hover:bg-accent hover:text-accent-foreground">
+              <Button className="w-full mt-6 bg-white text-primary hover:bg-accent hover:text-accent-foreground" onClick={() => navigate(`/payments`)}>
                 Start Investing Now
               </Button>
             </Card>
@@ -348,7 +348,7 @@ const Schemes = () => {
               <Calendar className="mr-2 h-5 w-5" />
               Book Free Consultation
             </Button>
-            <Button size="lg" variant="outline" className="bg-white text-primary hover:bg-accent hover:text-accent-foreground">
+            <Button size="lg" variant="outline" className="bg-white text-primary hover:bg-accent hover:text-accent-foreground" onClick={() => navigate(`/payments`)}>
               <CreditCard className="mr-2 h-5 w-5" />
               Start EMI Plan
             </Button>
