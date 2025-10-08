@@ -81,3 +81,30 @@ export const removeFromCart = async (data: RemoveFromCartData, token: string) =>
     throw error;
   }
 };
+
+export const getCouponsList = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/public/coupons`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const applyCoupon = async (cartId: number, couponCode: string, token: string) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/apply/coupon`,
+      { cart_id: cartId, coupon_code: couponCode },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
