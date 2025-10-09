@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   RefreshCw,
   TrendingUp,
@@ -65,7 +66,50 @@ const RateManagement = () => {
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
 
+  type Metal = "Gold" | "Silver" | "Platinum";
+  const metals: Metal[] = ["Gold", "Silver", "Platinum"];
+
   const karatOptions = ["24K", "22K", "21K", "20K", "18K", "16K", "14K", "10K"];
+
+  const [rateSourceByMetal, setRateSourceByMetal] = useState<Record<Metal, "live" | "manual">>({
+    Gold: "live",
+    Silver: "live",
+    Platinum: "live",
+  });
+
+  const [manualRates, setManualRates] = useState<Record<Metal, Partial<Record<string, number>>>>({
+    Gold: { "24K": 0, "22K": 0, "21K": 0, "20K": 0, "18K": 0, "16K": 0, "14K": 0, "10K": 0 },
+    Silver: { "24K": 0 },
+    Platinum: { "24K": 0 },
+  });
+
+  type RateHistoryItem = {
+    dateIso: string;
+    metal: Metal;
+    category: string;
+    karat: string;
+    pricePerGram: number;
+    source: "manual" | "live";
+  };
+  const [rateHistory, setRateHistory] = useState<RateHistoryItem[]>([]);
+
+  const productCategories = [
+    "All",
+    "Rings",
+    "Necklaces",
+    "Bracelets",
+    "Earrings",
+    "Bangles",
+    "Chains",
+    "Pendants",
+  ];
+  const [selectedHistoryMetal, setSelectedHistoryMetal] = useState<Metal | "All">("All");
+  const [selectedHistoryCategory, setSelectedHistoryCategory] = useState<string>("All");
+  const [selectedManualCategoryByMetal, setSelectedManualCategoryByMetal] = useState<Record<Metal, string>>({
+    Gold: "All",
+    Silver: "All",
+    Platinum: "All",
+  });
 
   const fetchRates = async () => {
     if (!token) return;
@@ -105,18 +149,12 @@ const RateManagement = () => {
   // Calculate price when calculator inputs change
   useEffect(() => {
     calculatePrice();
-  }, [selectedMetal, selectedKarat, weight, weightUnit, result]);
+  }, [selectedMetal, selectedKarat, weight, weightUnit, rateSourceByMetal, manualRates]);
 
   const calculatePrice = () => {
-    if (!selectedMetal || !result) return;
+    if (!selectedMetal) return;
 
-    const metalData = result.items.find((item) => item.metal === selectedMetal);
-    if (!metalData) return;
-
-    const priceKey =
-      `price_gram_${selectedKarat.toLowerCase()}` as keyof typeof metalData.price_data;
-    const pricePerGram = metalData.price_data[priceKey] as number;
-
+    const pricePerGram = getEffectiveKaratPrice(selectedMetal as Metal, selectedKarat) || 0;
     if (!pricePerGram) return;
 
     let finalWeight = weight;
@@ -175,13 +213,60 @@ const RateManagement = () => {
   const goldData = getMetalData("Gold");
   const silverData = getMetalData("Silver");
   const platinumData = getMetalData("Platinum");
-  const palladiumData = getMetalData("Palladium");
+  // Palladium intentionally not used
 
   const getKaratPrice = (metalData: MetalItem | undefined, karat: string) => {
-    if (!metalData) return null;
-    const priceKey =
-      `price_gram_${karat.toLowerCase()}` as keyof typeof metalData.price_data;
-    return metalData.price_data[priceKey] as number;
+    if (!metalData || !metalData.price_data) return 0;
+    const priceKey = `price_gram_${karat.toLowerCase()}` as keyof typeof metalData.price_data;
+    const value = metalData.price_data[priceKey] as unknown;
+    return typeof value === "number" && !Number.isNaN(value) ? value : 0;
+  };
+
+  const getEffectiveKaratPrice = (metal: Metal, karat: string): number | null => {
+    if (rateSourceByMetal[metal] === "manual") {
+      const manual = manualRates[metal]?.[karat];
+      return manual && manual > 0 ? manual : 0;
+    }
+    const data = getMetalData(metal);
+    return getKaratPrice(data, karat) ?? 0;
+  };
+
+  const handleManualRateChange = (metal: Metal, karat: string, value: number) => {
+    setManualRates((prev) => ({
+      ...prev,
+      [metal]: { ...(prev[metal] || {}), [karat]: value },
+    }));
+  };
+
+  const saveManualRatesForMetal = (metal: Metal) => {
+    const category = selectedManualCategoryByMetal[metal] || "All";
+    const karatsToSave = metal === "Gold" ? karatOptions : ["24K"];
+    const now = new Date().toISOString();
+    const newEntries = karatsToSave
+      .map((k) => {
+        const price = Number(manualRates[metal]?.[k] || 0);
+        if (!price) return null;
+        return {
+          dateIso: now,
+          metal,
+          category,
+          karat: k,
+          pricePerGram: price,
+          source: "manual",
+        } as const;
+      })
+      .filter(Boolean) as RateHistoryItem[];
+
+    if (newEntries.length > 0) {
+      setRateHistory((prev) => [...newEntries, ...prev]);
+      toast({ title: `${metal} manual rates saved`, description: `${newEntries.length} entr${newEntries.length === 1 ? "y" : "ies"} added to history.` });
+    } else {
+      toast({ title: "No rates to save", description: "Please enter at least one price.", variant: "destructive" });
+    }
+  };
+
+  const applyManualRatesToProducts = (metal: Metal) => {
+    toast({ title: `Apply to Products`, description: `Manual ${metal} rates will be applied to products (UI only).` });
   };
 
   const getAvailableKaratOptions = (metalName: string) => {
@@ -214,7 +299,7 @@ const RateManagement = () => {
       </div>
 
       {/* Market Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Gold Card */}
         <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
           <DialogTrigger asChild>
@@ -238,19 +323,19 @@ const RateManagement = () => {
               <CardContent>
                 <div className="space-y-3">
                   <div className="text-2xl font-bold text-amber-800">
-                    {formatINR(goldData?.price_data.price_gram_24k)}
+                    {formatINR(getEffectiveKaratPrice("Gold", "24K"))}
                   </div>
-                  {goldData &&
+                  {rateSourceByMetal.Gold === "live" && goldData?.price_data &&
                     formatChange(
-                      goldData.price_data.ch || 0,
-                      goldData.price_data.chp || 0
+                      goldData.price_data.ch ?? 0,
+                      goldData.price_data.chp ?? 0
                     )}
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
-                      High: {formatINR(goldData?.price_data.high_price)}
+                      High: {formatINR(goldData?.price_data?.high_price)}
                     </span>
                     <span>
-                      Low: {formatINR(goldData?.price_data.low_price)}
+                      Low: {formatINR(goldData?.price_data?.low_price)}
                     </span>
                   </div>
                   <div className="text-center text-xs text-amber-600 mt-2">
@@ -281,19 +366,19 @@ const RateManagement = () => {
               <CardContent>
                 <div className="space-y-3">
                   <div className="text-2xl font-bold text-gray-800">
-                    {formatINR(silverData?.price_data.price_gram_24k)}
+                    {formatINR(getEffectiveKaratPrice("Silver", "24K"))}
                   </div>
-                  {silverData &&
+                  {rateSourceByMetal.Silver === "live" && silverData?.price_data &&
                     formatChange(
-                      silverData.price_data.ch || 0,
-                      silverData.price_data.chp || 0
+                      silverData.price_data.ch ?? 0,
+                      silverData.price_data.chp ?? 0
                     )}
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
-                      High: {formatINR(silverData?.price_data.high_price)}
+                      High: {formatINR(silverData?.price_data?.high_price)}
                     </span>
                     <span>
-                      Low: {formatINR(silverData?.price_data.low_price)}
+                      Low: {formatINR(silverData?.price_data?.low_price)}
                     </span>
                   </div>
                   <div className="text-center text-xs text-gray-600 mt-2">
@@ -324,19 +409,19 @@ const RateManagement = () => {
               <CardContent>
                 <div className="space-y-3">
                   <div className="text-2xl font-bold text-blue-800">
-                    {formatINR(platinumData?.price_data.price_gram_24k)}
+                    {formatINR(getEffectiveKaratPrice("Platinum", "24K"))}
                   </div>
-                  {platinumData &&
+                  {rateSourceByMetal.Platinum === "live" && platinumData?.price_data &&
                     formatChange(
-                      platinumData.price_data.ch || 0,
-                      platinumData.price_data.chp || 0
+                      platinumData.price_data.ch ?? 0,
+                      platinumData.price_data.chp ?? 0
                     )}
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>
-                      High: {formatINR(platinumData?.price_data.high_price)}
+                      High: {formatINR(platinumData?.price_data?.high_price)}
                     </span>
                     <span>
-                      Low: {formatINR(platinumData?.price_data.low_price)}
+                      Low: {formatINR(platinumData?.price_data?.low_price)}
                     </span>
                   </div>
                   <div className="text-center text-xs text-blue-600 mt-2">
@@ -346,51 +431,7 @@ const RateManagement = () => {
               </CardContent>
             </Card>
           </DialogTrigger>
-
-          {/* Palladium Card */}
-          <DialogTrigger asChild>
-            <Card
-              className="border-2 border-purple-200 hover:border-purple-300 transition-all duration-300 cursor-pointer hover:shadow-lg"
-              onClick={() => openCalculator("Palladium")}
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-purple-300 rounded-full flex items-center justify-center">
-                    <span className="text-purple-800 font-bold text-sm">
-                      Pd
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-lg font-semibold">Palladium</span>
-                    <p className="text-xs text-muted-foreground">per gram</p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-2xl font-bold text-purple-800">
-                    {formatINR(palladiumData?.price_data.price_gram_24k)}
-                  </div>
-                  {palladiumData &&
-                    formatChange(
-                      palladiumData.price_data.ch || 0,
-                      palladiumData.price_data.chp || 0
-                    )}
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      High: {formatINR(palladiumData?.price_data.high_price)}
-                    </span>
-                    <span>
-                      Low: {formatINR(palladiumData?.price_data.low_price)}
-                    </span>
-                  </div>
-                  <div className="text-center text-xs text-purple-600 mt-2">
-                    Click to calculate price
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </DialogTrigger>
+          {/* Palladium intentionally hidden */}
 
           {/* Calculator Dialog */}
           <DialogContent className="max-w-2xl">
@@ -499,15 +540,9 @@ const RateManagement = () => {
                       Price per gram:
                     </p>
                     <p className="font-semibold text-blue-800">
-                      {(() => {
-                        const metalData = getMetalData(selectedMetal);
-                        if (!metalData) return "N/A";
-                        const priceKey =
-                          `price_gram_${selectedKarat.toLowerCase()}` as keyof typeof metalData.price_data;
-                        return formatINR(
-                          (metalData.price_data[priceKey] as number) || 0
-                        );
-                      })()}
+                      {formatINR(
+                        getEffectiveKaratPrice(selectedMetal as Metal, selectedKarat) || 0
+                      )}
                     </p>
                   </div>
                 </div>
@@ -517,8 +552,76 @@ const RateManagement = () => {
         </Dialog>
       </div>
 
-      {/* Detailed Gold Rates */}
+      {/* Manual Rate Controls */}
       <Card>
+        <CardHeader>
+          <CardTitle>Manual Rates</CardTitle>
+          <CardDescription>
+            Set manual rates for Gold, Silver, and Platinum. Switch source to Manual to use these values across the UI.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {metals.map((metal) => (
+              <div key={metal} className="p-4 rounded-lg border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-semibold">{metal}</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-muted-foreground">Live</span>
+                    <Switch
+                      checked={rateSourceByMetal[metal] === "manual"}
+                      onCheckedChange={(checked) =>
+                        setRateSourceByMetal((prev) => ({ ...prev, [metal]: checked ? "manual" : "live" }))
+                      }
+                    />
+                    <span className="text-xs text-muted-foreground">Manual</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+             
+
+                  {metal === "Gold" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {karatOptions.map((k) => (
+                        <div key={k} className="space-y-1">
+                          <Label className="text-xs">{k} (per g)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={manualRates[metal]?.[k] ?? 0}
+                            onChange={(e) => handleManualRateChange(metal, k, Number(e.target.value))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">24K (per g)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={manualRates[metal]?.["24K"] ?? 0}
+                          onChange={(e) => handleManualRateChange(metal, "24K", Number(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2">
+                    <Button variant="secondary" onClick={() => saveManualRatesForMetal(metal)}>Save Manual Rates</Button>
+                    <Button onClick={() => applyManualRatesToProducts(metal)}>Apply to Products</Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Gold Rates */}
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Coins className="h-5 w-5 text-amber-600" />
@@ -539,7 +642,7 @@ const RateManagement = () => {
                   {karat}
                 </div>
                 <div className="text-lg font-bold text-amber-900">
-                  {formatINR(getKaratPrice(goldData, karat))}
+                  {formatINR(getEffectiveKaratPrice("Gold", karat))}
                 </div>
               </div>
             ))}
@@ -557,19 +660,19 @@ const RateManagement = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Exchange:</span>
                   <span className="font-medium">
-                    {goldData?.price_data.exchange || "N/A"}
+                    {goldData?.price_data?.exchange || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Symbol:</span>
                   <span className="font-medium">
-                    {goldData?.price_data.symbol || "N/A"}
+                    {goldData?.price_data?.symbol || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Currency:</span>
                   <span className="font-medium">
-                    {goldData?.price_data.currency || "N/A"}
+                    {goldData?.price_data?.currency || "N/A"}
                   </span>
                 </div>
               </div>
@@ -584,25 +687,25 @@ const RateManagement = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Open:</span>
                   <span className="font-medium">
-                    {formatINR(goldData?.price_data.open_price)}
+                    {formatINR(goldData?.price_data?.open_price)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Previous Close:</span>
                   <span className="font-medium">
-                    {formatINR(goldData?.price_data.prev_close_price)}
+                    {formatINR(goldData?.price_data?.prev_close_price)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Ask:</span>
                   <span className="font-medium">
-                    {formatINR(goldData?.price_data.ask)}
+                    {formatINR(goldData?.price_data?.ask)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bid:</span>
                   <span className="font-medium">
-                    {formatINR(goldData?.price_data.bid)}
+                    {formatINR(goldData?.price_data?.bid)}
                   </span>
                 </div>
               </div>
@@ -617,9 +720,9 @@ const RateManagement = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Timestamp:</span>
                   <span className="font-medium">
-                    {goldData?.price_data.timestamp
+                    {goldData?.price_data?.timestamp
                       ? new Date(
-                          goldData.price_data.timestamp * 1000
+                          goldData.price_data?.timestamp * 1000
                         ).toLocaleString("en-IN")
                       : "N/A"}
                   </span>
@@ -627,9 +730,9 @@ const RateManagement = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Open Time:</span>
                   <span className="font-medium">
-                    {goldData?.price_data.open_time
+                    {goldData?.price_data?.open_time
                       ? new Date(
-                          goldData.price_data.open_time * 1000
+                          goldData.price_data?.open_time * 1000
                         ).toLocaleString("en-IN")
                       : "N/A"}
                   </span>
@@ -638,10 +741,10 @@ const RateManagement = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Summary Data */}
-      {result?.summary && (
+      {/* {result?.summary && (
         <Card>
           <CardHeader>
             <CardTitle>Summary Data</CardTitle>
@@ -703,14 +806,80 @@ const RateManagement = () => {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
+
+      {/* Rate History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rate History</CardTitle>
+          <CardDescription>Track when rates were set, by metal and category</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3 mb-4">
+            <div>
+              <Label className="text-xs">Metal</Label>
+              <Select value={selectedHistoryMetal} onValueChange={(v) => setSelectedHistoryMetal(v as Metal | "All")}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All</SelectItem>
+                  {metals.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Metal</TableHead>
+               
+                <TableHead>Purity</TableHead>
+                <TableHead className="text-right">Price/g</TableHead>
+               
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rateHistory
+                .filter((h) => (selectedHistoryMetal === "All" ? true : h.metal === selectedHistoryMetal))
+                .filter((h) => (selectedHistoryCategory === "All" ? true : h.category === selectedHistoryCategory))
+                .map((h, idx) => (
+                  <TableRow key={`${h.dateIso}-${idx}`}>
+                    <TableCell>
+                      {new Date(h.dateIso).toLocaleString("en-IN")}
+                    </TableCell>
+                    <TableCell className="font-medium">{h.metal}</TableCell>
+                  
+                    <TableCell>{h.karat}</TableCell>
+                    <TableCell className="text-right">{formatINR(h.pricePerGram)}</TableCell>
+                  
+                  </TableRow>
+                ))}
+              {rateHistory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                    No history yet. Save manual rates to record entries.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Last Updated */}
       <div className="text-center text-sm text-muted-foreground">
         <p>Last updated: {new Date().toLocaleString("en-IN")}</p>
         <p className="mt-1">
-          Data source: {goldData?.price_data.exchange || "N/A"} • Currency:{" "}
-          {goldData?.price_data.currency || "N/A"}
+          Data source: {goldData?.price_data?.exchange || "N/A"} • Currency:{" "}
+          {goldData?.price_data?.currency || "N/A"}
         </p>
       </div>
     </div>
