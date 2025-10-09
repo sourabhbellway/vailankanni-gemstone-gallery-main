@@ -26,6 +26,9 @@ const Checkout = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [showCoupon, setShowCoupon] = useState(false)
+  const [serverCartTotal, setServerCartTotal] = useState<number | null>(null);
+  const [serverFinalTotal, setServerFinalTotal] = useState<number | null>(null);
+  const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     order_date: "",
     payment: "COD",
@@ -50,18 +53,10 @@ const Checkout = () => {
     try {
       const data = await getCartItems(token);
       if (data.success) {
-        // Extract cart id: in this API, items[0].id is the cart item id to use
+        // Extract cart id from response: backend returns cart_id at root of data
         const payload = data.data || {};
         const items = Array.isArray(payload.items) ? payload.items : [];
-        const primaryId = items?.[0]?.id || null;
-        const possibleCartId =
-          primaryId ||
-          payload.cart?.id ||
-          payload.cart_id ||
-          payload.id ||
-          items?.[0]?.cart_id ||
-          items?.[0]?.cart?.id ||
-          null;
+        const possibleCartId = payload.cart_id || items?.[0]?.cart_id || null;
 
         if (possibleCartId) {
           setCartId(possibleCartId);
@@ -115,11 +110,20 @@ const Checkout = () => {
     try {
       const data = await applyCoupon(cartId, couponCode, token);
       if (data.status) {
-        // New response shape based on provided curl sample
+        // Refresh items and totals from server response
         const resp = data.data || {};
+        setCartId(resp.cart_id || cartId);
+        const items = Array.isArray(resp.items) ? resp.items : [];
+        setCartItems(items);
+        setServerCartTotal(typeof resp.cart_total === 'number' ? resp.cart_total : Number(resp.cart_total));
+        setServerFinalTotal(typeof resp.final_total === 'number' ? resp.final_total : Number(resp.final_total));
         setAppliedCoupon({ code: resp.coupon_code, discount_type: resp.discount_type, value: resp.discount_value });
         setCouponDiscount(Number(resp.discount_amount) || 0);
         setFormData(prev => ({ ...prev, coupon_code: couponCode }));
+
+        // map coupon_code to coupon_id from loaded coupons list
+        const matched = (coupons || []).find((c) => String(c.coupon_code).toLowerCase() === String(resp.coupon_code).toLowerCase());
+        setSelectedCouponId(matched ? Number(matched.id) : null);
 
         toast({
           title: "Success",
@@ -147,6 +151,9 @@ const Checkout = () => {
     setAppliedCoupon(null);
     setCouponDiscount(0);
     setFormData(prev => ({ ...prev, coupon_code: "" }));
+    setServerCartTotal(null);
+    setServerFinalTotal(null);
+    setSelectedCouponId(null);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -172,24 +179,18 @@ const Checkout = () => {
     // Combine address fields
     const delivery_address = `${formData.h_no}, ${formData.street}, ${formData.landmark}, ${formData.city}, ${formData.state}, ${formData.pincode}`;
 
-    // Prepare products array from cart items
-    const products = cartItems.map(item => ({
-      product_id: item.product.id,
-      quantity: item.quantity
-    }));
-
     // Calculate expected delivery (3 days from order date)
     const orderDate = new Date(formData.order_date);
     const expectedDelivery = new Date(orderDate);
     expectedDelivery.setDate(expectedDelivery.getDate() + 3);
 
     const orderData = {
-      products,
+      cart_id: cartId,
       delivery_address,
       order_date: formData.order_date,
       expected_delivery: expectedDelivery.toISOString().split('T')[0],
       payment: formData.payment,
-      coupon_id: formData.coupon_code ? parseInt(formData.coupon_code) : undefined,
+      coupon_id: selectedCouponId ?? undefined,
       notes: formData.notes,
     };
 
@@ -199,11 +200,11 @@ const Checkout = () => {
       console.log("Order creation response:", response);
 
       // Check if order was created successfully
-      if (response.success || (response.data && response.data.id)) {
+      if (response.success) {
         console.log("Order created successfully, showing success toast");
         toast({
           title: "Success",
-          description: "Order placed successfullyehrgtrh!",
+          description: response.message || "Order placed successfully!",
         });
         // Reset form
         setFormData({
@@ -230,37 +231,11 @@ const Checkout = () => {
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
-      console.log("Error details:", error.response?.data);
-
-      // Check if the error is actually a success (some APIs return 200 but with error in response)
-      if (error.response?.data?.success || error.response?.data?.data?.id) {
-        console.log("Order created successfully despite error response");
-        toast({
-          title: "Success",
-          description: "Order placed successfully!",
-        });
-        // Reset form
-        setFormData({
-          order_date: "",
-          payment: "COD",
-          coupon_code: "",
-          notes: "",
-          h_no: "",
-          street: "",
-          landmark: "",
-          city: "",
-          state: "",
-          pincode: "",
-        });
-        // Navigate to orders page
-        navigate("/orders");
-      } else {
-        toast({
-          title: "Error",
-          description: error?.response?.data?.message || "Failed to place order",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error.message || "Failed to place order",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -283,19 +258,20 @@ const Checkout = () => {
     return "/placeholder.svg";
   };
 
-  const totalAmount = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
-  const finalAmount = totalAmount - couponDiscount;
+  const uiSubtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+  const totalAmount = serverCartTotal ?? uiSubtotal;
+  const finalAmount = serverFinalTotal ?? (totalAmount - couponDiscount);
 
   // Check if coupon is eligible based on cart value
   const isCouponEligible = (coupon: any) => {
-    return totalAmount >= parseFloat(coupon.min_order_value || 0);
+    return totalAmount >= parseFloat(coupon.min_order_amount || 0);
   };
 
   if (loading) {
     return (
       <>
         <Header />
-        <div className="min-h-screen font-serif b">
+        <div className="min-h-screen font-serif ">
           <div className="flex justify-center items-center h-96">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
           </div>

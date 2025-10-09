@@ -40,30 +40,7 @@ const Orders = () => {
     }
   };
 
-  const handleDeleteOrder = async (orderId: number) => {
-    if (!token) return;
 
-    setDeleting(orderId);
-    try {
-      const data = await deleteOrder(orderId, token);
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Order deleted successfully",
-        });
-        fetchOrders();
-      }
-    } catch (err: any) {
-      console.error("Delete order error:", err);
-      toast({
-        title: "Error",
-        description: "Failed to delete order",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(null);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -253,16 +230,7 @@ const Orders = () => {
                         <Eye className="w-4 h-4 mr-1" />
                         Show Details
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteOrder(order.id)}
-                        disabled={deleting === order.id}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50 border-red-200"
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        {deleting === order.id ? "Deleting..." : "Delete"}
-                      </Button>
+                     
                     </div>
                   </div>
                 </div>

@@ -149,7 +149,7 @@ const OrderDetails = () => {
 
   if (loading) {
     return (
-      <div className="container py-6">
+      <div className=" p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin mr-3" />
           <span className="text-lg">Loading order details...</span>
@@ -160,7 +160,7 @@ const OrderDetails = () => {
 
   if (error) {
     return (
-      <div className="container py-6">
+      <div className=" p-6">
         <div className="text-center py-12">
           <div className="text-red-500 mb-4">
             <p className="text-lg font-medium">Error loading order</p>
@@ -177,7 +177,7 @@ const OrderDetails = () => {
 
   if (!order) {
     return (
-      <div className="container py-6">
+      <div className=" p-6">
         <div className="text-center py-12">
           <p className="text-lg font-medium">Order not found</p>
           <Button
@@ -194,7 +194,7 @@ const OrderDetails = () => {
   }
 
   return (
-    <div className="container py-6">
+    <div className=" p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">

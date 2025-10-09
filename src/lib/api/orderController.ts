@@ -2,10 +2,7 @@ import axios from "axios";
 import { API_BASE_URL } from "@/config";
 
 interface CreateOrderData {
-  products: Array<{
-    product_id: number;
-    quantity: number;
-  }>;
+  cart_id: number;
   delivery_address: string;
   order_date: string;
   expected_delivery: string;

@@ -41,12 +41,12 @@ const Cart = () => {
     }
   };
 
-  const handleQuantityUpdate = async (cartId: number, newQuantity: number) => {
+  const handleQuantityUpdate = async (cartItemId: number, newQuantity: number) => {
     if (!token) return;
 
-    setUpdating(cartId);
+    setUpdating(cartItemId);
     try {
-      const data = await updateCartQuantity({ cart_id: cartId, quantity: newQuantity }, token);
+      const data = await updateCartQuantity({ item_id: cartItemId, quantity: newQuantity }, token);
       if (data.success) {
         toast({
           title: "Success",
@@ -66,11 +66,11 @@ const Cart = () => {
     }
   };
 
-  const handleRemoveFromCart = async (cartId: number) => {
+  const handleRemoveFromCart = async (cartItemId: number) => {
     if (!token) return;
 
     try {
-      const data = await removeFromCart({ cart_id: cartId }, token);
+      const data = await removeFromCart({ item_id: cartItemId }, token);
       if (data.success) {
         toast({
           title: "Success",

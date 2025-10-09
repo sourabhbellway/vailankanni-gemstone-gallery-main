@@ -7,12 +7,12 @@ interface AddToCartData {
 }
 
 interface UpdateQuantityData {
-  cart_id: number;
+  item_id: number;
   quantity: number;
 }
 
 interface RemoveFromCartData {
-  cart_id: number;
+  item_id: number;
 }
 
 export const addToCart = async (data: AddToCartData, token: string) => {
