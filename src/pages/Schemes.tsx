@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins } from "lucide-react";
+import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
+import { getUserSchemes, type UserScheme } from "@/lib/api/userSchemesController";
+import { useToast } from "@/hooks/use-toast";
 
 const Schemes = () => {
   const [selectedPlan, setSelectedPlan] = useState("12");
@@ -30,32 +32,19 @@ const Schemes = () => {
     setTotalAmount(total);
   }, [monthlyAmount, selectedPlan, currentGoldRate]);
 
-  const schemes = [
-    {
-      name: "Quick Saver",
-      duration: "3 Months",
-      minAmount: "₹2,000",
-      benefits: ["Quick accumulation", "Low commitment", "Instant liquidity"],
-      icon: <TrendingUp className="h-8 w-8" />,
-      popular: false
-    },
-    {
-      name: "Smart Saver",
-      duration: "6 Months",
-      minAmount: "₹3,000",
-      benefits: ["Balanced approach", "Better gold accumulation", "Flexible payments"],
-      icon: <Calculator className="h-8 w-8" />,
-      popular: true
-    },
-    {
-      name: "Gold Builder",
-      duration: "12 Months",
-      minAmount: "₹5,000",
-      benefits: ["Maximum savings", "Best gold rates", "Premium jewelry access"],
-      icon: <Gift className="h-8 w-8" />,
-      popular: false
-    }
-  ];
+  const { toast } = useToast();
+  const [schemes, setSchemes] = useState<UserScheme[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getUserSchemes();
+        setSchemes(res.data);
+      } catch (err: any) {
+        toast({ title: "Failed to load schemes", description: err?.response?.data?.message || "Please try again later" });
+      }
+    })();
+  }, []);
 
   const features = [
     {
@@ -134,37 +123,51 @@ const Schemes = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {schemes.map((scheme, index) => (
-              <Card key={index} className={`relative overflow-hidden transition-all duration-300 hover:shadow-luxury hover:scale-105 ${scheme.popular ? 'border-primary shadow-gold' : ''}`}>
-                {scheme.popular && (
+            {schemes.map((scheme) => (
+              <Card key={scheme.id} className={`relative overflow-hidden transition-all duration-300 hover:shadow-luxury hover:scale-105 ${scheme.isPopular === 1 ? 'border-primary shadow-gold' : ''}`}>
+                {scheme.isPopular === 1 && (
                   <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
                     POPULAR
                   </div>
                 )}
                 <CardHeader className="text-center pb-4">
                   <div className="mx-auto mb-4 p-3 bg-gradient-gold rounded-full text-white">
-                    {scheme.icon}
+                    <Gift className="h-8 w-8" />
                   </div>
                   <CardTitle className="text-2xl font-serif">{scheme.name}</CardTitle>
                   <CardDescription className="text-lg font-semibold text-primary font-serif">
-                    {scheme.duration}
+                    {scheme.timeline.replace("months", " Months")}
                   </CardDescription>
                   <div className="text-sm text-muted-foreground">
-                    Min. Amount: {scheme.minAmount}/month
+                    Min. Amount: ₹{scheme.minAmount}/month
                   </div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 mb-6">
-                    {scheme.benefits.map((benefit, idx) => (
+                    {scheme.points.map((benefit, idx) => (
                       <li key={idx} className="flex items-center space-x-2">
                         <ChevronRight className="h-4 w-4 text-primary" />
                         <span className="text-sm font-serif">{benefit}</span>
                       </li>
                     ))}
                   </ul>
-                  <Button className="w-full bg-gradient-gold hover:shadow-gold" onClick={() => navigate(`/payments`)}>
-                    Start This Plan
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button className="flex-1 bg-gradient-gold hover:shadow-gold" onClick={() => navigate(`/payments`)}>
+                      Start This Plan
+                    </Button>
+                    {scheme.attachments?.[0] && (
+                      <Button variant="outline" size="icon" asChild>
+                        <a
+                          href={`${scheme.attachments[0]}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Download template"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

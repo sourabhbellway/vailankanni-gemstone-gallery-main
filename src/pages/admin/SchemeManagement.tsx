@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Card,
     CardContent,
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Edit } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { getAllSchemes, updateScheme } from "@/lib/api/schemeController";
 
 // removed alert dialog since delete is not allowed
 type Scheme = {
@@ -39,6 +41,7 @@ type Scheme = {
     isPopular: boolean;
     status: "Active" | "Inactive";
     points: string[]; // editable bullet points/benefits
+    attachments?: File[]; // new files to upload on update
 };
 
 type SchemeModalProps = {
@@ -50,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit }) => {
     const [open, setOpen] = useState(false);
     const [form, setForm] = useState<Scheme>(initialData);
+    const [files, setFiles] = useState<File[]>([]);
 
     const updatePoint = (idx: number, value: string) => {
         const next = [...form.points];
@@ -61,7 +65,7 @@ const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit })
     const removePoint = (idx: number) => setForm({ ...form, points: form.points.filter((_, i) => i !== idx) });
 
     const handleSubmit = () => {
-        onSubmit(form);
+        onSubmit({ ...form, attachments: files });
         setOpen(false);
     };
 
@@ -127,6 +131,10 @@ const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit })
                         <Button variant="outline" onClick={addPoint}>Add Point</Button>
                     </div>
                 </div>
+                <div className="mt-6">
+                    <Label>Attachments (PDFs)</Label>
+                    <Input type="file" multiple accept="application/pdf" onChange={(e) => setFiles(Array.from(e.target.files || []))} />
+                </div>
                 <DialogFooter>
                     <Button onClick={handleSubmit}>Save changes</Button>
                 </DialogFooter>
@@ -136,36 +144,34 @@ const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit })
 };
 
 const SchemeManagement: React.FC = () => {
-    // Example schemes data matching your new table headers
-    const schemes: Scheme[] = [
-        {
-            id: 1,
-            name: "Quick Saver",
-            timeline: "3 Months",
-            minAmount: 2000,
-            isPopular: false,
-            status: "Active",
-            points: ["Quick accumulation", "Low commitment", "Instant liquidity"],
-        },
-        {
-            id: 2,
-            name: "Smart Saver",
-            timeline: "6 Months",
-            minAmount: 3000,
-            isPopular: true,
-            status: "Active",
-            points: ["Balanced approach", "Better gold accumulation", "Flexible payments"],
-        },
-        {
-            id: 3,
-            name: "Gold Builder",
-            timeline: "12 Months",
-            minAmount: 5000,
-            isPopular: false,
-            status: "Active",
-            points: ["Maximum savings", "Best gold rates", "Premium jewelry access"],
-        },
-    ];
+    const { token } = useAuth();
+    const { toast } = useToast();
+    const [schemes, setSchemes] = useState<Scheme[]>([]);
+
+    const apiToUi = (item: any): Scheme => ({
+        id: item.id,
+        name: item.name,
+        timeline: item.timeline,
+        minAmount: item.minAmount,
+        isPopular: Number(item.isPopular) === 1,
+        status: Number(item.status) === 1 ? "Active" : "Inactive",
+        points: item.points || [],
+    });
+
+    const loadSchemes = async () => {
+        if (!token) return;
+        try {
+            const res = await getAllSchemes(token);
+            setSchemes(res.data.map(apiToUi));
+        } catch (err: any) {
+            toast({ title: "Failed to load plans", description: err?.response?.data?.message || "Please try again later" });
+        }
+    };
+
+    useEffect(() => {
+        loadSchemes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token]);
 
     return (
         <div className="p-6">
@@ -222,10 +228,23 @@ const SchemeManagement: React.FC = () => {
                                     <TableCell>
                                         <EditSchemeDialog
                                             initialData={scheme}
-                                            onSubmit={(updated) => {
-                                                // For now just toast; integrate API when available
-                                                // eslint-disable-next-line no-console
-                                                console.log("updated scheme", updated);
+                                            onSubmit={async (updated) => {
+                                                if (!token || !scheme.id) return;
+                                                try {
+                                                    await updateScheme(token, scheme.id, {
+                                                        name: updated.name,
+                                                        timeline: updated.timeline,
+                                                        minAmount: updated.minAmount,
+                                                        status: updated.status === "Active" ? 1 : 0,
+                                                        isPopular: updated.isPopular ? 1 : 0,
+                                                        points: updated.points,
+                                                        attachments: updated.attachments,
+                                                    });
+                                                    toast({ title: "Plan updated successfully" });
+                                                    await loadSchemes();
+                                                } catch (err: any) {
+                                                    toast({ title: "Update failed", description: err?.response?.data?.message || "Please try again" });
+                                                }
                                             }}
                                         />
                                     </TableCell>
