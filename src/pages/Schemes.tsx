@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 const Schemes = () => {
   const [selectedPlan, setSelectedPlan] = useState("12");
   const [monthlyAmount, setMonthlyAmount] = useState("5000");
-  const [currentGoldRate] = useState(6500); // ₹ per gram
+  const [currentGoldRate] = useState(6500); 
   const [calculatedGrams, setCalculatedGrams] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
 
@@ -172,86 +172,7 @@ const Schemes = () => {
         </div>
       </section>
 
-      {/* EMI Calculator */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-foreground mb-6 font-serif">
-                EMI Calculator
-              </h2>
-              <p className="text-xl text-muted-foreground mb-8 font-serif">
-                Calculate your monthly savings and see how much gold you can accumulate
-              </p>
-              
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="plan" className="text-base font-semibold font-serif">Select Plan Duration</Label>
-                  <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                    <SelectTrigger className="w-full h-12 mt-2">
-                      <SelectValue placeholder="Choose duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3">3 Months</SelectItem>
-                      <SelectItem value="6">6 Months</SelectItem>
-                      <SelectItem value="12">12 Months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div>
-                  <Label htmlFor="amount" className="text-base font-semibold font-serif">Monthly Amount (₹)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={monthlyAmount}
-                    onChange={(e) => setMonthlyAmount(e.target.value)}
-                    className="w-full h-12 mt-2"
-                    placeholder="Enter monthly amount"
-                    min="1000"
-                    step="500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Card className="p-8 bg-gradient-luxury text-white">
-              <h3 className="text-2xl font-bold mb-6 font-serif">Your Gold Accumulation</h3>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Monthly Amount:</span>
-                  <span className="font-semibold font-serif">₹{monthlyAmount}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Plan Duration:</span>
-                  <span className="font-semibold font-serif">{selectedPlan} months</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Total Investment:</span>
-                  <span className="font-semibold font-serif">₹{totalAmount.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-white/20">
-                  <span>Current Gold Rate:</span>
-                  <span className="font-semibold font-serif">₹{currentGoldRate}/gram</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-4 text-xl font-bold bg-white/10 px-4 rounded-lg">
-                  <span>Gold Accumulated:</span>
-                  <span className="text-accent font-serif">{calculatedGrams.toFixed(2)} grams</span>
-                </div>
-              </div>
-              
-              <Button className="w-full mt-6 bg-white text-primary hover:bg-accent hover:text-accent-foreground" onClick={() => navigate(`/payments`)}>
-                Start Investing Now
-              </Button>
-            </Card>
-          </div>
-        </div>
-      </section>
 
       {/* Features */}
       <section className="py-20 px-4">
