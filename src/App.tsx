@@ -15,6 +15,7 @@ import PlanDetails from "./pages/PlanDetails";
 import Payments from "./pages/Payments";
 import BridalCollection from "./pages/BridalCollection";
 import ExploreCollection from "./pages/ExploreCollection";
+import Policies from "./pages/Policies";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProductManagement from "./pages/admin/ProductManagement";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/payments" element={<Payments />} />
             <Route path="/bridal-collection" element={<BridalCollection />} />
             <Route path="/explore-collection" element={<ExploreCollection />} />
+            <Route path="/policies" element={<Policies />} />
             <Route
               path="/profile"
               element={

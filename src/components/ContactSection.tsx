@@ -8,19 +8,19 @@ const contactInfo = [
   {
     icon: Phone,
     title: "Call Us",
-    details: ["+91 98765 43210", "+91 98765 43211"],
+    details: ["+91 95451 11124",],
     description: "Mon - Sat: 10:00 AM - 8:00 PM"
   },
   {
     icon: Mail,
     title: "Email Us",
-    details: ["info@vailankanni.com", "orders@vailankanni.com"],
+    details: ["vailankannijewellers89@gmail.com",],
     description: "We'll respond within 24 hours"
   },
   {
     icon: MapPin,
     title: "Visit Our Store",
-    details: ["123 Rua Dr. Dada Vaidya", "Panjim - 403001"],
+    details: ["Shop No. G-10 Ground Floor", "Shankar Parvati Building behind", "Panjim Church", "Penha De Franca Panjim - 403001",],
     description: "Goa, India"
   },
   {

@@ -60,8 +60,9 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-secondary mt-1 flex-shrink-0" />
                 <div>
-                  <p className="text-primary-foreground/90">123 Rua Dr. Dada Vaidya</p>
-                  <p className="text-primary-foreground/90">Panjim - 403001</p>
+                  <p className="text-primary-foreground/90">Shop No. G-10 Ground Floor</p>
+                  <p className="text-primary-foreground/90">Shankar Parvati Building behind Panjim Church</p>
+                  <p className="text-primary-foreground/90">Penha De Franca Panjim - 403001</p>
                   <p className="text-primary-foreground/80">Goa, India</p>
                 </div>
               </div>
@@ -69,15 +70,15 @@ const Footer = () => {
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-secondary flex-shrink-0" />
                 <div>
-                  <p className="text-primary-foreground/90">+91 98765 43210</p>
-                  <p className="text-primary-foreground/90">+91 98765 43211</p>
+                  <p className="text-primary-foreground/90">+91 95451 11124</p>
+               
                 </div>
               </div>
               
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-secondary flex-shrink-0" />
                 <div>
-                  <p className="text-primary-foreground/90">info@vailankanni.com</p>
+                  <p className="text-primary-foreground/90">vailankannijewellers89@gmail.com</p>
                 </div>
               </div>
             </div>
@@ -91,9 +92,9 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-primary-foreground/80">
             <p>&copy; {currentYear} Vailankanni Jewellers. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="hover:text-secondary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-secondary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-secondary transition-colors">Shipping Policy</a>
+              <a href="/policies#privacy" className="hover:text-secondary transition-colors">Privacy Policy</a>
+              <a href="/policies#terms" className="hover:text-secondary transition-colors">Terms of Service</a>
+              <a href="/policies#shipping" className="hover:text-secondary transition-colors">Shipping Policy</a>
             </div>
           </div>
         </div>
@@ -103,3 +104,4 @@ const Footer = () => {
 };
 
 export default Footer;
+
