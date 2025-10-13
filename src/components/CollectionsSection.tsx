@@ -37,7 +37,7 @@ const collections = [
   },
   {
     id: 2,
-    name: "Diamond Collection", 
+    name: "Diamond Collection",
     description: "Sparkling diamonds set in elegant designs for life's most precious moments",
     image: diamondCollection,
     gradient: "from-primary/80 to-primary-glow/60",
@@ -101,14 +101,14 @@ const collections = [
 ];
 
 export const categoryData = [
-    { name: "Earrings", image: earrings, link: "/category/earrings" },
-    { name: "Bangles", image: bangles, link: "/category/bangles" },
-    { name: "Pendants", image: pendants, link: "/category/pendants" },
-    { name: "Mangalsutra", image: mangalsutra, link: "/category/mangalsutra" },
-    { name: "Bracelets", image: bracelets, link: "/category/bracelets" },
-    { name: "Finger Rings", image: fingerrings, link: "/category/finger-rings" },
-    { name: "Chains", image: chain, link: "/category/chains" },
-    { name: "Gemstone Jewelry", image: gemstoneCollection, link: "/category/gemstone" },
+  { name: "Earrings", image: earrings, link: "/category/earrings" },
+  { name: "Bangles", image: bangles, link: "/category/bangles" },
+  { name: "Pendants", image: pendants, link: "/category/pendants" },
+  { name: "Mangalsutra", image: mangalsutra, link: "/category/mangalsutra" },
+  { name: "Bracelets", image: bracelets, link: "/category/bracelets" },
+  { name: "Finger Rings", image: fingerrings, link: "/category/finger-rings" },
+  { name: "Chains", image: chain, link: "/category/chains" },
+  { name: "Gemstone Jewelry", image: gemstoneCollection, link: "/category/gemstone" },
 ];
 
 const CollectionsSection = () => {
@@ -123,11 +123,11 @@ const CollectionsSection = () => {
           getPublicCollections(),
           getPublicCategories()
         ]);
-        
+
         if (collectionsResponse.data.success) {
           setCollections(collectionsResponse.data.data || []);
         }
-        
+
         if (categoriesResponse.data.success) {
           setCategories(categoriesResponse.data.data || []);
         }
@@ -137,7 +137,7 @@ const CollectionsSection = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -192,6 +192,28 @@ const CollectionsSection = () => {
   return (
     <section id="collections" className="py-20 bg-gradient-subtle">
       <div className="container mx-auto px-4">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
+
+          <a href="/gold-services#appointment">
+            <Button
+              size="lg"
+              className=" bg-gradient-to-r from-[#8e6e00] via-[#fce56b] to-[#fff2b2] text-black font-semibold px-6 py-2 rounded-full  transition-all duration-300 hover:brightness-125  hover:scale-105 relative overflow-hidden shimmer-btn"
+            >
+              Book an appointment
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </a>
+
+          <a href="/gold-services#appointment">
+            <Button
+              size="lg"
+              className=" bg-gradient-to-r from-[#8e6e00] via-[#fce56b] to-[#fff2b2] text-black font-semibold px-6 py-2 rounded-full  transition-all duration-300 hover:brightness-125  hover:scale-105 relative overflow-hidden shimmer-btn"
+            >
+              Compare Price
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </a>
+        </div>
         {/* Section Header */}
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-5xl md:text-5xl  text-primary mb-6 font-serif">
@@ -199,25 +221,25 @@ const CollectionsSection = () => {
           </h2>
           <p className="text-xl text-muted-foreground max-w-5xl mx-auto leading-relaxed font-serif">
             {/* Each piece tells a story of artistry, tradition, and timeless beauty crafted by master jewelers */}
-           "Every jewel whispers a legacy—of hands that craft, traditions that endure, and beauty that lasts forever."
+            "Every jewel whispers a legacy—of hands that craft, traditions that endure, and beauty that lasts forever."
           </p>
         </div>
 
         {/* Featured Collections Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
           {collections.map((collection, index) => (
-            <Card 
-              key={collection.id} 
+            <Card
+              key={collection.id}
               className="group overflow-hidden border-0 shadow-elegant hover:shadow-luxury transition-all duration-500 animate-scale-in transform hover:scale-105 h-96"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative overflow-hidden h-full">
-                <img 
-                  src={getCollectionImage(collection)} 
+                <img
+                  src={getCollectionImage(collection)}
                   alt={collection.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-50 group-hover:opacity-40 transition-opacity duration-300"></div>  
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-50 group-hover:opacity-40 transition-opacity duration-300"></div>
                 {/* Content Overlay */}
                 <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
                   <h3 className="text-xl font-bold mb-2 transform group-hover:translate-y-0 translate-y-2 transition-transform duration-300 font-serif">
@@ -326,7 +348,7 @@ const CollectionsSection = () => {
 
         {/* CTA Section */}
         <div className="text-center">
-          <Button 
+          <Button
             size="lg"
             className="bg-gradient-luxury hover:shadow-luxury transition-all duration-300 px-8 py-4 text-lg transform hover:scale-105 relative overflow-hidden group"
           >

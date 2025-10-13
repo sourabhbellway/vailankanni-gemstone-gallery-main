@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import banner from "@/assets/banner.png";
+import banner1 from "@/assets/banner1.png";
+import banner2 from "@/assets/banner2.png";
 import heroBanner from "@/assets/firstslide.png";
 import bridalBanner from "@/assets/bridal-banner.jpg";
 import diamondBanner from "@/assets/diamond-banner.jpg";
@@ -8,7 +11,7 @@ import diamondBanner from "@/assets/diamond-banner.jpg";
 const banners = [
   {
     id: 1,
-    image: heroBanner,
+    image: banner,
     title: "Timeless Elegance",
     subtitle: "Unlock the Best Jewellery Deals—See How Much You Can Save!",
     badge: "Exquisite Craftsmanship Since 1985",
@@ -16,7 +19,7 @@ const banners = [
   },
   {
     id: 2,
-    image: bridalBanner,
+    image: banner1,
     title: "Bridal Splendor",
     subtitle: "Enjoy Free In-Store Gold Testing—Experience Trust Firsthand!",
     badge: "Traditional Wedding Jewelry",
@@ -24,7 +27,7 @@ const banners = [
   },
   {
     id: 3,
-    image: diamondBanner,
+    image: banner2,
     title: "Diamond Dreams",
     subtitle: "Unlock the Best Jewellery Deals—See How Much You Can Save!",
     badge: "Certified Diamond Collection",
@@ -55,7 +58,7 @@ const HeroSection = () => {
   return (
     <section
       id="home"
-      className="relative -mt-20 min-h-[99vh] flex items-center justify-center overflow-hidden"
+      className="relative -mt-20 min-h-[96vh] flex items-center justify-center overflow-hidden"
     >
       {/* Background Images with Transition */}
       <div className="absolute inset-0 z-0">
@@ -71,7 +74,7 @@ const HeroSection = () => {
               alt={banner.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/50 via-primary/40 to-transparent"></div>
           </div>
         ))}
       </div>
@@ -109,30 +112,30 @@ const HeroSection = () => {
       <div className="relative  z-10 container mx-auto px-4 text-center text-primary-foreground">
         <div className="max-w-4xl mx-auto animate-fade-in">
           {/* Badge */}
-          <div className="inline-flex items-center space-x-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-8 animate-scale-in font-serif">
+          {/* <div className="inline-flex items-center space-x-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-8 animate-scale-in font-serif">
             <Sparkles className="h-4 w-4 text-secondary animate-pulse" />
             <span className="text-sm font-medium text-secondary">
               {currentBannerData.badge}
             </span>
-          </div>
+          </div> */}
 
           {/* Main Heading with Transition */}
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight animate-fade-in font-serif">
+          {/* <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight animate-fade-in font-serif">
             <span className="block leading-tight">
               {currentBannerData.title.split(" ")[0]}
             </span>
             <span className="block bg-gradient-to-r from-secondary to-secondary-light leading-tight bg-clip-text text-transparent">
               {currentBannerData.title.split(" ")[1]}
             </span>
-          </h1>
+          </h1> */}
 
           {/* Subheading */}
-          <p className="text-xl md:text-2xl mb-8 text-primary-foreground/90 max-w-4xl mx-auto leading-relaxed animate-fade-in font-serif">
+          {/* <p className="text-xl md:text-2xl mb-8 text-primary-foreground/90 max-w-4xl mx-auto leading-relaxed animate-fade-in font-serif">
             {currentBannerData.subtitle}
-          </p>
+          </p> */}
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
+          {/* <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
             {currentBannerData.primaryButton === "Book an Appointment" ? (
               <a href="/gold-services#appointment">
                 <Button
@@ -154,10 +157,10 @@ const HeroSection = () => {
                 </Button>
               </a>
             )}
-          </div>
+          </div> */}
 
           {/* Trust Indicators */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
             {[
               {
                 value: "35+",
@@ -188,7 +191,7 @@ const HeroSection = () => {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
 
