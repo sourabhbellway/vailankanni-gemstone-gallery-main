@@ -10,8 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
-import { getUserSchemes, type UserScheme } from "@/lib/api/userSchemesController";
+import { getUserSchemes, enrollInScheme, type UserScheme } from "@/lib/api/userSchemesController";
 import { useToast } from "@/hooks/use-toast";
+import { useUserAuth } from "@/context/UserAuthContext";
 
 const Schemes = () => {
   const [selectedPlan, setSelectedPlan] = useState("12");
@@ -34,6 +35,8 @@ const Schemes = () => {
 
   const { toast } = useToast();
   const [schemes, setSchemes] = useState<UserScheme[]>([]);
+  const { token, isAuthenticated } = useUserAuth();
+  const [enrollingId, setEnrollingId] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -152,8 +155,34 @@ const Schemes = () => {
                     ))}
                   </ul>
                   <div className="flex gap-2">
-                    <Button className="flex-1 bg-gradient-gold hover:shadow-gold" onClick={() => navigate(`/payments`)}>
-                      Start This Plan
+                    <Button
+                      className="flex-1 bg-gradient-gold hover:shadow-gold"
+                      disabled={enrollingId === scheme.id}
+                      onClick={async () => {
+                        try {
+                          if (!isAuthenticated || !token) {
+                            toast({ title: "Please sign in", description: "Login required to start a plan" });
+                            navigate("/signin");
+                            return;
+                          }
+                          setEnrollingId(scheme.id);
+                          // Use minAmount as the initial monthly amount by default; can be adjusted later
+                          const res = await enrollInScheme(token, { scheme_id: scheme.id, monthly_amount: scheme.minAmount });
+                          if (!res.success) throw new Error(res.message || "Failed to enroll");
+                          toast({ title: res.message || "Enrolled successfully" });
+                          navigate("/payments", { state: { 
+                            order: res.data.razorpay_order,
+                            key: res.data.razorpay_key,
+                            userScheme: res.data.user_scheme,
+                          }});
+                        } catch (err: any) {
+                          toast({ title: "Enrollment failed", description: err?.response?.data?.message || err?.message || "Please try again" });
+                        } finally {
+                          setEnrollingId(null);
+                        }
+                      }}
+                    >
+                      {enrollingId === scheme.id ? "Starting..." : "Start This Plan"}
                     </Button>
                     {scheme.attachments?.[0] && (
                       <Button variant="outline" size="icon" asChild>

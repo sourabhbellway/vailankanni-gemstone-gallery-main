@@ -8,8 +8,11 @@ import { getWishlistItems } from "@/lib/api/wishlistController";
 import { getOrders } from "@/lib/api/orderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Heart, User, Package, LogOut } from "lucide-react";
+import { ShoppingCart, Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getMyPlans, createNextInstallmentOrder, verifySchemePayment } from "@/lib/api/userSchemesController";
+import logo from "@/assets/logo.jpg";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -21,6 +24,9 @@ const Profile = () => {
   const [cartCount, setCartCount] = React.useState(0);
   const [wishlistCount, setWishlistCount] = React.useState(0);
   const [ordersCount, setOrdersCount] = React.useState(0);
+  const [plans, setPlans] = React.useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = React.useState(false);
+  const [activeSection, setActiveSection] = React.useState<"profile" | "plans">("profile");
 
   const fetchProfile = async () => {
     if (!token) {
@@ -83,6 +89,18 @@ const Profile = () => {
   React.useEffect(() => {
     fetchProfile();
     fetchCounts();
+    (async () => {
+      if (!token) return;
+      try {
+        setLoadingPlans(true);
+        const res = await getMyPlans(token);
+        if (res.success) setPlans(res.data || []);
+      } catch (e) {
+        // noop
+      } finally {
+        setLoadingPlans(false);
+      }
+    })();
   }, []);
 
   const renderProfileSection = () => (
@@ -144,6 +162,145 @@ const Profile = () => {
     </div>
   );
 
+  const openRazorpayForPayment = async (plan: any, payment: any) => {
+    if (!token) return;
+    try {
+      const src = "https://checkout.razorpay.com/v1/checkout.js";
+      const existing = document.querySelector(`script[src='${src}']`);
+      if (!existing) {
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      const create = await createNextInstallmentOrder(token, Number(payment.id));
+      if (!create.success) throw new Error("Failed to create order");
+
+      // @ts-ignore
+      const Razorpay = (window as any).Razorpay;
+      if (!Razorpay) throw new Error("Payment SDK not loaded");
+
+      const { razorpay_order, razorpay_key } = create;
+      const options = {
+        key: razorpay_key,
+        amount: razorpay_order.amount,
+        currency: razorpay_order.currency,
+        name: "Vailankanni Jewellers",
+        image: logo,
+        description: `${plan.scheme?.scheme || "Scheme"} - Installment ${payment.installment_number}`,
+        order_id: razorpay_order.order_id,
+        handler: async (response: any) => {
+          try {
+            await verifySchemePayment(token, {
+              scheme_payment_id: Number(payment.id),
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast({ title: "Payment verified", description: "Installment paid successfully" });
+            // refresh plans
+            const res = await getMyPlans(token);
+            if (res.success) setPlans(res.data || []);
+          } catch (err: any) {
+            toast({ title: "Verification failed", description: err?.response?.data?.message || "Please contact support" });
+          }
+        },
+        theme: { color: "#166534" },
+      } as any;
+      const rzp = new Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      toast({ title: "Payment init failed", description: err?.message || "Try again later" });
+    }
+  };
+
+  const renderMyPlans = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-[#084526]">My Plans</h2>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        {loadingPlans ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#084526]"></div>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="text-sm text-gray-600">No active plans found.</div>
+        ) : (
+          <div className="space-y-8">
+            {plans.map((plan) => (
+              <div key={plan.id} className="border rounded-lg p-4">
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800">{plan.scheme?.scheme}</h3>
+                  <div className="text-sm text-gray-600">Status: <span className="font-medium">{plan.status}</span></div>
+                </div>
+
+                <Tabs defaultValue="details" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="details">Plan Details</TabsTrigger>
+                    <TabsTrigger value="installments">Installments</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="details" className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded p-4">
+                        <div className="flex items-center gap-2 mb-2 text-[#084526]"><Calendar className="w-4 h-4" /><span className="font-semibold">Overview</span></div>
+                        <div className="text-sm">Timeline: {plan.scheme?.timeline?.replace("months", " Months")}</div>
+                        <div className="text-sm">Monthly Amount: ₹{Number(plan.monthly_amount)}</div>
+                        <div className="text-sm">Start: {new Date(plan.start_date).toLocaleDateString()}</div>
+                        <div className="text-sm">End: {new Date(plan.end_date).toLocaleDateString()}</div>
+                      </div>
+
+                      <div className="bg-gray-50 rounded p-4">
+                        <div className="flex items-center gap-2 mb-2 text-[#084526]"><IndianRupee className="w-4 h-4" /><span className="font-semibold">Payments</span></div>
+                        <div className="text-sm">Total Paid: ₹{Number(plan.total_paid)}</div>
+                        <div className="text-sm">Installments: {plan.payments?.length || 0}</div>
+                      </div>
+
+                      <div className="bg-gray-50 rounded p-4">
+                        <div className="flex items-center gap-2 mb-2 text-[#084526]"><Clock className="w-4 h-4" /><span className="font-semibold">Benefits</span></div>
+                        <ul className="list-disc pl-4 text-sm space-y-1">
+                          {(plan.scheme?.points || []).map((p: string, idx: number) => (
+                            <li key={idx}>{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="installments" className="mt-4">
+                    <div className="space-y-2">
+                      {(plan.payments || []).map((payment: any) => (
+                        <div key={payment.id} className="flex items-center justify-between border rounded p-3">
+                          <div className="flex items-center gap-3">
+                            {payment.status === 'paid' ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-yellow-600" />
+                            )}
+                            <div>
+                              <div className="text-sm font-medium">Installment #{payment.installment_number}</div>
+                              <div className="text-xs text-gray-600">Due: {new Date(payment.due_date).toLocaleDateString()} • Amount: ₹{Number(payment.amount)}</div>
+                            </div>
+                          </div>
+                          <div>
+                            {payment.status === 'paid' ? (
+                              <span className="text-sm text-green-700 font-semibold">Paid</span>
+                            ) : (
+                              <Button size="sm" onClick={() => openRazorpayForPayment(plan, payment)}>Pay Now</Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Header />
@@ -191,11 +348,19 @@ const Profile = () => {
 
                   <nav className="space-y-2">
                     <button
-                      onClick={() => navigate("/profile")}
-                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors bg-[#084526] text-white"
+                      onClick={() => setActiveSection("profile")}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeSection === 'profile' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                     >
                       <User className="w-5 h-5" />
                       <span>View Profile</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveSection("plans")}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeSection === 'plans' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      <Layers className="w-5 h-5" />
+                      <span>My Plans</span>
                     </button>
 
                     <button
@@ -238,7 +403,11 @@ const Profile = () => {
 
               {/* Right Content Area */}
               <div className="flex-1">
-                {renderProfileSection()}
+                {activeSection === "profile" ? (
+                  renderProfileSection()
+                ) : (
+                  <div className="mt-0">{renderMyPlans()}</div>
+                )}
               </div>
             </div>
           )}
