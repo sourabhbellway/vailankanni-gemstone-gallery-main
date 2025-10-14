@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/config";
 import axios from "axios";
 
+
 // Public Collections API
 export const getPublicCollections = async () => {
   const response = await axios.get(`${API_BASE_URL}/collections`);
@@ -20,5 +21,11 @@ export const getPublicCategories = async () => {
 
 export const getCategoryProducts = async (categoryId: number | string) => {
   const response = await axios.get(`${API_BASE_URL}/categories/${categoryId}/products`);
+  return response;
+};
+
+// Public Banners API
+export const getPublicBanners = async () => {
+  const response = await axios.get(`${API_BASE_URL}/banners`);
   return response;
 };

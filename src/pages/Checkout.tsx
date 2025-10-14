@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getImageUrl } from "@/config";
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -250,7 +251,7 @@ const Checkout = () => {
     try {
       const imageData = JSON.parse(product.image || "[]");
       if (Array.isArray(imageData) && imageData.length > 0) {
-        return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`;
+        return getImageUrl(imageData[0]);
       }
     } catch (error) {
       console.error("Error parsing product images:", error);

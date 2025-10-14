@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { getImageUrl } from "@/config";
 import {
   getBanners,
   createBanner,
@@ -199,19 +200,31 @@ const BannerManagement = () => {
 
   const handleInputChange = (
     field: keyof BannerPayload,
-    value: string | boolean
+    value: string | boolean | File
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value as any }));
   };
 
+  const handleImageFileChange = (fileList: FileList | null) => {
+    const file = fileList && fileList.length > 0 ? fileList[0] : null;
+    setFormData((prev) => ({ ...prev, image: (file as any) || "" }));
+  };
+
   const validateForm = () => {
-    if (!formData.image.trim()) {
-      toast({
-        title: "Validation",
-        description: "Image URL is required",
-        variant: "destructive",
-      });
-      return false;
+    // Require image only when creating; while editing image is optional
+    if (!editingBanner) {
+      const hasImage =
+        typeof formData.image === "string"
+          ? formData.image.trim().length > 0
+          : formData.image instanceof File;
+      if (!hasImage) {
+        toast({
+          title: "Validation",
+          description: "Banner image is required",
+          variant: "destructive",
+        });
+        return false;
+      }
     }
     if (!formData.title.trim()) {
       toast({
@@ -229,7 +242,7 @@ const BannerManagement = () => {
       });
       return false;
     }
-    if (!formData.position.trim()) {
+    if (!String(formData.position ?? "").trim()) {
       toast({
         title: "Validation",
         description: "Position is required",
@@ -302,7 +315,7 @@ const BannerManagement = () => {
         </Button>
       </div>
 
-      <Card>
+      <Card className="mt-6"> 
         <CardHeader>
           <CardTitle>Active Banners</CardTitle>
           <CardDescription>
@@ -332,7 +345,7 @@ const BannerManagement = () => {
                   <TableRow key={banner.id}>
                     <TableCell>
                       <img
-                        src={(banner as any).imageUrl || banner.image}
+                        src={getImageUrl((banner as any).imageUrl || (banner as any).image)}
                         alt={banner.title}
                         className="w-16 h-10 object-cover rounded cursor-pointer"
                         onClick={() => openViewBanner(banner)}
@@ -440,31 +453,45 @@ const BannerManagement = () => {
               />
             </div>
             <div>
-              <Label htmlFor="position">Display Position</Label>
+              <Label htmlFor="position">Display Position (number)</Label>
               <Input
                 id="position"
-                placeholder="top"
-                value={formData.position}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, position: e.target.value }))
-                }
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="1"
+                value={String(formData.position ?? "")}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  // allow empty during typing; otherwise keep only digits
+                  const digitsOnly = raw.replace(/\D+/g, "");
+                  setFormData((prev) => ({ ...prev, position: digitsOnly } as any));
+                }}
               />
             </div>
             <div>
-              <Label htmlFor="image">Banner Image URL</Label>
+              <Label htmlFor="image">Banner Image</Label>
               <Input
                 id="image"
-                placeholder="https://example.com/banner.jpg"
-                value={formData.image}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, image: e.target.value }))
-                }
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageFileChange(e.target.files)}
               />
+              {typeof formData.image === "string" && formData.image && (
+                <p className="text-xs text-muted-foreground mt-1">Using existing image URL</p>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <Switch
                 id="status"
-                checked={formData.status}
+                checked={
+                  typeof formData.status === "boolean"
+                    ? formData.status
+                    : typeof formData.status === "number"
+                    ? formData.status === 1
+                    : String(formData.status).toLowerCase() === "1" ||
+                      String(formData.status).toLowerCase() === "true"
+                }
                 onCheckedChange={(checked) =>
                   setFormData((prev) => ({ ...prev, status: checked }))
                 }
@@ -499,7 +526,7 @@ const BannerManagement = () => {
           <div className="space-y-3">
             {bannerToView && (
               <img
-                src={(bannerToView as any).imageUrl || bannerToView.image}
+                src={getImageUrl((bannerToView as any).imageUrl || (bannerToView as any).image)}
                 alt={bannerToView.title}
                 className="w-full h-auto rounded"
               />

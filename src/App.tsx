@@ -41,6 +41,7 @@ import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import UserOrderDetails from "./pages/OrderDetails";
 import SchemeManagement from "./pages/admin/SchemeManagement";
+import ScrollToTop from "./hooks/ScrollToTop";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -51,6 +52,7 @@ const App = () => (
       <AuthProvider>
         <UserAuthProvider>
           <BrowserRouter>
+            <ScrollToTop/>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/category/:categorySlug" element={<CategoryPage />} />

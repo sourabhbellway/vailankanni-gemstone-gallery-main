@@ -1,9 +1,21 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/config";
 
+// Dispatch a lightweight global event so UI (e.g., Header) can refresh cart count
+const emitCartUpdated = () => {
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("cart:updated"));
+    }
+  } catch {
+    // no-op: best-effort event
+  }
+};
+
 interface AddToCartData {
   product_id: number;
   quantity: number;
+  size?: string | number;
 }
 
 interface UpdateQuantityData {
@@ -27,6 +39,8 @@ export const addToCart = async (data: AddToCartData, token: string) => {
         },
       }
     );
+    // Notify listeners that the cart has changed
+    if (response?.data) emitCartUpdated();
     return response.data;
   } catch (error) {
     throw error;
@@ -58,6 +72,7 @@ export const updateCartQuantity = async (data: UpdateQuantityData, token: string
         },
       }
     );
+    if (response?.data) emitCartUpdated();
     return response.data;
   } catch (error) {
     throw error;
@@ -76,6 +91,7 @@ export const removeFromCart = async (data: RemoveFromCartData, token: string) =>
         },
       }
     );
+    if (response?.data) emitCartUpdated();
     return response.data;
   } catch (error) {
     throw error;

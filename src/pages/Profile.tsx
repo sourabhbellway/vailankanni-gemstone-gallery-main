@@ -104,10 +104,10 @@ const Profile = () => {
   }, []);
 
   const renderProfileSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 border p-6">
       <h2 className="text-2xl font-bold text-[#084526]">Profile Information</h2>
       {profile && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white ">
           <div className=" mb-6">
             <h3 className="text-xl font-semibold text-gray-800 uppercase">
               {profile.data.name}
@@ -217,9 +217,9 @@ const Profile = () => {
   };
 
   const renderMyPlans = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 border p-6">
       <h2 className="text-2xl font-bold text-[#084526]">My Plans</h2>
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white ">
         {loadingPlans ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#084526]"></div>
@@ -331,7 +331,7 @@ const Profile = () => {
             <div className="flex gap-8">
               {/* Left Sidebar */}
               <div className="w-80 flex-shrink-0">
-                <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="bg-white rounded-lg border p-6">
                   <div className="text-center mb-6">
                     <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
                       <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -363,13 +363,6 @@ const Profile = () => {
                       <span>My Plans</span>
                     </button>
 
-                    <button
-                      onClick={() => navigate("/cart")}
-                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100"
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      <span>Cart ({cartCount})</span>
-                    </button>
 
                     <button
                       onClick={() => navigate("/wishlist")}
@@ -406,7 +399,7 @@ const Profile = () => {
                 {activeSection === "profile" ? (
                   renderProfileSection()
                 ) : (
-                  <div className="mt-0">{renderMyPlans()}</div>
+                  <div className="mt-0 ">{renderMyPlans()}</div>
                 )}
               </div>
             </div>

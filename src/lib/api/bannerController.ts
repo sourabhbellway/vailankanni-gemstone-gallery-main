@@ -3,11 +3,11 @@ import { API_BASE_URL } from "@/config";
 
 // Types for banner API
 export interface BannerPayload {
-  image: string;
+  image: string | File;
   title: string;
   description: string;
-  position: string;
-  status: boolean;
+  position: string | number;
+  status: boolean | string | number;
 }
 
 export interface Banner extends BannerPayload {
@@ -30,8 +30,32 @@ export const getBanners = async (token: string) => {
 
 export const createBanner = async (token: string, banner: BannerPayload) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/admin/banners`, banner, {
-      headers: { Authorization: `Bearer ${token}` },
+    const formData = new FormData();
+    if (banner.image instanceof File) {
+      formData.append("image", banner.image);
+    } else if (banner.image) {
+      // If a URL/string is provided, still send as text field
+      formData.append("image", banner.image as string);
+    }
+    formData.append("title", banner.title ?? "");
+    formData.append("description", banner.description ?? "");
+    formData.append("position", String(banner.position ?? "top"));
+    // Backend expects 1/0 or true/false as string; normalize to 1/0
+    const statusValue = ((): string => {
+      const s = banner.status;
+      if (typeof s === "boolean") return s ? "1" : "0";
+      if (typeof s === "number") return s ? "1" : "0";
+      if (typeof s === "string") return s === "1" || s.toLowerCase() === "true" ? "1" : "0";
+      return "1";
+    })();
+    formData.append("status", statusValue);
+
+    const response = await axios.post(`${API_BASE_URL}/admin/banners`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+        Accept: "application/json",
+      },
     });
     return response.data;
   } catch (error) {
@@ -46,10 +70,32 @@ export const updateBanner = async (
   banner: BannerPayload
 ) => {
   try {
-    const response = await axios.put(
-      `${API_BASE_URL}/admin/banners/${id}`,
-      banner,
-      { headers: { Authorization: `Bearer ${token}` } }
+    const formData = new FormData();
+    if (banner.image instanceof File) {
+      formData.append("image", banner.image);
+    }
+    formData.append("title", banner.title ?? "");
+    formData.append("description", banner.description ?? "");
+    formData.append("position", String(banner.position ?? "0"));
+    const statusValue = ((): string => {
+      const s = banner.status;
+      if (typeof s === "boolean") return s ? "1" : "0";
+      if (typeof s === "number") return s ? "1" : "0";
+      if (typeof s === "string") return s === "1" || s.toLowerCase() === "true" ? "1" : "0";
+      return "1";
+    })();
+    formData.append("status", statusValue);
+
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/banners/${id}?_method=PUT`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+          Accept: "application/json",
+        },
+      }
     );
     return response.data;
   } catch (error) {

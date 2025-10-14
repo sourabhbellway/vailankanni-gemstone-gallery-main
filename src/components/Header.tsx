@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Phone, Mail, MapPin, ChevronDown, User } from "lucide-react";
+import { Menu, X, Phone, Mail, MapPin, ChevronDown, ShoppingCart, Heart, User} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +12,7 @@ import logo from "@/assets/logo.jpg";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { getPublicCollections } from "@/lib/api/publicController";
-
+import {getCartItems} from "@/lib/api/cartController"
 // Add shimmer animation styles
 const shimmerStyle = `
   .shimmer-btn::before {
@@ -47,13 +47,14 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoAnim, setLogoAnim] = useState(""); // '' | 'in' | 'out'
+  const [cartCount, setCartCount] = useState(0);
   const [collections, setCollections] = useState<any[]>([]);
   const prevScrolledRef = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isHome = location.pathname === "/";
   const isSchemes = location.pathname === "/schemes";
-
+const {token}= useUserAuth()
   // Helper for scroll or navigate+scroll
   const handleMenuClick = (e, href) => {
     if (href.startsWith("#")) {
@@ -107,25 +108,51 @@ const Header = () => {
         console.error("Error fetching collections:", error);
       }
     };
+    const fetchCartCount = async () => {
+      try {
+        if (!token) {
+          setCartCount(0);
+          return;
+        }
+        const response = await getCartItems(token);
+        if (response?.success) {
+          setCartCount(response.data.items?.length || 0);
+        }
+      } catch (e) {
+        // ignore transient errors
+      }
+    };
+
     fetchCollections();
-  }, []);
+    fetchCartCount();
+
+    // Listen for global cart updates to keep badge in sync
+    const handleCartUpdated = () => {
+      fetchCartCount();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cart:updated', handleCartUpdated);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('cart:updated', handleCartUpdated);
+      }
+    };
+  }, [token]);
 
   const menuItems = [
-  { name: "Home", href: "/" },
-  { name: "About Us", href: "#about" },
-  // Schemes handled separately with dropdown
-  { name: "Reviews", href: "#reviews" },
-  { name: "Contact", href: "#contact" },
+    { name: "Home", href: "/" },
+    { name: "About Us", href: "#about" },
+    // Schemes handled separately with dropdown
+    { name: "Reviews", href: "#reviews" },
+    { name: "Contact", href: "#contact" },
   ];
 
   // Collections will be populated from API
 
   const { isAuthenticated, logout } = useUserAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/signin");
-  };
+
 
   return (
     <>
@@ -152,21 +179,19 @@ const Header = () => {
 
       {/* Main Header */}
       <header
-        className={`  sticky top-0 z-50 transition-colors duration-300 ${
-          isScrolled ? "bg-white" : "bg-transparent"
-        }`}
+        className={`  sticky top-0 z-50 transition-colors duration-300 ${isScrolled ? "bg-white" : "bg-transparent"
+          }`}
       >
         <div className={`${isScrolled ? "mx-auto px-4" : "mx-auto px-4"}`}>
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div
-              className={`flex items-center space-x-2 ${
-                logoAnim === "in"
-                  ? "animate-[slide-in-from-left_0.5s_ease-in-out]"
-                  : logoAnim === "out"
+              className={`flex items-center space-x-2 ${logoAnim === "in"
+                ? "animate-[slide-in-from-left_0.5s_ease-in-out]"
+                : logoAnim === "out"
                   ? "animate-[slide-out-to-left_0.5s_ease-in-out]"
                   : ""
-              }`}
+                }`}
               onAnimationEnd={() => setLogoAnim("")}
             >
               <div className="h-12 w-12 rounded-full flex items-center justify-center overflow-hidden bg-white">
@@ -178,25 +203,23 @@ const Header = () => {
               </div>
               <div className="font-serif">
                 <h1
-                  className={`text-2xl  ${
-                    isScrolled
-                      ? "text-[#084526]"
-                      : isHome || isSchemes
+                  className={`text-2xl  ${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
                       ? "text-white"
                       : "text-black"
-                  }
+                    }
                 `}
                 >
                   Vailankanni
                 </h1>
                 <p
-                  className={`text-xs ${
-                    isScrolled
-                      ? "text-[#8e6e00]"
-                      : isHome || isSchemes
+                  className={`text-xs ${isScrolled
+                    ? "text-[#8e6e00]"
+                    : isHome || isSchemes
                       ? "text-[#fce56b]"
                       : "text-black"
-                  } uppercase tracking-widest`}
+                    } uppercase tracking-widest`}
                 >
                   Jewellers
                 </p>
@@ -209,13 +232,12 @@ const Header = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`transition-all duration-300 font-medium relative group ${
-                    isScrolled
-                      ? "text-[#084526]"
-                      : isHome || isSchemes
+                  className={`transition-all duration-300 font-medium relative group ${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
                       ? "text-white"
                       : "text-black"
-                  }`}
+                    }`}
                   onClick={
                     item.href.startsWith("#")
                       ? (e) => handleMenuClick(e, item.href)
@@ -230,23 +252,22 @@ const Header = () => {
               {/* Schemes Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${
-                    isScrolled
-                      ? "text-[#084526]"
-                      : isHome || isSchemes
+                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
                       ? "text-white"
                       : "text-black"
-                  }`}
+                    }`}
                 >
                   <span>Schemes</span>
                   <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
                   <DropdownMenuItem asChild>
-                    <Link to="/schemes" className="w-full">Plans</Link>
+                    <Link to="/schemes" className="w-full">Easy monthly installments</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/plan/custom" className="w-full">Custom plan</Link>
+                    <Link to="/plan/custom" className="w-full">Gold saving scheme</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -254,13 +275,12 @@ const Header = () => {
               {/* Categories Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${
-                    isScrolled
-                      ? "text-[#084526]"
-                      : isHome || isSchemes
+                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
                       ? "text-white"
                       : "text-black"
-                  }`}
+                    }`}
                 >
                   <span>Collections</span>
                   <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
@@ -282,53 +302,55 @@ const Header = () => {
 
             {/* Desktop Auth Buttons & Profile */}
             <div className="hidden md:flex items-center gap-4">
-              {/* <Link
-                to="/signin"
-                className={`${isScrolled ? "bg-white text-[#084526]" : "bg-transparent text-white"} font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80 border hover:bg-white hover:text-black`}
-                type="button"
-              >
-                Sign In
-              </Link> */}
+           
               {!isAuthenticated && (
                 <Link
-                  to="/signup"
-                  className={`${
-                    isScrolled
-                      ? "bg-[#084526] text-white"
-                      : isHome || isSchemes
+                  to="/signin"
+                  className={`${isScrolled
+                    ? "bg-[#084526] text-white"
+                    : isHome || isSchemes
                       ? "bg-white text-[#084526]"
                       : "bg-white text-[#084526]"
-                  } font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80`}
+                    } font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80`}
                   type="button"
                 >
-                  Sign Up
+                  Sign In
                 </Link>
               )}
+
               {/* User Profile Avatar */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <span className="cursor-pointer">
-                    <Avatar>
-                      <AvatarImage src="" alt="User" />
-                      <AvatarFallback>
-                        <User className="w-5 h-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                  </span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-40 bg-card border-border shadow-luxury animate-scale-in mr-2">
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  {isAuthenticated ? (
-                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem asChild>
-                      <Link to="/signin">Sign In</Link>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {isAuthenticated && (
+              <div className="flex space-x-6 items-center">
+              {/* 🛒 Cart */}
+              <Link to="/cart" className={`${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
+                      ? "text-white"
+                      : "text-black"} hover:opacity-80 transition relative`}>
+                        <span className="text-white absolute -right-2 -top-2 text-[10px] bg-red-500 h-4 w-4 block flex items-center justify-center rounded-full">{cartCount}</span>
+                <ShoppingCart className="h-5 w-5" />
+              </Link>
+        
+              {/* ❤️ Wishlist */}
+              <Link to="/wishlist" className={`${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
+                      ? "text-white"
+                      : "text-black"} hover:opacity-80 transition`}>
+                <Heart className="h-5 w-5" />
+              </Link>
+        
+              {/* 👤 Profile */}
+              <Link to="/profile" className={`${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
+                      ? "text-white"
+                      : "text-black"} hover:opacity-80 transition`}>
+                <User className="h-5 w-5" />
+              </Link>
+            </div>
+              )}
+        
             </div>
 
             {/* Mobile Menu Button */}
@@ -340,13 +362,12 @@ const Header = () => {
                 <X className="text-[#084526]" />
               ) : (
                 <Menu
-                  className={`${
-                    isScrolled
-                      ? "text-[#084526]"
-                      : isHome || isSchemes
+                  className={`${isScrolled
+                    ? "text-[#084526]"
+                    : isHome || isSchemes
                       ? "text-white"
                       : "text-white"
-                  }`}
+                    }`}
                 />
               )}
             </button>

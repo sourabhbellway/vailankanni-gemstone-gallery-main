@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, ArrowLeft, ShoppingCart, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuantityDialog from "@/components/QuantityDialog";
+import { getImageUrl } from "@/config";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -109,7 +110,7 @@ const Wishlist = () => {
     try {
       const imageData = JSON.parse(product.image || "[]");
       if (Array.isArray(imageData) && imageData.length > 0) {
-        return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`;
+        return getImageUrl(imageData[0]);
       }
     } catch (error) {
       console.error("Error parsing product images:", error);

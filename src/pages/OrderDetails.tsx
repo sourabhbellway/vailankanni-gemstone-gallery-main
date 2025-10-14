@@ -7,6 +7,7 @@ import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Package, Calendar, MapPin, CreditCard, Gift, MessageSquare, User, Phone, Mail, Sparkles, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getImageUrl } from "@/config";
 
 const OrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -94,7 +95,7 @@ const OrderDetails = () => {
     try {
       const imageData = JSON.parse(product.image || "[]");
       if (Array.isArray(imageData) && imageData.length > 0) {
-        return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`;
+        return getImageUrl(imageData[0]);
       }
     } catch (error) {
       console.error("Error parsing product images:", error);

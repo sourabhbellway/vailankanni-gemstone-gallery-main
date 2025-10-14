@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -75,7 +76,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, getImageUrl } from "@/config";
 const ProductManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,6 +98,7 @@ const ProductManagement = () => {
   const [makingCharges, setMakingCharges] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [sizes, setSizes] = useState<{ size: string; quantity: number }[]>([]);
 
   const [images, setImages] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -113,6 +115,7 @@ const ProductManagement = () => {
   const [editMakingCharges, setEditMakingCharges] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editStock, setEditStock] = useState("");
+  const [editSizes, setEditSizes] = useState<{ size: string; quantity: number }[]>([]);
   const [editStatusActive, setEditStatusActive] = useState(false);
   const [editImageUrl, setEditImageUrl] = useState<string>("");
   const [editImageUrls, setEditImageUrls] = useState<string[]>([]);
@@ -215,6 +218,7 @@ const ProductManagement = () => {
       making_charges: makingCharges ? Number(makingCharges) : undefined,
       price: price ? Number(price) : undefined,
       stock: stock ? Number(stock) : undefined,
+      sizes: sizes.length ? JSON.stringify(sizes.filter(s => s.size)) : undefined,
     };
     try {
       let payload: Record<string, unknown> | FormData = jsonPayload;
@@ -229,6 +233,8 @@ const ProductManagement = () => {
           formData.append("making_charges", String(Number(makingCharges)));
         if (price) formData.append("price", String(Number(price)));
         if (stock) formData.append("stock", String(Number(stock)));
+        if (sizes.length)
+          formData.append("sizes", JSON.stringify(sizes.filter(s => s.size)));
         images.forEach((file) => {
           formData.append("image[]", file, file.name);
         });
@@ -317,6 +323,16 @@ const ProductManagement = () => {
           ? String(details.stock)
           : ""
       );
+      // sizes
+      try {
+        const rawSizes = (details as any)?.sizes;
+        let parsed: { size: string; quantity: number }[] = [];
+        if (Array.isArray(rawSizes)) parsed = rawSizes as any;
+        else if (typeof rawSizes === "string" && rawSizes.trim().startsWith("[")) parsed = JSON.parse(rawSizes);
+        setEditSizes(parsed.filter((s) => s && s.size !== undefined));
+      } catch {
+        setEditSizes([]);
+      }
       const statusVal = details?.status;
       setEditStatusActive(
         statusVal === 1 || statusVal === "1" || statusVal === true
@@ -428,6 +444,7 @@ const ProductManagement = () => {
       price: editPrice ? Number(editPrice) : undefined,
       stock: editStock ? Number(editStock) : undefined,
       status: editStatusActive ? 1 : 0,
+      sizes: editSizes.length ? JSON.stringify(editSizes.filter(s => s.size)) : undefined,
     };
     try {
       let payload: Record<string, unknown> | FormData = jsonPayload;
@@ -448,6 +465,8 @@ const ProductManagement = () => {
         if (editPrice) formData.append("price", String(Number(editPrice)));
         if (editStock) formData.append("stock", String(Number(editStock)));
         formData.append("status", editStatusActive ? "1" : "0");
+        if (editSizes.length)
+          formData.append("sizes", JSON.stringify(editSizes.filter(s => s.size)));
         editImages.forEach((file) => {
           formData.append("image[]", file, file.name);
         });
@@ -881,6 +900,62 @@ const ProductManagement = () => {
                   </div>
                 </div>
 
+                {/* Sizes Manager */}
+                <div className="grid gap-3">
+                  <Label>Sizes (category wise)</Label>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Enter available sizes and per-size quantity. If a category has no sizes, add one entry like size "OneSize" with total stock.
+                  </div>
+                  <div className="space-y-2">
+                    {sizes.map((row, idx) => (
+                      <div key={idx} className="grid grid-cols-5 gap-2">
+                        <div className="col-span-3">
+                          <Input
+                            placeholder={'Size e.g. 7 / 2.4 / 18"'}
+                            value={row.size}
+                            onChange={(e) => {
+                              const next = [...sizes];
+                              next[idx] = { ...next[idx], size: e.target.value };
+                              setSizes(next);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={String(row.quantity)}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value || 0));
+                              const next = [...sizes];
+                              next[idx] = { ...next[idx], quantity: val };
+                              setSizes(next);
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center">
+                          <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => setSizes(sizes.filter((_, i) => i !== idx))}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setSizes([...sizes, { size: "", quantity: 0 }])}
+                    >
+                      + Add Size
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="grid gap-2">
                   <Label>Product Images (max 2)</Label>
                   <div
@@ -984,7 +1059,9 @@ const ProductManagement = () => {
                 </div>
 
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline">Cancel</Button>
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">Cancel</Button>
+                  </DialogClose>
                   <Button type="submit">Add Product</Button>
                 </div>
               </div>
@@ -1039,14 +1116,14 @@ const ProductManagement = () => {
                         editImageUrls.map((url, idx) => (
                           <img
                             key={`${url}-${idx}`}
-                            src={`https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${url}`}
+                            src={getImageUrl(url)}
                             alt={editName || "Product image"}
                             className="w-full h-36 object-cover rounded-md border"
                           />
                         ))
                       ) : (
                         <img
-                          src={`https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${editImageUrl}`}
+                          src={getImageUrl(editImageUrl)}
                           alt={editName || "Product image"}
                           className="w-full h-36 object-cover rounded-md border"
                         />
@@ -1249,6 +1326,62 @@ const ProductManagement = () => {
                       value={editStock}
                       onChange={(e) => setEditStock(e.target.value)}
                     />
+                  </div>
+                </div>
+
+                {/* Edit Sizes Manager */}
+                <div className="grid gap-3">
+                  <Label>Edit Sizes</Label>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Modify available sizes and per-size quantity. Use OneSize for items without size.
+                  </div>
+                  <div className="space-y-2">
+                    {editSizes.map((row, idx) => (
+                      <div key={idx} className="grid grid-cols-5 gap-2">
+                        <div className="col-span-3">
+                          <Input
+                            placeholder="Size"
+                            value={row.size}
+                            onChange={(e) => {
+                              const next = [...editSizes];
+                              next[idx] = { ...next[idx], size: e.target.value };
+                              setEditSizes(next);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={String(row.quantity)}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value || 0));
+                              const next = [...editSizes];
+                              next[idx] = { ...next[idx], quantity: val };
+                              setEditSizes(next);
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center">
+                          <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => setEditSizes(editSizes.filter((_, i) => i !== idx))}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setEditSizes([...editSizes, { size: "", quantity: 0 }])}
+                    >
+                      + Add Size
+                    </Button>
                   </div>
                 </div>
 
@@ -1727,7 +1860,7 @@ const ProductManagement = () => {
                       const statusText = category?.status === 1 || category?.status === "1" ? "Active" : "Inactive";
                       const statusVariant = statusText === "Active" ? "default" : "destructive";
                       const img = category?.image
-                        ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${category.image}`
+                        ? getImageUrl(category.image)
                         : undefined;
                       
                       return (
@@ -2040,7 +2173,7 @@ const ProductManagement = () => {
                       const statusText = collection?.status === 1 || collection?.status === "1" ? "Active" : "Inactive";
                       const statusVariant = statusText === "Active" ? "default" : "destructive";
                       const img = collection?.image
-                        ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${collection.image}`
+                        ? getImageUrl(collection.image)
                         : undefined;
                       
                       return (

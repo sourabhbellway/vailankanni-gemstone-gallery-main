@@ -11,7 +11,7 @@ import { addToWishlist } from "@/lib/api/wishlistController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import QuantityDialog from "@/components/QuantityDialog";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, getImageUrl } from "@/config";
 
 const CollectionPage = () => {
   const { collectionId } = useParams();
@@ -58,8 +58,8 @@ const CollectionPage = () => {
       const imageData = JSON.parse(product.image || "[]");
       if (Array.isArray(imageData) && imageData.length > 0) {
         return {
-          main: `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`,
-          hover: imageData[1] ? `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[1]}` : `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`
+          main: getImageUrl(imageData[0]),
+          hover: imageData[1] ? getImageUrl(imageData[1]) : getImageUrl(imageData[0])
         };
       }
     } catch (error) {
@@ -79,13 +79,13 @@ const CollectionPage = () => {
     setQuantityDialog({ isOpen: true, product });
   };
 
-  const handleConfirmAddToCart = async (quantity: number) => {
+  const handleConfirmAddToCart = async (quantity: number, size?: string | number) => {
     if (!token || !quantityDialog.product) return;
     
     setAddingToCart(true);
     try {
       const data = await addToCart(
-        { product_id: quantityDialog.product.id, quantity },
+        { product_id: quantityDialog.product.id, quantity, size },
         token
       );
       if (data.success) {
@@ -276,20 +276,25 @@ const CollectionPage = () => {
                     <div className="text-lg font-serif font-medium text-gray-900 mb-2 px-2 text-center">
                       {product.name}
                     </div>
-                    {/* Product Details */}
-                    <div className="text-sm text-gray-600 mb-2 px-2 text-center">
-                      <div>Purity: {product.purity || 'N/A'}</div>
-                      <div>Weight: {product.weight ? `${product.weight}g` : 'N/A'}</div>
-                      {product.making_charges && (
-                        <div>Making Charges: ₹{product.making_charges}</div>
-                      )}
-                    </div>
+                    {/* Product Details removed from card; shown in modal */}
                     {/* Pricing */}
                     <div className="flex items-center gap-3 mb-2 px-2 justify-center">
                       <span className="text-2xl font-semibold text-gray-900">
                         ₹ {product.price ? Number(product.price).toLocaleString() : 'N/A'}
                       </span>
                     </div>
+                    {/* Dummy sizes row */}
+                    <div className="px-2 mb-2 text-xs text-gray-500 text-center">
+                      Sizes: {(() => {
+                        try {
+                          const sizes = product?.sizes;
+                          const list = typeof sizes === 'string' ? JSON.parse(sizes) : Array.isArray(sizes) ? sizes : [];
+                          const names = list.slice(0, 3).map((s: any) => String(s.size));
+                          return names.length ? names.join(', ') + (list.length > 3 ? '…' : '') : 'Select in cart';
+                        } catch { return 'Select in cart'; }
+                      })()}
+                    </div>
+
                     {/* Stock Status */}
                     <div className="mt-auto px-2">
                       <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${
@@ -355,6 +360,20 @@ const CollectionPage = () => {
         productName={quantityDialog.product?.name || ""}
         maxStock={quantityDialog.product?.stock || 0}
         loading={addingToCart}
+        purity={quantityDialog.product?.purity}
+        weight={quantityDialog.product?.weight}
+        makingCharges={quantityDialog.product?.making_charges}
+        sizes={(() => {
+          try {
+            const sizes = quantityDialog.product?.sizes;
+            if (!sizes) return [];
+            if (typeof sizes === 'string') return JSON.parse(sizes);
+            if (Array.isArray(sizes)) return sizes;
+            return [];
+          } catch {
+            return [];
+          }
+        })()}
       />
     </>
   );

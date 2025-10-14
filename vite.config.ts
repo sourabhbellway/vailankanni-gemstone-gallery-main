@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       "/api": {
-        target: "https://vailankanni-backend.cybenkotechnologies.in",
+        target: "https://vailankannijewellers.com/vailankanni-backend",
         changeOrigin: true,
         secure: true,
       },

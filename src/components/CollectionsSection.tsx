@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Star } from "lucide-react";
+import { getImageUrl } from "@/config";
 import goldCollection from "@/assets/goldjewllery.avif";
 import diamondCollection from "@/assets/diamond-collection.jpg";
 import jadauCollection from "@/assets/jadau-collection.jpg";
@@ -143,7 +144,7 @@ const CollectionsSection = () => {
 
   const getCollectionImage = (collection: any) => {
     if (collection.image) {
-      return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${collection.image}`;
+      return getImageUrl(collection.image);
     }
     // Fallback to static images based on collection name
     const name = collection.name.toLowerCase();
@@ -159,7 +160,7 @@ const CollectionsSection = () => {
 
   const getCategoryImage = (category: any) => {
     if (category.image) {
-      return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${category.image}`;
+      return getImageUrl(category.image);
     }
     // Fallback to static images based on category name
     const name = category.name.toLowerCase();

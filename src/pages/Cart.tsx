@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getImageUrl } from "@/config";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -96,7 +97,7 @@ const Cart = () => {
     try {
       const imageData = JSON.parse(product.image || "[]");
       if (Array.isArray(imageData) && imageData.length > 0) {
-        return `https://vailankanni-backend.cybenkotechnologies.in/storage/app/public/${imageData[0]}`;
+        return getImageUrl(imageData[0]);
       }
     } catch (error) {
       console.error("Error parsing product images:", error);
