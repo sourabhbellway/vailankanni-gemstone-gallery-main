@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins, Download } from "lucide-react";
+import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins, Download, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -128,8 +128,19 @@ const Schemes = () => {
           <div className="grid md:grid-cols-3 gap-8 mb-16">
             {schemes.map((scheme) => (
               <Card key={scheme.id} className={`relative overflow-hidden transition-all duration-300 hover:shadow-luxury hover:scale-105 ${scheme.isPopular === 1 ? 'border-primary shadow-gold' : ''}`}>
+                {scheme.attachments?.[0] && (
+                  <button
+                    type="button"
+                    aria-label="Download template"
+                    title="download template to see more details"
+                    onClick={() => window.open(String(scheme.attachments[0]), '_blank', 'noopener,noreferrer')}
+                    className="absolute top-3 right-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur border border-gray-200 text-foreground shadow-xl transition-transform duration-1000 animate-pulse hover:scale-110 hover:-rotate-6 hover:shadow-lg"
+                  >
+                    <ArrowUpRight className="h-6 w-6" />
+                  </button>
+                )}
                 {scheme.isPopular === 1 && (
-                  <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
+                  <div className="absolute top-0 left-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold">
                     POPULAR
                   </div>
                 )}
@@ -184,18 +195,20 @@ const Schemes = () => {
                     >
                       {enrollingId === scheme.id ? "Starting..." : "Start This Plan"}
                     </Button>
-                    {scheme.attachments?.[0] && (
-                      <Button variant="outline" size="icon" asChild>
-                        <a
-                          href={`${scheme.attachments[0]}`}
-                          target="_blank"
-                          rel="noreferrer"
+                    {/* {scheme.attachments?.[0] && (
+                      <div className="relative">
+                        <button
+                          type="button"
                           aria-label="Download template"
+                          title="download template to see more details"
+                          onClick={() => window.open(String(scheme.attachments[0]), '_blank', 'noopener,noreferrer')}
+                          className="group inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background text-foreground transition-transform duration-5000 animate-bounce hover:scale-110 hover:rotate-3 hover:shadow-lg"
                         >
                           <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
+                          
+                        </button>
+                      </div>
+                    )} */}
                   </div>
                 </CardContent>
               </Card>

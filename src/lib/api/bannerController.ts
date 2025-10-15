@@ -85,7 +85,7 @@ export const updateBanner = async (
     formData.append("status", statusValue);
 
     const response = await axios.post(
-      `${API_BASE_URL}/admin/banners/${id}?_method=PUT`,
+      `${API_BASE_URL}/admin/banners/${id}`,
       formData,
       {
         headers: {

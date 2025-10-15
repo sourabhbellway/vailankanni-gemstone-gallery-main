@@ -36,6 +36,7 @@ import ProtectedUserRoute from "./components/ProtectedUserRoute";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminProfile from "./pages/admin/AdminProfile";
 import Profile from "./pages/Profile";
+import GoldInvestments from "./pages/GoldInvestments";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
@@ -73,6 +74,14 @@ const App = () => (
               element={
                 <ProtectedUserRoute>
                   <Profile />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/gold-investments"
+              element={
+                <ProtectedUserRoute>
+                  <GoldInvestments />
                 </ProtectedUserRoute>
               }
             />

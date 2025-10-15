@@ -83,3 +83,41 @@ export const getUserProfile = async (token: string) => {
     throw error;
   }
 };
+  
+export interface GoldInvestmentsSummary {
+  success: boolean;
+  message?: string;
+  data?: {
+    total_invested: number;
+    total_gold_grams: number;
+    current_gold_rate: number;
+    plans: Array<{
+      plan_id: number;
+      invested_amount: number;
+      gold_grams: number;
+      gold_rate: number;
+      created_at: string;
+      payments: Array<{
+        payment_id: string;
+        order_id: string;
+        amount: number;
+        status: string;
+        start_date: string;
+      }>;
+    }>;
+  };
+}
+
+export const getGoldInvestments = async (token: string): Promise<GoldInvestmentsSummary> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/user/gold-investments`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error as any;
+  }
+};
