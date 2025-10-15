@@ -44,7 +44,7 @@ const CategoryPage = () => {
           setProducts(response.data.data.products || []);
         }
       } catch (error) {
-        console.error("Error fetching category data:", error);
+        // Error fetching category data - silently fail
       } finally {
         setLoading(false);
       }
@@ -63,7 +63,7 @@ const CategoryPage = () => {
         };
       }
     } catch (error) {
-      console.error("Error parsing product images:", error);
+      // Error parsing product images - silently fail
     }
     return {
       main: "/placeholder.svg",
@@ -96,7 +96,6 @@ const CategoryPage = () => {
         setQuantityDialog({ isOpen: false, product: null });
       }
     } catch (err: any) {
-      console.error("Add to cart error:", err);
       toast({
         title: "Error",
         description: err?.response?.data?.message || "Failed to add product to cart",
@@ -125,7 +124,6 @@ const CategoryPage = () => {
         });
       }
     } catch (err: any) {
-      console.error("Add to wishlist error:", err);
       toast({
         title: "Error",
         description: err?.response?.data?.message || "Failed to add product to wishlist",

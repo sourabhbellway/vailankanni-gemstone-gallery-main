@@ -13,6 +13,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import PlanDetails from "./pages/PlanDetails";
 import Payments from "./pages/Payments";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import BridalCollection from "./pages/BridalCollection";
 import ExploreCollection from "./pages/ExploreCollection";
 import Policies from "./pages/Policies";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/plan/:planName" element={<PlanDetails />} />
             <Route path="/payments" element={<Payments />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/bridal-collection" element={<BridalCollection />} />
             <Route path="/explore-collection" element={<ExploreCollection />} />
             <Route path="/policies" element={<Policies />} />

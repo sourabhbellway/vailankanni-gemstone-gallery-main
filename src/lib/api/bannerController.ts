@@ -23,7 +23,6 @@ export const getBanners = async (token: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching banners:", error);
     throw error;
   }
 };
@@ -59,7 +58,6 @@ export const createBanner = async (token: string, banner: BannerPayload) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error creating banner:", error);
     throw error;
   }
 };
@@ -99,7 +97,6 @@ export const updateBanner = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error updating banner:", error);
     throw error;
   }
 };
@@ -111,7 +108,6 @@ export const deleteBanner = async (token: string, id: string | number) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error deleting banner:", error);
     throw error;
   }
 };

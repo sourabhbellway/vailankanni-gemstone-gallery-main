@@ -107,8 +107,6 @@ const CouponManagement = () => {
     try {
       setLoading(true);
       const response = await getCoupons(token!);
-      console.log("API Response:", response); // Debug log
-      console.log("Response data:", response.data); // Debug log
 
       // Ensure we always set an array, even if the response structure is unexpected
       if (Array.isArray(response.data)) {
@@ -118,11 +116,9 @@ const CouponManagement = () => {
       } else if (response.data && Array.isArray(response.data.data)) {
         setCoupons(response.data.data);
       } else {
-        console.warn("Unexpected API response structure:", response.data);
         setCoupons([]);
       }
     } catch (error) {
-      console.error("Error fetching coupons:", error);
       toast({
         title: "Error",
         description: "Failed to fetch coupons",
@@ -177,7 +173,7 @@ const CouponManagement = () => {
       });
       fetchCoupons();
     } catch (error) {
-      console.error("Error deleting coupon:", error);
+      // Error handled by toast
       toast({
         title: "Error",
         description: "Failed to delete coupon",
@@ -198,7 +194,7 @@ const CouponManagement = () => {
       });
       fetchCoupons();
     } catch (error) {
-      console.error("Error updating coupon status:", error);
+      // Error handled by toast
       toast({
         title: "Error",
         description: "Failed to update coupon status",
@@ -311,7 +307,7 @@ const CouponManagement = () => {
       setIsDialogOpen(false);
       fetchCoupons();
     } catch (error) {
-      console.error("Error saving coupon:", error);
+      // Error handled by toast
       toast({
         title: "Error",
         description: editingCoupon

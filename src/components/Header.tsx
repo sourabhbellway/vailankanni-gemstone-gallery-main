@@ -105,7 +105,7 @@ const {token}= useUserAuth()
           setCollections(response.data.data || []);
         }
       } catch (error) {
-        console.error("Error fetching collections:", error);
+        // Error fetching collections - silently fail
       }
     };
     const fetchCartCount = async () => {

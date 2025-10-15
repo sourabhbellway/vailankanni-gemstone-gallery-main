@@ -22,16 +22,6 @@ export const createCollection = async (
     if (obj.description) form.append("description", obj.description);
     body = form;
   }
-  try {
-    const debug: Record<string, string[]> = {} as any;
-    // @ts-ignore
-    for (const [k, v] of (body as FormData).entries?.() || []) {
-      const val = typeof v === "string" ? v : (v as File).name;
-      debug[k] = [...(debug[k] || []), val as string];
-    }
-    // eslint-disable-next-line no-console
-    console.log("[CreateCollection] FormData:", debug);
-  } catch {}
   const response = await axios.post(`${API_BASE_URL}/admin/collections`, body, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -65,16 +55,6 @@ export const updateCollection = async (
     if (obj.description !== undefined) form.append("description", String(obj.description));
     if ((obj as any).status !== undefined) form.append("status", String((obj as any).status));
   }
-  try {
-    const debug: Record<string, string[]> = {} as any;
-    // @ts-ignore
-    for (const [k, v] of form.entries()) {
-      const val = typeof v === "string" ? v : (v as File).name;
-      debug[k] = [...(debug[k] || []), val as string];
-    }
-    // eslint-disable-next-line no-console
-    console.log("[UpdateCollection] FormData:", debug);
-  } catch {}
   const response = await axios.post(
     `${API_BASE_URL}/admin/collections/${id}/update`,
     form,

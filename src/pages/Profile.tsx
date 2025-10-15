@@ -38,11 +38,9 @@ const Profile = () => {
     setError(null);
 
     try {
-      console.log("Fetching profile with token:", token);
       const data = await getUserProfile(token);
       setProfile(data);
     } catch (err: any) {
-      console.error("Profile fetch error:", err);
       if (err?.code === 'ETIMEDOUT' || err?.message?.includes('timeout')) {
         setError("Request timed out. Please check your internet connection and try again.");
       } else if (err?.response?.status === 401 || err?.response?.status === 403) {
@@ -82,7 +80,7 @@ const Profile = () => {
         setOrdersCount(ordersData.data?.length || 0);
       }
     } catch (err: any) {
-      console.error("Error fetching counts:", err);
+      // Error fetching counts - silently fail
     }
   };
 

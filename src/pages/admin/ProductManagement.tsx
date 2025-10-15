@@ -188,7 +188,6 @@ const ProductManagement = () => {
     getProducts(token)
       .then((response) => {
         const data = (response?.data?.data ?? []) as any[];
-        // console.log(data);
         setProducts(Array.isArray(data) ? data : []);
       })
       .catch(() => setProducts([]));
@@ -202,7 +201,7 @@ const ProductManagement = () => {
         setCollections(response.data.data);
       })
 
-      .catch((error) => console.log(error));
+      .catch(() => {});
   }, [token]);
 
 
@@ -238,17 +237,6 @@ const ProductManagement = () => {
         images.forEach((file) => {
           formData.append("image[]", file, file.name);
         });
-        // Debug: log form-data keys for verification
-        // eslint-disable-next-line no-console
-        try {
-          const debug: Record<string, string[]> = {};
-          // @ts-ignore - FormData iterator supported in browsers
-          for (const [k, v] of formData.entries()) {
-            const val = typeof v === "string" ? v : (v as File).name;
-            debug[k] = [...(debug[k] || []), val as string];
-          }
-          console.log("[CreateProduct] FormData:", debug);
-        } catch { }
         payload = formData;
       }
       await createProduct(token, payload);
@@ -272,8 +260,7 @@ const ProductManagement = () => {
 
       setImages([]);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+      // Error handled by toast
     }
   };
 
@@ -284,7 +271,6 @@ const ProductManagement = () => {
       const id = product?.id;
       if (!id) return;
       const response = await getProductById(token, id);
-      console.log(response);
       const details = response?.data?.data ?? {};
       const categoryIdFromProduct =
         details?.category_id ?? details?.category?.id ?? "";
@@ -470,17 +456,6 @@ const ProductManagement = () => {
         editImages.forEach((file) => {
           formData.append("image[]", file, file.name);
         });
-        // Debug: log form-data keys for verification
-        // eslint-disable-next-line no-console
-        try {
-          const debug: Record<string, string[]> = {};
-          // @ts-ignore - FormData iterator supported in browsers
-          for (const [k, v] of formData.entries()) {
-            const val = typeof v === "string" ? v : (v as File).name;
-            debug[k] = [...(debug[k] || []), val as string];
-          }
-          console.log("[UpdateProduct] FormData:", debug);
-        } catch { }
         payload = formData;
       }
       await updateProduct(token, editingProductId, payload);
@@ -494,8 +469,7 @@ const ProductManagement = () => {
       setProducts(Array.isArray(data) ? data : []);
       setEditDialogOpen(false);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+      // Error handled by toast
     }
   };
 

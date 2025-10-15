@@ -28,7 +28,6 @@ const HeroSection = () => {
         setLoading(true);
         setError(null);
         const response = await getPublicBanners();
-     console.log(response);
      
         // Handle different response structures
         let bannersData = response.data;
@@ -62,11 +61,9 @@ const HeroSection = () => {
           setBanners(apiBanners);
         
         } else {
-          console.log("No banners found in API response; not rendering fallbacks");
           setBanners([]);
         }
       } catch (err) {
-        console.error("Failed to fetch banners:", err);
         setError("Failed to load banners");
         setBanners([]);
       } finally {

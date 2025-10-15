@@ -62,13 +62,12 @@ const Checkout = () => {
         if (possibleCartId) {
           setCartId(possibleCartId);
         } else {
-          console.warn("Cart ID not found in cart payload", payload);
         }
         setCartItems(items || []);
 
       }
     } catch (err: any) {
-      console.error("Cart fetch error:", err);
+      // Cart fetch error - silently fail
       toast({
         title: "Error",
         description: "Failed to load cart items",
@@ -89,7 +88,7 @@ const Checkout = () => {
         setCoupons(data.data || []);
       }
     } catch (err: any) {
-      console.error("Coupons fetch error:", err);
+      // Coupons fetch error - silently fail
       toast({
         title: "Error",
         description: "Failed to load coupons",
@@ -104,7 +103,7 @@ const Checkout = () => {
   }
   const handleApplyCoupon = async (couponCode: string) => {
     if (!token || !cartId) {
-      console.warn("Cannot apply coupon: missing token or cartId", { hasToken: !!token, cartId });
+      // Cannot apply coupon: missing token or cartId
       return; // make sure cartId is available
     }
 
@@ -138,7 +137,7 @@ const Checkout = () => {
         });
       }
     } catch (err: any) {
-      console.error("Apply coupon error:", err);
+      // Apply coupon error - silently fail
       toast({
         title: "Error",
         description: err?.response?.data?.message || err.message || "Failed to apply coupon",
@@ -198,11 +197,9 @@ const Checkout = () => {
     setSubmitting(true);
     try {
       const response = await createOrder(orderData, token!);
-      console.log("Order creation response:", response);
 
       // Check if order was created successfully
       if (response.success) {
-        console.log("Order created successfully, showing success toast");
         toast({
           title: "Success",
           description: response.message || "Order placed successfully!",
@@ -223,7 +220,6 @@ const Checkout = () => {
         // Navigate to orders page
         navigate("/orders");
       } else {
-        console.log("Order creation failed:", response);
         toast({
           title: "Error",
           description: response.message || "Failed to place order",
@@ -231,7 +227,7 @@ const Checkout = () => {
         });
       }
     } catch (error: any) {
-      console.error("Order creation error:", error);
+      // Order creation error - silently fail
       toast({
         title: "Error",
         description: error?.response?.data?.message || error.message || "Failed to place order",
@@ -254,7 +250,7 @@ const Checkout = () => {
         return getImageUrl(imageData[0]);
       }
     } catch (error) {
-      console.error("Error parsing product images:", error);
+      // Error parsing product images - silently fail
     }
     return "/placeholder.svg";
   };

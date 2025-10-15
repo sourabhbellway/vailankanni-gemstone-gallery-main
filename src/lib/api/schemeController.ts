@@ -88,17 +88,6 @@ export async function updateScheme(
         payload.attachments.forEach((file) => form.append("attachments[]", file));
     }
 
-    // Optional: debug log of form keys (guarded for environments without entries())
-    try {
-        const debug: Record<string, string[]> = {} as any;
-        // @ts-ignore
-        for (const [k, v] of form.entries()) {
-            const val = typeof v === "string" ? v : (v as File).name;
-            debug[k] = [...(debug[k] || []), val as string];
-        }
-        // eslint-disable-next-line no-console
-        console.log("[UpdateScheme] FormData:", debug);
-    } catch {}
 
     const res = await axios.post(`${API_BASE_URL}/admin/scheme/${id}`, form, {
         headers: { Authorization: `Bearer ${token}` },
