@@ -84,3 +84,76 @@ export async function adminGetGoldPrice(
     summary: json?.summary || ({} as MetalsSummary),
   };
 }
+
+// Manual Rates API types
+export type ManualRateItem = {
+  id: number;
+  metal: string;
+  karat: string;
+  rate_per_gm: string | number;
+  rate_date: string; // YYYY-MM-DD
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ManualRatesByMetal = Record<string, ManualRateItem[]>;
+
+export type GetManualRatesTodayResponse = {
+  success?: boolean;
+  data?: ManualRatesByMetal;
+  message?: string;
+};
+
+export type GetManualRatesResponse = {
+  success?: boolean;
+  data?: Record<string, ManualRatesByMetal>; // date -> { metal -> items[] }
+  message?: string;
+};
+
+export async function getManualRatesToday(token: string): Promise<ManualRatesByMetal> {
+  const res = await fetch(`${API_BASE_URL}/admin/manual-rates/today`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    let message = "Failed to fetch today's manual rates";
+    try {
+      const json = (await res.json()) as GetManualRatesTodayResponse;
+      message = json?.message || message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const json = (await res.json()) as GetManualRatesTodayResponse;
+  return json?.data || {};
+}
+
+export async function getManualRates(token: string): Promise<Record<string, ManualRatesByMetal>> {
+  const res = await fetch(`${API_BASE_URL}/admin/manual-rates`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    let message = "Failed to fetch manual rates history";
+    try {
+      const json = (await res.json()) as GetManualRatesResponse;
+      message = json?.message || message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const json = (await res.json()) as GetManualRatesResponse;
+  return json?.data || {};
+}

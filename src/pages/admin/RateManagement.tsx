@@ -52,6 +52,10 @@ import {
   adminGetGoldPrice,
   type GoldPriceResult,
   type MetalItem,
+    getManualRatesToday,
+    getManualRates,
+    type ManualRatesByMetal,
+    type ManualRateItem,
 } from "@/lib/api/ratesController";
 
 const RateManagement = () => {
@@ -81,6 +85,13 @@ const RateManagement = () => {
     Gold: { "24K": 0, "22K": 0, "21K": 0, "20K": 0, "18K": 0, "16K": 0, "14K": 0, "10K": 0 },
     Silver: { "24K": 0 },
     Platinum: { "24K": 0 },
+  });
+
+  // Manual rates fetched from API (today)
+  const [manualRatesToday, setManualRatesToday] = useState<Record<Metal, Partial<Record<string, number>>>>({
+    Gold: {},
+    Silver: {},
+    Platinum: {},
   });
 
   type RateHistoryItem = {
@@ -117,6 +128,13 @@ const RateManagement = () => {
     try {
       const data = await adminGetGoldPrice(token);
       setResult(data);
+      // Fetch manual rates today in parallel best-effort
+      try {
+        const today = await getManualRatesToday(token);
+        setManualRatesToday(transformTodayRates(today));
+      } catch {
+        // ignore manual today failure silently here
+      }
       if (!loading) {
         toast({
           title: "Rates Updated",
@@ -134,9 +152,64 @@ const RateManagement = () => {
     }
   };
 
+  const transformTodayRates = (data: ManualRatesByMetal) => {
+    const out: Record<Metal, Partial<Record<string, number>>> = {
+      Gold: {},
+      Silver: {},
+      Platinum: {},
+    };
+    (Object.keys(data) as Array<keyof ManualRatesByMetal>).forEach((metalKey) => {
+      const items = data[metalKey] || [];
+      items.forEach((item: ManualRateItem) => {
+        const m = (item.metal as Metal) as Metal;
+        const price = Number(item.rate_per_gm);
+        if (!Number.isNaN(price)) {
+          if (!out[m]) out[m] = {};
+          out[m][item.karat] = price;
+        }
+      });
+    });
+    return out;
+  };
+
+  const fetchManualHistory = async () => {
+    if (!token) return;
+    try {
+      const history = await getManualRates(token);
+      // history: { [date]: { [metal]: ManualRateItem[] } }
+      const entries: RateHistoryItem[] = [];
+      Object.keys(history).forEach((dateStr) => {
+        const byMetal = history[dateStr] || {};
+        Object.keys(byMetal).forEach((metalName) => {
+          const items = byMetal[metalName] || [];
+          items.forEach((item) => {
+            entries.push({
+              dateIso: item.created_at || item.updated_at || new Date(item.rate_date).toISOString(),
+              metal: item.metal as Metal,
+              category: "All",
+              karat: item.karat,
+              pricePerGram: Number(item.rate_per_gm) || 0,
+              source: "manual",
+            });
+          });
+        });
+      });
+      // Sort by metal (A->Z), then by date desc
+      entries.sort((a, b) => {
+        const metalCmp = a.metal.localeCompare(b.metal);
+        if (metalCmp !== 0) return metalCmp;
+        return new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime();
+      });
+      setRateHistory(entries);
+    } catch (error: any) {
+      toast({ title: "Failed to load manual rate history", description: error?.message || "", variant: "destructive" });
+    }
+  };
+
   // Auto-refresh every 5 minutes
   useEffect(() => {
     fetchRates();
+    fetchManualHistory();
 
     const interval = setInterval(() => {
       fetchRates();
@@ -224,6 +297,10 @@ const RateManagement = () => {
 
   const getEffectiveKaratPrice = (metal: Metal, karat: string): number | null => {
     if (rateSourceByMetal[metal] === "manual") {
+      // Prefer API-provided today's manual rates
+      const fromApi = manualRatesToday[metal]?.[karat];
+      if (fromApi && fromApi > 0) return fromApi;
+      // Fallback to locally entered manual values
       const manual = manualRates[metal]?.[karat];
       return manual && manual > 0 ? manual : 0;
     }
@@ -330,14 +407,16 @@ const RateManagement = () => {
                       goldData.price_data.ch ?? 0,
                       goldData.price_data.chp ?? 0
                     )}
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      High: {formatINR(goldData?.price_data?.high_price)}
-                    </span>
-                    <span>
-                      Low: {formatINR(goldData?.price_data?.low_price)}
-                    </span>
-                  </div>
+                  {rateSourceByMetal.Gold === "live" && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        High: {formatINR(goldData?.price_data?.high_price)}
+                      </span>
+                      <span>
+                        Low: {formatINR(goldData?.price_data?.low_price)}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-center text-xs text-amber-600 mt-2">
                     Click to calculate price
                   </div>
@@ -373,14 +452,16 @@ const RateManagement = () => {
                       silverData.price_data.ch ?? 0,
                       silverData.price_data.chp ?? 0
                     )}
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      High: {formatINR(silverData?.price_data?.high_price)}
-                    </span>
-                    <span>
-                      Low: {formatINR(silverData?.price_data?.low_price)}
-                    </span>
-                  </div>
+                  {rateSourceByMetal.Silver === "live" && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        High: {formatINR(silverData?.price_data?.high_price)}
+                      </span>
+                      <span>
+                        Low: {formatINR(silverData?.price_data?.low_price)}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-center text-xs text-gray-600 mt-2">
                     Click to calculate price
                   </div>
@@ -416,14 +497,16 @@ const RateManagement = () => {
                       platinumData.price_data.ch ?? 0,
                       platinumData.price_data.chp ?? 0
                     )}
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      High: {formatINR(platinumData?.price_data?.high_price)}
-                    </span>
-                    <span>
-                      Low: {formatINR(platinumData?.price_data?.low_price)}
-                    </span>
-                  </div>
+                  {rateSourceByMetal.Platinum === "live" && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>
+                        High: {formatINR(platinumData?.price_data?.high_price)}
+                      </span>
+                      <span>
+                        Low: {formatINR(platinumData?.price_data?.low_price)}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-center text-xs text-blue-600 mt-2">
                     Click to calculate price
                   </div>
@@ -570,9 +653,18 @@ const RateManagement = () => {
                     <span className="text-xs text-muted-foreground">Live</span>
                     <Switch
                       checked={rateSourceByMetal[metal] === "manual"}
-                      onCheckedChange={(checked) =>
-                        setRateSourceByMetal((prev) => ({ ...prev, [metal]: checked ? "manual" : "live" }))
-                      }
+                      onCheckedChange={async (checked) => {
+                        setRateSourceByMetal((prev) => ({ ...prev, [metal]: checked ? "manual" : "live" }));
+                        if (checked && token) {
+                          // Ensure we have latest today's manual rates
+                          try {
+                            const today = await getManualRatesToday(token);
+                            setManualRatesToday(transformTodayRates(today));
+                          } catch {
+                            // ignore
+                          }
+                        }
+                      }}
                     />
                     <span className="text-xs text-muted-foreground">Manual</span>
                   </div>
