@@ -157,3 +157,79 @@ export async function getManualRates(token: string): Promise<Record<string, Manu
   const json = (await res.json()) as GetManualRatesResponse;
   return json?.data || {};
 }
+
+// Save manual rates API types
+export type SaveManualRatesRequest = {
+  gold?: Record<string, number>;
+  silver?: Record<string, number>;
+  platinum?: Record<string, number>;
+};
+
+export type SaveManualRatesResponse = {
+  success?: boolean;
+  message?: string;
+  data?: any;
+};
+
+export async function saveManualRates(
+  token: string,
+  rates: SaveManualRatesRequest
+): Promise<SaveManualRatesResponse> {
+  const res = await fetch(`${API_BASE_URL}/admin/manual-rates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(rates),
+  });
+
+  if (!res.ok) {
+    let message = "Failed to save manual rates";
+    try {
+      const json = (await res.json()) as SaveManualRatesResponse;
+      message = json?.message || message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const json = (await res.json()) as SaveManualRatesResponse;
+  return json;
+}
+
+// Apply saved manual rates to products
+export type ApplyManualRatesResponse = {
+  success?: boolean;
+  message?: string;
+  data?: any;
+};
+
+export async function applyManualRatesToProducts(
+  token: string
+): Promise<ApplyManualRatesResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/admin/products/apply-manual-rates`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    let message = "Failed to apply manual rates to products";
+    try {
+      const json = (await res.json()) as ApplyManualRatesResponse;
+      message = json?.message || message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const json = (await res.json()) as ApplyManualRatesResponse;
+  return json;
+}

@@ -54,8 +54,11 @@ import {
   type MetalItem,
     getManualRatesToday,
     getManualRates,
+    saveManualRates,
     type ManualRatesByMetal,
     type ManualRateItem,
+    type SaveManualRatesRequest,
+    applyManualRatesToProducts,
 } from "@/lib/api/ratesController";
 
 const RateManagement = () => {
@@ -131,7 +134,19 @@ const RateManagement = () => {
       // Fetch manual rates today in parallel best-effort
       try {
         const today = await getManualRatesToday(token);
-        setManualRatesToday(transformTodayRates(today));
+        const transformedRates = transformTodayRates(today);
+        setManualRatesToday(transformedRates);
+        
+        // Prefill manual rates form with saved values
+        setManualRates((prev) => {
+          const updated = { ...prev };
+          metals.forEach((metal) => {
+            if (transformedRates[metal]) {
+              updated[metal] = { ...prev[metal], ...transformedRates[metal] };
+            }
+          });
+          return updated;
+        });
       } catch {
         // ignore manual today failure silently here
       }
@@ -315,35 +330,80 @@ const RateManagement = () => {
     }));
   };
 
-  const saveManualRatesForMetal = (metal: Metal) => {
-    const category = selectedManualCategoryByMetal[metal] || "All";
-    const karatsToSave = metal === "Gold" ? karatOptions : ["24K"];
-    const now = new Date().toISOString();
-    const newEntries = karatsToSave
-      .map((k) => {
-        const price = Number(manualRates[metal]?.[k] || 0);
-        if (!price) return null;
-        return {
-          dateIso: now,
-          metal,
-          category,
-          karat: k,
-          pricePerGram: price,
-          source: "manual",
-        } as const;
-      })
-      .filter(Boolean) as RateHistoryItem[];
+  const saveManualRatesForMetal = async (metal: Metal) => {
+    if (!token) {
+      toast({ title: "Authentication required", description: "Please log in to save rates.", variant: "destructive" });
+      return;
+    }
 
-    if (newEntries.length > 0) {
-      setRateHistory((prev) => [...newEntries, ...prev]);
-      toast({ title: `${metal} manual rates saved`, description: `${newEntries.length} entr${newEntries.length === 1 ? "y" : "ies"} added to history.` });
-    } else {
+    const karatsToSave = metal === "Gold" ? karatOptions : ["24K"];
+    const ratesToSave: Record<string, number> = {};
+    
+    // Collect non-zero rates for this metal
+    karatsToSave.forEach((k) => {
+      const price = Number(manualRates[metal]?.[k] || 0);
+      if (price > 0) {
+        ratesToSave[k] = price;
+      }
+    });
+
+    if (Object.keys(ratesToSave).length === 0) {
       toast({ title: "No rates to save", description: "Please enter at least one price.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // Prepare the request payload
+      const requestData: SaveManualRatesRequest = {};
+      const metalKey = metal.toLowerCase() as keyof SaveManualRatesRequest;
+      requestData[metalKey] = ratesToSave;
+
+      // Call the API
+      await saveManualRates(token, requestData);
+
+      // Update local state with saved rates
+      setManualRatesToday((prev) => ({
+        ...prev,
+        [metal]: { ...prev[metal], ...ratesToSave }
+      }));
+
+      // Add to history for UI display
+      const now = new Date().toISOString();
+      const newEntries = Object.entries(ratesToSave).map(([karat, price]) => ({
+        dateIso: now,
+        metal,
+        category: "All",
+        karat,
+        pricePerGram: price,
+        source: "manual" as const,
+      }));
+
+      setRateHistory((prev) => [...newEntries, ...prev]);
+      
+      toast({ 
+        title: `${metal} manual rates saved`, 
+        description: `${newEntries.length} entr${newEntries.length === 1 ? "y" : "ies"} saved successfully.` 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to save rates", 
+        description: error?.message || "Please try again later.", 
+        variant: "destructive" 
+      });
     }
   };
 
-  const applyManualRatesToProducts = (metal: Metal) => {
-    toast({ title: `Apply to Products`, description: `Manual ${metal} rates will be applied to products (UI only).` });
+  const applyManualRatesClick = async (metal: Metal) => {
+    if (!token) {
+      toast({ title: "Authentication required", description: "Please log in.", variant: "destructive" });
+      return;
+    }
+    try {
+      await applyManualRatesToProducts(token);
+      toast({ title: `Applied manual rates`, description: `Manual ${metal} rates applied to products.` });
+    } catch (error: any) {
+      toast({ title: "Failed to apply rates", description: error?.message || "Please try again.", variant: "destructive" });
+    }
   };
 
   const getAvailableKaratOptions = (metalName: string) => {
@@ -648,7 +708,14 @@ const RateManagement = () => {
             {metals.map((metal) => (
               <div key={metal} className="p-4 rounded-lg border">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-semibold">{metal}</div>
+                  <div className="flex items-center space-x-2">
+                    <div className="font-semibold">{metal}</div>
+                    {Object.keys(manualRatesToday[metal] || {}).length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        Saved rates loaded
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-muted-foreground">Live</span>
                     <Switch
@@ -671,7 +738,28 @@ const RateManagement = () => {
                 </div>
 
                 <div className="space-y-3">
-             
+                  {/* Mode indicator */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {rateSourceByMetal[metal] === "live" ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          Live Rates
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                          <Calculator className="h-3 w-3 mr-1" />
+                          Manual Rates
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {rateSourceByMetal[metal] === "live" 
+                        ? "Showing live market rates" 
+                        : "Enter custom rates below"
+                      }
+                    </div>
+                  </div>
 
                   {metal === "Gold" ? (
                     <div className="grid grid-cols-2 gap-2">
@@ -681,8 +769,15 @@ const RateManagement = () => {
                           <Input
                             type="number"
                             step="0.01"
-                            value={manualRates[metal]?.[k] ?? 0}
+                            value={
+                              rateSourceByMetal[metal] === "manual"
+                                ? manualRates[metal]?.[k] ?? manualRatesToday[metal]?.[k] ?? 0
+                                : getEffectiveKaratPrice(metal, k) ?? 0
+                            }
                             onChange={(e) => handleManualRateChange(metal, k, Number(e.target.value))}
+                            placeholder={`Enter ${k} rate`}
+                            disabled={rateSourceByMetal[metal] === "live"}
+                            className={rateSourceByMetal[metal] === "live" ? "bg-gray-50 cursor-not-allowed" : ""}
                           />
                         </div>
                       ))}
@@ -694,16 +789,36 @@ const RateManagement = () => {
                         <Input
                           type="number"
                           step="0.01"
-                          value={manualRates[metal]?.["24K"] ?? 0}
+                          value={
+                            rateSourceByMetal[metal] === "manual"
+                              ? manualRates[metal]?.["24K"] ?? manualRatesToday[metal]?.["24K"] ?? 0
+                              : getEffectiveKaratPrice(metal, "24K") ?? 0
+                          }
                           onChange={(e) => handleManualRateChange(metal, "24K", Number(e.target.value))}
+                          placeholder={`Enter ${metal} rate`}
+                          disabled={rateSourceByMetal[metal] === "live"}
+                          className={rateSourceByMetal[metal] === "live" ? "bg-gray-50 cursor-not-allowed" : ""}
                         />
                       </div>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-2">
-                    <Button variant="secondary" onClick={() => saveManualRatesForMetal(metal)}>Save Manual Rates</Button>
-                    <Button onClick={() => applyManualRatesToProducts(metal)}>Apply to Products</Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => saveManualRatesForMetal(metal)}
+                      disabled={rateSourceByMetal[metal] === "live"}
+                      className={rateSourceByMetal[metal] === "live" ? "opacity-50 cursor-not-allowed" : ""}
+                    >
+                      {rateSourceByMetal[metal] === "live" ? "Switch to Manual to Save" : "Save Manual Rates"}
+                    </Button>
+                    <Button 
+                      onClick={() => applyManualRatesClick(metal)}
+                      disabled={rateSourceByMetal[metal] === "live"}
+                      className={rateSourceByMetal[metal] === "live" ? "opacity-50 cursor-not-allowed" : ""}
+                    >
+                      {rateSourceByMetal[metal] === "live" ? "Live Rates Active" : "Apply to Products"}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -712,193 +827,7 @@ const RateManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Detailed Gold Rates */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Coins className="h-5 w-5 text-amber-600" />
-            <span>Gold Rates by Karat</span>
-          </CardTitle>
-          <CardDescription>
-            Current gold prices for different purity levels per gram
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-            {karatOptions.map((karat) => (
-              <div
-                key={karat}
-                className="text-center p-3 bg-amber-50 rounded-lg border border-amber-200"
-              >
-                <div className="text-sm font-medium text-amber-800 mb-1">
-                  {karat}
-                </div>
-                <div className="text-lg font-bold text-amber-900">
-                  {formatINR(getEffectiveKaratPrice("Gold", karat))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Separator className="my-6" />
-
-          <div className="grid gap-6 md:grid-cols-3">
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center space-x-2">
-                <BarChart3 className="h-4 w-4" />
-                <span>Market Data</span>
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Exchange:</span>
-                  <span className="font-medium">
-                    {goldData?.price_data?.exchange || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Symbol:</span>
-                  <span className="font-medium">
-                    {goldData?.price_data?.symbol || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Currency:</span>
-                  <span className="font-medium">
-                    {goldData?.price_data?.currency || "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center space-x-2">
-                <DollarSign className="h-4 w-4" />
-                <span>Price Data</span>
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Open:</span>
-                  <span className="font-medium">
-                    {formatINR(goldData?.price_data?.open_price)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Previous Close:</span>
-                  <span className="font-medium">
-                    {formatINR(goldData?.price_data?.prev_close_price)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ask:</span>
-                  <span className="font-medium">
-                    {formatINR(goldData?.price_data?.ask)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bid:</span>
-                  <span className="font-medium">
-                    {formatINR(goldData?.price_data?.bid)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>Timing</span>
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Timestamp:</span>
-                  <span className="font-medium">
-                    {goldData?.price_data?.timestamp
-                      ? new Date(
-                          goldData.price_data?.timestamp * 1000
-                        ).toLocaleString("en-IN")
-                      : "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Open Time:</span>
-                  <span className="font-medium">
-                    {goldData?.price_data?.open_time
-                      ? new Date(
-                          goldData.price_data?.open_time * 1000
-                        ).toLocaleString("en-IN")
-                      : "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card> */}
-
-      {/* Summary Data */}
-      {/* {result?.summary && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Summary Data</CardTitle>
-            <CardDescription>
-              Pre-calculated rates for common quantities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              {result.summary.Gold && (
-                <div>
-                  <h4 className="font-semibold mb-3 text-amber-800">
-                    Gold Summary
-                  </h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Purity</TableHead>
-                        <TableHead className="text-right">10g</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {["24K", "22K", "18K"].map((k) => (
-                        <TableRow key={k}>
-                          <TableCell className="font-medium">{k}</TableCell>
-                          <TableCell className="text-right">
-                            {formatINR(
-                              Number((result.summary as any).Gold?.[k] ?? 0)
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-
-              {result.summary.Silver && (
-                <div>
-                  <h4 className="font-semibold mb-3 text-gray-800">
-                    Silver Summary
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Unit:</span>
-                      <span className="font-medium">
-                        {(result.summary as any).Silver?.unit || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Price:</span>
-                      <span className="font-medium">
-                        {formatINR((result.summary as any).Silver?.price || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )} */}
+      
 
       {/* Rate History */}
       <Card>

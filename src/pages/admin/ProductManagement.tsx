@@ -94,6 +94,7 @@ const ProductManagement = () => {
   const [categoryId, setCategoryId] = useState("");
   const [collectionId, setCollectionId] = useState("");
   const [purity, setPurity] = useState("");
+  const [metalType, setMetalType] = useState("Gold");
   const [weight, setWeight] = useState("");
   const [makingCharges, setMakingCharges] = useState("");
   const [price, setPrice] = useState("");
@@ -111,6 +112,7 @@ const ProductManagement = () => {
   const [editCategoryId, setEditCategoryId] = useState("");
   const [editCollectionId, setEditCollectionId] = useState("");
   const [editPurity, setEditPurity] = useState("");
+  const [editMetalType, setEditMetalType] = useState("Gold");
   const [editWeight, setEditWeight] = useState("");
   const [editMakingCharges, setEditMakingCharges] = useState("");
   const [editPrice, setEditPrice] = useState("");
@@ -213,10 +215,9 @@ const ProductManagement = () => {
       category_id: categoryId,
       collection_id: collectionId,
       purity,
+      metal_type: metalType,
       weight: weight ? Number(weight) : undefined,
       making_charges: makingCharges ? Number(makingCharges) : undefined,
-      price: price ? Number(price) : undefined,
-      stock: stock ? Number(stock) : undefined,
       sizes: sizes.length ? JSON.stringify(sizes.filter(s => s.size)) : undefined,
     };
     try {
@@ -226,12 +227,11 @@ const ProductManagement = () => {
         formData.append("name", name);
         formData.append("category_id", categoryId);
         formData.append("collection_id", collectionId);
+        formData.append("metal_type", metalType);
         if (purity) formData.append("purity", purity.toUpperCase());
         if (weight) formData.append("weight", String(Number(weight)));
         if (makingCharges)
           formData.append("making_charges", String(Number(makingCharges)));
-        if (price) formData.append("price", String(Number(price)));
-        if (stock) formData.append("stock", String(Number(stock)));
         if (sizes.length)
           formData.append("sizes", JSON.stringify(sizes.filter(s => s.size)));
         images.forEach((file) => {
@@ -288,6 +288,7 @@ const ProductManagement = () => {
         details?.purity ?? details?.karat ?? ""
       );
       setEditPurity(normalizedPurity);
+      setEditMetalType(details?.metal_type || details?.metal || "Gold");
       setEditWeight(
         details?.weight !== undefined && details?.weight !== null
           ? String(details.weight)
@@ -366,6 +367,7 @@ const ProductManagement = () => {
         product?.purity ?? product?.karat ?? ""
       );
       setEditPurity(normalizedPurity);
+      setEditMetalType(product?.metal_type || product?.metal || "Gold");
       setEditWeight(
         product?.weight !== undefined && product?.weight !== null
           ? String(product.weight)
@@ -425,10 +427,9 @@ const ProductManagement = () => {
       category_id: editCategoryId ? Number(editCategoryId) : undefined,
       collection_id: editCollectionId ? Number(editCollectionId) : undefined,
       purity: editPurity ? editPurity.toUpperCase() : undefined,
+      metal_type: editMetalType,
       weight: editWeight ? Number(editWeight) : undefined,
       making_charges: editMakingCharges ? Number(editMakingCharges) : undefined,
-      price: editPrice ? Number(editPrice) : undefined,
-      stock: editStock ? Number(editStock) : undefined,
       status: editStatusActive ? 1 : 0,
       sizes: editSizes.length ? JSON.stringify(editSizes.filter(s => s.size)) : undefined,
     };
@@ -441,6 +442,7 @@ const ProductManagement = () => {
           formData.append("category_id", String(Number(editCategoryId)));
         if (editCollectionId)
           formData.append("collection_id", String(Number(editCollectionId)));
+        formData.append("metal_type", editMetalType);
         if (editPurity) formData.append("purity", editPurity.toUpperCase());
         if (editWeight) formData.append("weight", String(Number(editWeight)));
         if (editMakingCharges)
@@ -448,8 +450,6 @@ const ProductManagement = () => {
             "making_charges",
             String(Number(editMakingCharges))
           );
-        if (editPrice) formData.append("price", String(Number(editPrice)));
-        if (editStock) formData.append("stock", String(Number(editStock)));
         formData.append("status", editStatusActive ? "1" : "0");
         if (editSizes.length)
           formData.append("sizes", JSON.stringify(editSizes.filter(s => s.size)));
@@ -848,29 +848,29 @@ const ProductManagement = () => {
                       onChange={(e) => setMakingCharges(e.target.value)}
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="metalType">Metal Type</Label>
+                    <Select value={metalType} onValueChange={setMetalType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select metal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Gold">Gold</SelectItem>
+                        <SelectItem value="Silver">Silver</SelectItem>
+                        <SelectItem value="Platinum">Platinum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="price">Price (₹)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder="Enter price"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                    />
+                    <Label>Price (₹)</Label>
+                    <Input value={price} disabled placeholder="Auto-calculated" />
                   </div>
-
                   <div className="grid gap-2">
-                    <Label htmlFor="stock">Stock</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      placeholder="Enter stock"
-                      value={stock}
-                      onChange={(e) => setStock(e.target.value)}
-                    />
+                    <Label>Stock</Label>
+                    <Input value={stock} disabled placeholder="Auto-managed" />
                   </div>
                 </div>
 
@@ -1277,29 +1277,29 @@ const ProductManagement = () => {
                       onChange={(e) => setEditMakingCharges(e.target.value)}
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="editMetalType">Metal Type</Label>
+                    <Select value={editMetalType} onValueChange={setEditMetalType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select metal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Gold">Gold</SelectItem>
+                        <SelectItem value="Silver">Silver</SelectItem>
+                        <SelectItem value="Platinum">Platinum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="editPrice">Price (₹)</Label>
-                    <Input
-                      id="editPrice"
-                      type="number"
-                      placeholder="Enter price"
-                      value={editPrice}
-                      onChange={(e) => setEditPrice(e.target.value)}
-                    />
+                    <Input id="editPrice" value={editPrice} disabled placeholder="Auto-calculated" />
                   </div>
-
                   <div className="grid gap-2">
                     <Label htmlFor="editStock">Stock</Label>
-                    <Input
-                      id="editStock"
-                      type="number"
-                      placeholder="Enter stock"
-                      value={editStock}
-                      onChange={(e) => setEditStock(e.target.value)}
-                    />
+                    <Input id="editStock" value={editStock} disabled placeholder="Auto-managed" />
                   </div>
                 </div>
 
