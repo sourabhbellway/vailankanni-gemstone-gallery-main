@@ -9,6 +9,7 @@ import { loginInitiate, verifyLoginOtp } from "@/lib/api/userController";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { toast } from "sonner";
+import GoogleLoginButton from "@/components/GoogleLoginButton";
 
 const SignIn = () => {
   const [showOtp, setShowOtp] = React.useState(false);
@@ -106,6 +107,16 @@ const SignIn = () => {
               </div>
               <button disabled={loading} type="submit" className="w-full bg-black text-white py-2 rounded mt-4 font-semibold hover:bg-[#222] transition disabled:opacity-50">{loading ? "Sending..." : "Get OTP"}</button>
             </form>
+
+            {/* Divider */}
+            <div className="flex items-center my-6">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="px-3 text-sm text-gray-500">OR</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            {/* Google Login */}
+            <GoogleLoginButton />
           </div>
         </div>
         <Dialog open={showOtp} onOpenChange={setShowOtp}>

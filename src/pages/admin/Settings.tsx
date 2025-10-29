@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react"; 
 import {
   Card,
   CardContent,
@@ -112,6 +113,9 @@ const Settings = () => {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [goldApiModalOpen, setGoldApiModalOpen] = useState(false);
+  // Inside your component:
+const [showKey, setShowKey] = useState(false);
+const [showSecret, setShowSecret] = useState(false);
   const [goldApiForm, setGoldApiForm] = useState({
     api_key: "",
     base_url: "",
@@ -597,7 +601,7 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
+{/* 
         <TabsContent value="payment" className="space-y-4">
           <Card>
             <CardHeader>
@@ -770,7 +774,211 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
+   <TabsContent value="payment" className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <CreditCard className="h-5 w-5" />
+            <span>Payment Methods</span>
+          </CardTitle>
+          <CardDescription>
+            Configure payment gateways and methods
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* ----------- Payment Method Toggles ----------- */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Razorpay</h4>
+                <p className="text-sm text-muted-foreground">
+                  Accept payments via Razorpay gateway
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge
+                  variant={
+                    settings.payment_methods.razorpay_enabled
+                      ? "default"
+                      : "secondary"
+                  }
+                >
+                  {settings.payment_methods.razorpay_enabled
+                    ? "Active"
+                    : "Inactive"}
+                </Badge>
+                <Switch
+                  checked={settings.payment_methods.razorpay_enabled}
+                  onCheckedChange={(checked) =>
+                    setSettings({
+                      ...settings,
+                      payment_methods: {
+                        ...settings.payment_methods,
+                        razorpay_enabled: checked,
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Cash on Delivery</h4>
+                <p className="text-sm text-muted-foreground">
+                  Allow customers to pay on delivery
+                </p>
+              </div>
+              <Switch
+                checked={settings.payment_methods.cod_enabled}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    payment_methods: {
+                      ...settings.payment_methods,
+                      cod_enabled: checked,
+                    },
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">EMI Options</h4>
+                <p className="text-sm text-muted-foreground">
+                  Enable EMI payment options
+                </p>
+              </div>
+              <Switch
+                checked={settings.payment_methods.emi_enabled}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    payment_methods: {
+                      ...settings.payment_methods,
+                      emi_enabled: checked,
+                    },
+                  })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Digital Wallet</h4>
+                <p className="text-sm text-muted-foreground">
+                  Accept digital wallet payments
+                </p>
+              </div>
+              <Switch
+                checked={settings.payment_methods.digital_wallet_enabled}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    payment_methods: {
+                      ...settings.payment_methods,
+                      digital_wallet_enabled: checked,
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* ----------- Payment Configuration ----------- */}
+          <div className="space-y-4">
+            <h4 className="font-medium">Payment Configuration</h4>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Razorpay Key ID */}
+              <div className="relative">
+                <Label htmlFor="razorpayKey">Razorpay Key ID</Label>
+                <Input
+                  id="razorpayKey"
+                  type={showKey ? "text" : "password"}
+                  placeholder="Enter Razorpay Key"
+                  value={settings.payment_methods.razorpay_key_id}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      payment_methods: {
+                        ...settings.payment_methods,
+                        razorpay_key_id: e.target.value,
+                      },
+                    })
+                  }
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700"
+                >
+                  {showKey ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              {/* Razorpay Secret */}
+              <div className="relative">
+                <Label htmlFor="razorpaySecret">Razorpay Secret</Label>
+                <Input
+                  id="razorpaySecret"
+                  type={showSecret ? "text" : "password"}
+                  placeholder="Enter Razorpay Secret"
+                  value={settings.payment_methods.razorpay_secret}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      payment_methods: {
+                        ...settings.payment_methods,
+                        razorpay_secret: e.target.value,
+                      },
+                    })
+                  }
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSecret(!showSecret)}
+                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700"
+                >
+                  {showSecret ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ----------- Save Button ----------- */}
+          <div className="flex justify-end">
+            <Button onClick={() => handleSave("Payment")} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
           <Card>

@@ -121,3 +121,22 @@ export const getGoldInvestments = async (token: string): Promise<GoldInvestments
     throw error as any;
   }
 };
+
+// Google OAuth login/register (expects name and email as per backend)
+export const googleLogin = async (name: string, email: string) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/google`,
+      { name, email },
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error as any;
+  }
+};
