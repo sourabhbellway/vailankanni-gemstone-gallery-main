@@ -10,9 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
-import { getUserSchemes, enrollInScheme, type UserScheme } from "@/lib/api/userSchemesController";
+import { getUserSchemes, enrollInScheme, type UserScheme, verifySchemePaymentCashfree, createNextInstallmentOrder } from "@/lib/api/userSchemesController";
 import { useToast } from "@/hooks/use-toast";
 import { useUserAuth } from "@/context/UserAuthContext";
+import { load } from "@cashfreepayments/cashfree-js";
+import { extractCashfreeSessionId } from "@/lib/api/customGoldPlanController";
 
 const Schemes = () => {
   const [selectedPlan, setSelectedPlan] = useState("12");
@@ -181,11 +183,55 @@ const Schemes = () => {
                           const res = await enrollInScheme(token, { scheme_id: scheme.id, monthly_amount: scheme.minAmount });
                           if (!res.success) throw new Error(res.message || "Failed to enroll");
                           toast({ title: res.message || "Enrolled successfully" });
-                          navigate("/payments", { state: { 
-                            order: res.data.razorpay_order,
-                            key: res.data.razorpay_key,
-                            userScheme: res.data.user_scheme,
-                          }});
+                          const userScheme = (res.data as any)?.user_scheme;
+                          const firstPayment = Array.isArray(userScheme?.payments) ? userScheme.payments[0] : undefined;
+                          const schemePaymentId = Number(firstPayment?.id);
+                          try { localStorage.setItem("va_last_scheme_payment_id", String(schemePaymentId)); } catch {}
+                          let activeOrder = (res.data as any)?.cashfree_order || (res.data as any)?.razorpay_order || {};
+                          let sessionId = extractCashfreeSessionId(activeOrder) || extractCashfreeSessionId(res.data);
+                          if (!sessionId) {
+                            if (!Number.isFinite(schemePaymentId)) throw new Error("Missing payment id for session creation");
+                            const fresh = await createNextInstallmentOrder(token, schemePaymentId);
+                            activeOrder = (fresh as any)?.cashfree_order || (fresh as any)?.razorpay_order || {};
+                            sessionId = extractCashfreeSessionId(activeOrder);
+                          }
+                          if (!sessionId) throw new Error("Unable to start payment: missing session");
+                          try {
+                            if ((activeOrder as any)?.order_id) localStorage.setItem("va_last_cashfree_order_id", String((activeOrder as any).order_id));
+                          } catch {}
+                          const cashfree = await load({ mode: "sandbox" as any });
+                          await cashfree.checkout({
+                            paymentSessionId: sessionId,
+                            redirectTarget: "_self",
+                            returnUrl: `${window.location.origin}/payment-success?type=scheme&order_id=${encodeURIComponent(String(activeOrder?.order_id || ""))}&scheme_payment_id=${encodeURIComponent(String(schemePaymentId))}`,
+                            onSuccess: async (data: any) => {
+                              try {
+                                const paymentId =
+                                  data?.txnReference ||
+                                  data?.payment?.paymentId ||
+                                  data?.order?.transactionId ||
+                                  data?.transaction?.transactionId ||
+                                  data?.paymentId ||
+                                  data?.cf_payment_id ||
+                                  data?.referenceId ||
+                                  "";
+                                try { localStorage.setItem("va_last_cashfree_payment_id", String(paymentId)); } catch {}
+                                try { console.debug("Cashfree onSuccess payload:", data); } catch {}
+                                await verifySchemePaymentCashfree(token, {
+                                  scheme_payment_id: schemePaymentId,
+                                  order_id: String(activeOrder?.order_id || ""),
+                                  razorpay_payment_id: String(paymentId || ""),
+                                });
+                                toast({ title: "Payment verified", description: "Your plan is now active" });
+                                navigate("/profile");
+                              } catch (err: any) {
+                                toast({ title: "Verification failed", description: err?.response?.data?.message || "Please contact support" });
+                              }
+                            },
+                            onFailure: (err: any) => {
+                              toast({ title: "Payment failed", description: err?.message || "Please try again" });
+                            },
+                          });
                         } catch (err: any) {
                           toast({ title: "Enrollment failed", description: err?.response?.data?.message || err?.message || "Please try again" });
                         } finally {

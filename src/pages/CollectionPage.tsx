@@ -35,7 +35,7 @@ const CollectionPage = () => {
   useEffect(() => {
     const fetchCollectionData = async () => {
       if (!collectionId) return;
-      
+
       try {
         setLoading(true);
         const response = await getCollectionProducts(collectionId);
@@ -81,7 +81,7 @@ const CollectionPage = () => {
 
   const handleConfirmAddToCart = async (quantity: number, size?: string | number) => {
     if (!token || !quantityDialog.product) return;
-    
+
     setAddingToCart(true);
     try {
       const data = await addToCart(
@@ -111,9 +111,9 @@ const CollectionPage = () => {
       navigate("/signin");
       return;
     }
-    
+
     if (!token) return;
-    
+
     setAddingToWishlist(product.id);
     try {
       const data = await addToWishlist({ product_id: product.id }, token);
@@ -282,24 +282,44 @@ const CollectionPage = () => {
                       </span>
                     </div>
                     {/* Dummy sizes row */}
-                    <div className="px-2 mb-2 text-xs text-gray-500 text-center">
-                      Sizes: {(() => {
+                    {/* Sizes */}
+                    <div className="px-2 mb-3 flex flex-wrap justify-center gap-2">
+                      {(() => {
                         try {
                           const sizes = product?.sizes;
-                          const list = typeof sizes === 'string' ? JSON.parse(sizes) : Array.isArray(sizes) ? sizes : [];
-                          const names = list.slice(0, 3).map((s: any) => String(s.size));
-                          return names.length ? names.join(', ') + (list.length > 3 ? '…' : '') : 'Select in cart';
-                        } catch { return 'Select in cart'; }
+                          const list =
+                            typeof sizes === "string"
+                              ? JSON.parse(sizes)
+                              : Array.isArray(sizes)
+                                ? sizes
+                                : [];
+                          const names = list.slice(0, 4).map((s: any) => String(s.size));
+
+                          return names.length ? (
+                            names.map((size, i) => (
+                              <span
+                                key={i}
+                                className="px-2.5 py-1 text-xs font-medium border border-gray-300 rounded-full text-gray-700 bg-gray-50 hover:bg-gray-100 transition"
+                              >
+                                {size}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Select size in cart</span>
+                          );
+                        } catch {
+                          return <span className="text-xs text-gray-500">Select size in cart</span>;
+                        }
                       })()}
                     </div>
 
+
                     {/* Stock Status */}
                     <div className="mt-auto px-2">
-                      <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${
-                        product.stock > 0 
-                          ? 'bg-green-100 text-green-800' 
+                      <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${product.stock > 0
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         <span className="inline-block">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -320,11 +340,10 @@ const CollectionPage = () => {
                       </div>
                       {/* Add to Cart Button */}
                       <button
-                        className={`w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 ${
-                          product.stock > 0
+                        className={`w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 ${product.stock > 0
                             ? 'bg-primary text-white hover:bg-primary/90'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                          }`}
                         onClick={() => product.stock > 0 ? handleAddToCart(product) : null}
                         disabled={product.stock === 0}
                       >
@@ -349,7 +368,7 @@ const CollectionPage = () => {
       </main>
       <ContactSection />
       <Footer />
-      
+
       {/* Quantity Dialog */}
       <QuantityDialog
         isOpen={quantityDialog.isOpen}

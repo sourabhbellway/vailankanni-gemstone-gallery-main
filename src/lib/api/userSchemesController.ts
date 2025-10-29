@@ -67,9 +67,11 @@ export async function enrollInScheme(
   return res.data as EnrollResponse;
 }
 
-export async function verifySchemePayment(
+
+// Cashfree-style verify (backend expects order_id and keeps Razorpay-like names)
+export async function verifySchemePaymentCashfree(
   token: string,
-  payload: { scheme_payment_id: number; razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+  payload: { scheme_payment_id: number; order_id: string; razorpay_payment_id?: string }
 ): Promise<{ success: boolean; message: string }> {
   const res = await axios.post(`${API_BASE_URL}/schemes/payment/verify`, payload, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" },
@@ -77,18 +79,7 @@ export async function verifySchemePayment(
   return res.data as { success: boolean; message: string };
 }
 
-// Fetch logged-in user's plans (tries common endpoints if one fails)
-export async function getMyPlans(token: string): Promise<{ success: boolean; data: any[] }>
-{
-  const headers = { Authorization: `Bearer ${token}` };
-  try {
-    const res = await axios.get(`${API_BASE_URL}/user/myschemes`, { headers });
-    return res.data as { success: boolean; data: any[] };
-  } catch {
-    const res = await axios.get(`${API_BASE_URL}/schemes`, { headers });
-    return res.data as { success: boolean; data: any[] };
-  }
-}
+
 
 // Create order for next installment payment
 export async function createNextInstallmentOrder(
@@ -102,3 +93,16 @@ export async function createNextInstallmentOrder(
   return res.data as any;
 }
 
+
+// Fetch logged-in user's plans (tries common endpoints if one fails)
+export async function getMyPlans(token: string): Promise<{ success: boolean; data: any[] }>
+{
+  const headers = { Authorization: `Bearer ${token}` };
+  try {
+    const res = await axios.get(`${API_BASE_URL}/user/myschemes`, { headers });
+    return res.data as { success: boolean; data: any[] };
+  } catch {
+    const res = await axios.get(`${API_BASE_URL}/schemes`, { headers });
+    return res.data as { success: boolean; data: any[] };
+  }
+}

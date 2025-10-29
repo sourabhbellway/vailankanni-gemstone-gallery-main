@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { verifySchemePayment } from "@/lib/api/userSchemesController";
+import { verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import logo from "@/assets/logo.jpg";
 
@@ -94,12 +94,10 @@ const Payments = () => {
       order_id: order.order_id,
       handler: async function (response: any) {
         try {
-          await verifySchemePayment(token!, {
+          await verifySchemePaymentCashfree(token!, {
             scheme_payment_id: schemePaymentId,
-            
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
+           
+            order_id: response.razorpay_order_id,
           });
           toast({ title: "Payment verified", description: "Your plan is now active" });
           navigate("/profile");

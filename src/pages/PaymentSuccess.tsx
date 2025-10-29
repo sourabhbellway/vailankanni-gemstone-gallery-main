@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { verifyGoldPlanPayment } from "@/lib/api/customGoldPlanController";
+import { verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 
 const PaymentSuccess = () => {
   const { token } = useUserAuth();
@@ -14,10 +15,20 @@ const PaymentSuccess = () => {
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "failed">("idle");
   const [message, setMessage] = useState<string>("");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [schemePaymentId, setSchemePaymentId] = useState<string | null>(null);
+  const [type, setType] = useState<"scheme" | "customGoldPlan" | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const oidFromUrl = params.get("order_id");
+    const schemePid = params.get("scheme_payment_id");
+    const typeParam = params.get("type");
+    const paymentIdFromUrl =
+      params.get("payment_id") ||
+      params.get("cf_payment_id") ||
+      params.get("txnReference") ||
+      params.get("referenceId") ||
+      params.get("paymentId");
     const verified = params.get("verified");
     const error = params.get("error");
     
@@ -29,6 +40,8 @@ const PaymentSuccess = () => {
       } catch {}
     }
     setOrderId(oid ?? null);
+    setSchemePaymentId(schemePid ?? (() => { try { return localStorage.getItem("va_last_scheme_payment_id"); } catch { return null; } })() );
+    setType(typeParam === "scheme" ? "scheme" : "customGoldPlan");
     
     if (!oid) {
       setStatus("failed");
@@ -54,10 +67,22 @@ const PaymentSuccess = () => {
       return;
     }
     
-    // If not pre-verified, attempt verification
+    // If not pre-verified, attempt verification based on type
     setStatus("verifying");
-    verifyGoldPlanPayment(token, oid)
-      .then((res) => {
+    const run = async () => {
+      if (typeParam === "scheme") {
+        const res = await verifySchemePaymentCashfree(token, {
+          scheme_payment_id: Number(schemePid),
+          order_id: oid,
+          razorpay_payment_id: String(paymentIdFromUrl || ""),
+        });
+        return res;
+      } else {
+        return await verifyGoldPlanPayment(token, oid);
+      }
+    };
+    run()
+      .then((res: any) => {
         if (res?.success) {
           setStatus("success");
           setMessage(res?.message || "Payment verified successfully");
@@ -80,8 +105,17 @@ const PaymentSuccess = () => {
     tried.current += 1;
     const t = setTimeout(() => {
       setStatus("verifying");
-      verifyGoldPlanPayment(token, orderId)
-        .then((res) => {
+      const rerun = async () => {
+        if (type === "scheme") {
+          return await verifySchemePaymentCashfree(token, {
+            scheme_payment_id: Number(schemePaymentId),
+            order_id: orderId,
+          });
+        }
+        return await verifyGoldPlanPayment(token, orderId);
+      };
+      rerun()
+        .then((res: any) => {
           if (res?.success) {
             setStatus("success");
             setMessage(res?.message || "Payment verified successfully");

@@ -239,6 +239,7 @@ const CategoryPage = () => {
             </div> */}
           </div>
 
+     
           {/* Product Cards Grid */}
           <div className="w-full max-w-8xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-16">
             {products.length > 0 ? (
@@ -282,24 +283,44 @@ const CategoryPage = () => {
                       </span>
                     </div>
                     {/* Dummy sizes row */}
-                    <div className="px-2 mb-2 text-xs text-gray-500 text-center">
-                      Sizes: {(() => {
+                    {/* Sizes */}
+                    <div className="px-2 mb-3 flex flex-wrap justify-center gap-2">
+                      {(() => {
                         try {
                           const sizes = product?.sizes;
-                          const list = typeof sizes === 'string' ? JSON.parse(sizes) : Array.isArray(sizes) ? sizes : [];
-                          const names = list.slice(0, 3).map((s: any) => String(s.size));
-                          return names.length ? names.join(', ') + (list.length > 3 ? '…' : '') : 'Select in cart';
-                        } catch { return 'Select in cart'; }
+                          const list =
+                            typeof sizes === "string"
+                              ? JSON.parse(sizes)
+                              : Array.isArray(sizes)
+                                ? sizes
+                                : [];
+                          const names = list.slice(0, 4).map((s: any) => String(s.size));
+
+                          return names.length ? (
+                            names.map((size, i) => (
+                              <span
+                                key={i}
+                                className="px-2.5 py-1 text-xs font-medium border border-gray-300 rounded-full text-gray-700 bg-gray-50 hover:bg-gray-100 transition"
+                              >
+                                {size}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Select size in cart</span>
+                          );
+                        } catch {
+                          return <span className="text-xs text-gray-500">Select size in cart</span>;
+                        }
                       })()}
                     </div>
 
+
                     {/* Stock Status */}
                     <div className="mt-auto px-2">
-                      <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${
-                        product.stock > 0 
-                          ? 'bg-green-100 text-green-800' 
+                      <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${product.stock > 0
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         <span className="inline-block">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -320,11 +341,10 @@ const CategoryPage = () => {
                       </div>
                       {/* Add to Cart Button */}
                       <button
-                        className={`w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 ${
-                          product.stock > 0
+                        className={`w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 ${product.stock > 0
                             ? 'bg-primary text-white hover:bg-primary/90'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
+                          }`}
                         onClick={() => product.stock > 0 ? handleAddToCart(product) : null}
                         disabled={product.stock === 0}
                       >
@@ -337,10 +357,10 @@ const CategoryPage = () => {
             ) : (
               <div className="col-span-full text-center py-16">
                 <h3 className="text-2xl font-serif text-gray-500 mb-4">
-                  No products found in this category
+                  No products found in this collection
                 </h3>
                 <p className="text-lg text-gray-400">
-                  This category doesn't have any products yet.
+                  This collection doesn't have any products yet.
                 </p>
               </div>
             )}

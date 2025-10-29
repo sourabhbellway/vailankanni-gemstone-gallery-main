@@ -10,7 +10,9 @@ import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getMyPlans, createNextInstallmentOrder, verifySchemePayment } from "@/lib/api/userSchemesController";
+import { getMyPlans, createNextInstallmentOrder, verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
+import { load } from "@cashfreepayments/cashfree-js";
+import { extractCashfreeSessionId } from "@/lib/api/customGoldPlanController";
 import { getGoldInvestments, type GoldInvestmentsSummary } from "@/lib/api/userController";
 import logo from "@/assets/logo.jpg";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -181,57 +183,50 @@ const Profile = () => {
     </div>
   );
 
-  const openRazorpayForPayment = async (plan: any, payment: any) => {
+  const openCashfreeForPayment = async (plan: any, payment: any) => {
     if (!token) return;
     try {
-      const src = "https://checkout.razorpay.com/v1/checkout.js";
-      const existing = document.querySelector(`script[src='${src}']`);
-      if (!existing) {
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        document.body.appendChild(script);
-        await new Promise((r) => setTimeout(r, 500));
+      const create = await createNextInstallmentOrder(token, Number(payment.id));
+      if (!create?.success) throw new Error("Failed to create order");
+      const activeOrder = (create as any)?.cashfree_order || (create as any)?.razorpay_order || {};
+      const sessionId =
+        extractCashfreeSessionId(activeOrder) ||
+        extractCashfreeSessionId((create as any)?.data) ||
+        extractCashfreeSessionId(create) ||
+        (activeOrder as any)?.payment_session_id ||
+        (create as any)?.payment_session_id;
+      if (!sessionId) {
+        toast({ title: "Payment error", description: "Missing Cashfree session. Please try again." });
+        return;
       }
 
-      const create = await createNextInstallmentOrder(token, Number(payment.id));
-      if (!create.success) throw new Error("Failed to create order");
-
-      // @ts-ignore
-      const Razorpay = (window as any).Razorpay;
-      if (!Razorpay) throw new Error("Payment SDK not loaded");
-
-      const { razorpay_order, razorpay_key } = create;
-      const options = {
-        key: razorpay_key,
-        amount: razorpay_order.amount,
-        currency: razorpay_order.currency,
-        name: "Vailankanni Jewellers",
-        image: logo,
-        description: `${plan.scheme?.scheme || "Scheme"} - Installment ${payment.installment_number}`,
-        order_id: razorpay_order.order_id,
-        handler: async (response: any) => {
+      const cashfree = await load({ mode: "sandbox" as any });
+      await cashfree.checkout({
+        paymentSessionId: sessionId,
+        redirectTarget: "_self",
+        returnUrl: `${window.location.origin}/payment-success?type=scheme&order_id=${encodeURIComponent(String((activeOrder as any)?.order_id || ""))}&scheme_payment_id=${encodeURIComponent(String(payment.id))}`,
+        onSuccess: async (data: any) => {
           try {
-            await verifySchemePayment(token, {
+            const cfPaymentId = data?.txnReference || data?.payment?.paymentId || data?.paymentId || data?.cf_payment_id || "";
+            await verifySchemePaymentCashfree(token, {
               scheme_payment_id: Number(payment.id),
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
+              order_id: String(activeOrder?.order_id || ""),
+              razorpay_payment_id: String(cfPaymentId || ""),
             });
             toast({ title: "Payment verified", description: "Installment paid successfully" });
-            // refresh plans
             const res = await getMyPlans(token);
             if (res.success) setPlans(res.data || []);
           } catch (err: any) {
             toast({ title: "Verification failed", description: err?.response?.data?.message || "Please contact support" });
           }
         },
-        theme: { color: "#166534" },
-      } as any;
-      const rzp = new Razorpay(options);
-      rzp.open();
+        onFailure: (err: any) => {
+          toast({ title: "Payment failed", description: err?.message || "Please try again" });
+        },
+      });
     } catch (err: any) {
-      toast({ title: "Payment init failed", description: err?.message || "Try again later" });
+      const serverMsg = err?.response?.data?.message || err?.response?.data?.error;
+      toast({ title: "Payment init failed", description: serverMsg || err?.message || "Try again later" });
     }
   };
 
@@ -317,7 +312,7 @@ const Profile = () => {
                             {payment.status === 'paid' ? (
                               <span className="text-xs lg:text-sm text-green-700 font-semibold">Paid</span>
                             ) : (
-                              <Button size="sm" onClick={() => openRazorpayForPayment(plan, payment)} className="text-xs lg:text-sm">Pay Now</Button>
+                              <Button size="sm" onClick={() => openCashfreeForPayment(plan, payment)} className="text-xs lg:text-sm">Pay Now</Button>
                             )}
                           </div>
                         </div>
@@ -342,7 +337,7 @@ const Profile = () => {
             <div className="animate-spin rounded-full h-8 w-8 lg:h-10 lg:w-10 border-b-2 border-[#084526]"></div>
           </div>
         ) : vaultError ? (
-          <div className="mb-2 p-3 rounded border border-red-200 text-red-700 text-sm">{vaultError}</div>
+          <div className="text-sm text-gray-600">{vaultError}</div>
         ) : !vaultSummary ? (
           <div className="text-sm text-gray-600">No data found.</div>
         ) : (

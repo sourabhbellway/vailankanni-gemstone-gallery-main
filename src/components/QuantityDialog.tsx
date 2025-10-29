@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,14 @@ const QuantityDialog: React.FC<QuantityDialogProps> = ({
   weight,
   makingCharges,
 }) => {
+  const [selectedSize, setSelectedSize] = useState<string | number | undefined>(undefined);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string | number | undefined>(
-    sizes.length > 0 ? sizes[0].size : undefined
-  );
+
+  // When size changes, reset quantity to 1 and clamp to available qty
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedSize]);
+
   const selectedSizeQty = (() => {
     if (!sizes || sizes.length === 0 || selectedSize === undefined) return maxStock;
     const found = sizes.find((s) => String(s.size) === String(selectedSize));
@@ -40,14 +44,14 @@ const QuantityDialog: React.FC<QuantityDialogProps> = ({
   })();
 
   const handleConfirm = () => {
-    if (quantity > 0 && quantity <= maxStock) {
+    if (quantity > 0 && quantity <= selectedSizeQty) {
       onConfirm(quantity, selectedSize);
     }
   };
 
   const handleQuantityChange = (value: string) => {
     const numValue = parseInt(value);
-    if (!isNaN(numValue) && numValue > 0 && numValue <= maxStock) {
+    if (!isNaN(numValue) && numValue > 0 && numValue <= selectedSizeQty) {
       setQuantity(numValue);
     } else if (value === "") {
       setQuantity(1);
@@ -60,7 +64,9 @@ const QuantityDialog: React.FC<QuantityDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Select Quantity</DialogTitle>
         </DialogHeader>
+
         <div className="space-y-4">
+          {/* Product Info */}
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
             <div>
               <Label>Product</Label>
@@ -86,48 +92,72 @@ const QuantityDialog: React.FC<QuantityDialogProps> = ({
             )}
           </div>
 
+          {/* Sizes as Pills */}
           {sizes && sizes.length > 0 && (
             <div>
-              <Label htmlFor="size">Size</Label>
-              <select
-                id="size"
-                className="mt-1 w-full border rounded px-3 py-2"
-                value={selectedSize as any}
-                onChange={(e) => setSelectedSize(e.target.value)}
-              >
-                {sizes.map((s, idx) => (
-                  <option key={`${s.size}-${idx}`} value={String(s.size)}>
-                    {String(s.size)} {s.quantity !== undefined ? `(qty: ${s.quantity})` : ""}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Available for selected size: {selectedSizeQty}
-              </p>
+              <Label>Size</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {sizes.map((s, idx) => {
+                  const isSelected = String(s.size) === String(selectedSize);
+                  const isDisabled = s.quantity < 1;
+
+                  return (
+                    <button
+                      key={`${s.size}-${idx}`}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => !isDisabled && setSelectedSize(s.size)}
+                      className={`px-3 py-1.5 text-sm rounded-full border transition
+                        ${isDisabled 
+                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
+                          : isSelected 
+                            ? "bg-black text-white border-black" 
+                            : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"}`}
+                    >
+                      {String(s.size)}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedSize && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Available stock for selected size: {selectedSizeQty}
+                </p>
+              )}
             </div>
           )}
+
+          {/* Quantity Input */}
           <div>
             <Label htmlFor="quantity">Quantity</Label>
             <Input
               id="quantity"
               type="number"
               min="1"
-              max={maxStock}
+              max={selectedSizeQty}
               value={quantity}
               onChange={(e) => handleQuantityChange(e.target.value)}
               className="mt-1"
+              disabled={sizes.length > 0 && !selectedSize}
             />
-            {!sizes || sizes.length === 0 ? (
+            {(!sizes || sizes.length === 0) && (
               <p className="text-xs text-gray-500 mt-1">Available stock: {maxStock}</p>
-            ) : null}
+            )}
           </div>
+
+          {/* Action Buttons */}
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleConfirm} 
-              disabled={loading || quantity <= 0 || quantity > maxStock}
+            <Button
+              onClick={handleConfirm}
+              disabled={
+                loading ||
+                quantity <= 0 ||
+                quantity > selectedSizeQty ||
+                (sizes.length > 0 && !selectedSize)
+              }
               className="bg-[#084526] hover:bg-[#0a5a2e]"
             >
               {loading ? "Adding..." : "Add to Cart"}

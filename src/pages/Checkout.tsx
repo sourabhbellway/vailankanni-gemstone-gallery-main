@@ -22,11 +22,11 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cartId, setCartId] = useState(0)
-  const [coupons, setCoupons] = useState<any[]>([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
+  // const [coupons, setCoupons] = useState<any[]>([]);
+  // const [couponsLoading, setCouponsLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [showCoupon, setShowCoupon] = useState(false)
+  // const [showCoupon, setShowCoupon] = useState(false)
   const [serverCartTotal, setServerCartTotal] = useState<number | null>(null);
   const [serverFinalTotal, setServerFinalTotal] = useState<number | null>(null);
   const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
@@ -78,83 +78,85 @@ const Checkout = () => {
     }
   };
 
-  const fetchCoupons = async () => {
-    setCouponsLoading(true);
-    try {
-      const data = await getCouponsList();
-      if (data.status) {
+  // const fetchCoupons = async () => {
+  //   setCouponsLoading(true);
+  //   try {
+  //     const data = await getCouponsList();
+  //     if (data.status) {
 
 
-        setCoupons(data.data || []);
-      }
-    } catch (err: any) {
-      // Coupons fetch error - silently fail
-      toast({
-        title: "Error",
-        description: "Failed to load coupons",
-        variant: "destructive",
-      });
-    } finally {
-      setCouponsLoading(false);
-    }
-  };
-  const handleCoupon = () => {
-    setShowCoupon(!showCoupon)
-  }
-  const handleApplyCoupon = async (couponCode: string) => {
-    if (!token || !cartId) {
-      // Cannot apply coupon: missing token or cartId
-      return; // make sure cartId is available
-    }
+  //       setCoupons(data.data || []);
+  //     }
+  //   } catch (err: any) {
+  //     // Coupons fetch error - silently fail
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to load coupons",
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setCouponsLoading(false);
+  //   }
+  // };
 
-    try {
-      const data = await applyCoupon(cartId, couponCode, token);
-      if (data.status) {
-        // Refresh items and totals from server response
-        const resp = data.data || {};
-        setCartId(resp.cart_id || cartId);
-        const items = Array.isArray(resp.items) ? resp.items : [];
-        setCartItems(items);
-        setServerCartTotal(typeof resp.cart_total === 'number' ? resp.cart_total : Number(resp.cart_total));
-        setServerFinalTotal(typeof resp.final_total === 'number' ? resp.final_total : Number(resp.final_total));
-        setAppliedCoupon({ code: resp.coupon_code, discount_type: resp.discount_type, value: resp.discount_value });
-        setCouponDiscount(Number(resp.discount_amount) || 0);
-        setFormData(prev => ({ ...prev, coupon_code: couponCode }));
+  // const handleCoupon = () => {
+  //   setShowCoupon(!showCoupon)
+  // }
 
-        // map coupon_code to coupon_id from loaded coupons list
-        const matched = (coupons || []).find((c) => String(c.coupon_code).toLowerCase() === String(resp.coupon_code).toLowerCase());
-        setSelectedCouponId(matched ? Number(matched.id) : null);
+  // const handleApplyCoupon = async (couponCode: string) => {
+  //   if (!token || !cartId) {
+  //     // Cannot apply coupon: missing token or cartId
+  //     return; // make sure cartId is available
+  //   }
 
-        toast({
-          title: "Success",
-          description: data.message || "Coupon applied successfully!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to apply coupon",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      // Apply coupon error - silently fail
-      toast({
-        title: "Error",
-        description: err?.response?.data?.message || err.message || "Failed to apply coupon",
-        variant: "destructive",
-      });
-    }
-  };
+  //   try {
+  //     const data = await applyCoupon(cartId, couponCode, token);
+  //     if (data.status) {
+  //       // Refresh items and totals from server response
+  //       const resp = data.data || {};
+  //       setCartId(resp.cart_id || cartId);
+  //       const items = Array.isArray(resp.items) ? resp.items : [];
+  //       setCartItems(items);
+  //       setServerCartTotal(typeof resp.cart_total === 'number' ? resp.cart_total : Number(resp.cart_total));
+  //       setServerFinalTotal(typeof resp.final_total === 'number' ? resp.final_total : Number(resp.final_total));
+  //       setAppliedCoupon({ code: resp.coupon_code, discount_type: resp.discount_type, value: resp.discount_value });
+  //       setCouponDiscount(Number(resp.discount_amount) || 0);
+  //       setFormData(prev => ({ ...prev, coupon_code: couponCode }));
+
+  //       // map coupon_code to coupon_id from loaded coupons list
+  //       const matched = (coupons || []).find((c) => String(c.coupon_code).toLowerCase() === String(resp.coupon_code).toLowerCase());
+  //       setSelectedCouponId(matched ? Number(matched.id) : null);
+
+  //       toast({
+  //         title: "Success",
+  //         description: data.message || "Coupon applied successfully!",
+  //       });
+  //     } else {
+  //       toast({
+  //         title: "Error",
+  //         description: data.message || "Failed to apply coupon",
+  //         variant: "destructive",
+  //       });
+  //     }
+  //   } catch (err: any) {
+  //     // Apply coupon error - silently fail
+  //     toast({
+  //       title: "Error",
+  //       description: err?.response?.data?.message || err.message || "Failed to apply coupon",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponDiscount(0);
-    setFormData(prev => ({ ...prev, coupon_code: "" }));
-    setServerCartTotal(null);
-    setServerFinalTotal(null);
-    setSelectedCouponId(null);
-  };
+  // const handleRemoveCoupon = () => {
+  //   setAppliedCoupon(null);
+  //   setCouponDiscount(0);
+  //   setFormData(prev => ({ ...prev, coupon_code: "" }));
+  //   setServerCartTotal(null);
+  //   setServerFinalTotal(null);
+  //   setSelectedCouponId(null);
+  // };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -240,7 +242,7 @@ const Checkout = () => {
 
   useEffect(() => {
     fetchCartItems();
-    fetchCoupons();
+    // fetchCoupons();
   }, []);
 
   const getProductImages = (product: any) => {
@@ -260,9 +262,9 @@ const Checkout = () => {
   const finalAmount = serverFinalTotal ?? (totalAmount - couponDiscount);
 
   // Check if coupon is eligible based on cart value
-  const isCouponEligible = (coupon: any) => {
-    return totalAmount >= parseFloat(coupon.min_order_amount || 0);
-  };
+  // const isCouponEligible = (coupon: any) => {
+  //   return totalAmount >= parseFloat(coupon.min_order_amount || 0);
+  // };
 
   if (loading) {
     return (
@@ -371,7 +373,7 @@ const Checkout = () => {
                       </Select>
                     </div>
 
-                    <div className="md:col-span-1 ">
+                    {/* <div className="md:col-span-1 ">
                       <Label htmlFor="coupon_code" className="text-sm font-semibold text-gray-700 flex justify-between items-center">Coupon Code  <span className="text-xs font-extralight text-rose-700 cursor-pointer" onClick={handleCoupon}>Show all coupons</span></Label>
                       <div className="relative mt-2">
                         <Gift className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -412,12 +414,12 @@ const Checkout = () => {
                           </Button>
                         </div>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
                 {/* Available Coupons */}
-                {
+                {/* {
                   showCoupon && (
                     <div className="bg-white rounded-xl shadow-md p-5 border">
                       <div className="flex items-center space-x-2 mb-4">
@@ -443,11 +445,11 @@ const Checkout = () => {
                                   : 'border-gray-200 bg-gray-50 text-gray-400'
                                   }`}
                                 onClick={(e) => {
-                                  // Prevent parent click when using button
+                                 
                                   e.preventDefault();
                                 }}
                               >
-                                {/* Top Row */}
+                             
                                 <div className="flex items-center justify-between mb-1">
                                   <h3 className={`font-semibold ${isEligible ? 'text-black' : 'text-gray-500'}`}>
                                     {coupon.coupon_code}
@@ -459,7 +461,7 @@ const Checkout = () => {
                                   )}
                                 </div>
 
-                                {/* Discount & Minimum */}
+                          
                                 <div className="flex items-center justify-between text-sm">
                                   <span className={`${isEligible ? 'text-black font-medium' : 'text-gray-500'}`}>
                                     {coupon.discount_type === 'percentage'
@@ -471,14 +473,14 @@ const Checkout = () => {
                                   </span>
                                 </div>
 
-                                {/* Eligibility Message */}
+                             
                                 {!isEligible && requiredAmount > 0 && (
                                   <div className="mt-1 text-xs text-red-600">
                                     Add products worth ₹{requiredAmount.toFixed(2)} to redeem this coupon
                                   </div>
                                 )}
 
-                                {/* Explicit Apply Button */}
+                             
                                 <div className="mt-2 flex justify-end">
                                   <button
                                     type="button"
@@ -501,7 +503,7 @@ const Checkout = () => {
                       )}
                     </div>
                   )
-                }
+                } */}
 
 
 

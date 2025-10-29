@@ -18,11 +18,6 @@ interface AddToCartData {
   size?: string | number;
 }
 
-interface UpdateQuantityData {
-  item_id: number;
-  quantity: number;
-}
-
 interface RemoveFromCartData {
   item_id: number;
 }
@@ -60,6 +55,11 @@ export const getCartItems = async (token: string) => {
   }
 };
 
+export interface UpdateQuantityData {
+  item_id: number;
+  quantity: number;
+}
+
 export const updateCartQuantity = async (data: UpdateQuantityData, token: string) => {
   try {
     const response = await axios.post(
@@ -72,10 +72,12 @@ export const updateCartQuantity = async (data: UpdateQuantityData, token: string
         },
       }
     );
-    if (response?.data) emitCartUpdated();
+    if (response?.data) emitCartUpdated(); // optional: notify global cart update
     return response.data;
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message || error.message || "Failed to update quantity";
+    throw new Error(message);
   }
 };
 
