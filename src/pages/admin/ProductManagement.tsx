@@ -82,7 +82,7 @@ const ProductManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCollection, setSelectedCollection] = useState("all");
-  
+
   // Search and filter states for categories and collections
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [collectionSearchTerm, setCollectionSearchTerm] = useState("");
@@ -203,9 +203,8 @@ const ProductManagement = () => {
         setCollections(response.data.data);
       })
 
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
-
 
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -263,7 +262,6 @@ const ProductManagement = () => {
       // Error handled by toast
     }
   };
-
 
   const openEditDialogForProduct = async (product: any) => {
     try {
@@ -485,7 +483,6 @@ const ProductManagement = () => {
     const data = (refreshed?.data?.data ?? []) as any[];
     setProducts(Array.isArray(data) ? data : []);
   };
-
   // Category handlers
   const refreshCategories = async () => {
     if (!token) return;
@@ -603,9 +600,6 @@ const ProductManagement = () => {
       });
     }
   };
-
-
-
   // Collections handlers
   const refreshCollections = async () => {
     if (!token) return;
@@ -723,9 +717,6 @@ const ProductManagement = () => {
     }
   };
 
-
-
-
   return (
     <div className="p-6 ">
 
@@ -837,7 +828,6 @@ const ProductManagement = () => {
                   </div>
 
                   {/* Right column intentionally left for other fields */}
-
                   <div className="grid gap-2">
                     <Label htmlFor="makingCharges">Making Charges (₹)</Label>
                     <Input
@@ -848,6 +838,7 @@ const ProductManagement = () => {
                       onChange={(e) => setMakingCharges(e.target.value)}
                     />
                   </div>
+
                   <div className="grid gap-2">
                     <Label htmlFor="metalType">Metal Type</Label>
                     <Select value={metalType} onValueChange={setMetalType}>
@@ -861,17 +852,18 @@ const ProductManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label>Price (₹)</Label>
                     <Input value={price} disabled placeholder="Auto-calculated" />
                   </div>
-                  <div className="grid gap-2">
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                {/* <div className="grid gap-2">
                     <Label>Stock</Label>
                     <Input value={stock} disabled placeholder="Auto-managed" />
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Sizes Manager */}
@@ -894,7 +886,7 @@ const ProductManagement = () => {
                             }}
                           />
                         </div>
-                        <div>
+                        {/* <div>
                           <Input
                             type="number"
                             placeholder="Qty"
@@ -906,7 +898,7 @@ const ProductManagement = () => {
                               setSizes(next);
                             }}
                           />
-                        </div>
+                        </div> */}
                         <div className="flex items-center">
                           <Button
                             variant="outline"
@@ -1290,17 +1282,18 @@ const ProductManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="editPrice">Price (₹)</Label>
                     <Input id="editPrice" value={editPrice} disabled placeholder="Auto-calculated" />
                   </div>
-                  <div className="grid gap-2">
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+             
+                  {/* <div className="grid gap-2">
                     <Label htmlFor="editStock">Stock</Label>
                     <Input id="editStock" value={editStock} disabled placeholder="Auto-managed" />
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Edit Sizes Manager */}
@@ -1323,7 +1316,7 @@ const ProductManagement = () => {
                             }}
                           />
                         </div>
-                        <div>
+                        {/* <div>
                           <Input
                             type="number"
                             placeholder="Qty"
@@ -1335,7 +1328,7 @@ const ProductManagement = () => {
                               setEditSizes(next);
                             }}
                           />
-                        </div>
+                        </div> */}
                         <div className="flex items-center">
                           <Button
                             variant="outline"
@@ -1836,7 +1829,7 @@ const ProductManagement = () => {
                       const img = category?.image
                         ? getImageUrl(category.image)
                         : undefined;
-                      
+
                       return (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">{category.id}</TableCell>
@@ -2149,7 +2142,7 @@ const ProductManagement = () => {
                       const img = collection?.image
                         ? getImageUrl(collection.image)
                         : undefined;
-                      
+
                       return (
                         <TableRow key={collection.id}>
                           <TableCell className="font-medium">{collection.id}</TableCell>

@@ -126,3 +126,33 @@ export const applyCoupon = async (cartId: number, couponCode: string, token: str
     throw error;
   }
 };
+
+export const removeAppliedCoupon = async (cartId: number, token: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/remove/coupon`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ cart_id: cartId }),
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      console.warn("Empty or invalid JSON response from remove coupon API");
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.message || `Error ${res.status}: ${res.statusText}`);
+    }
+
+    return data || { status: false, message: "No response data" };
+  } catch (err: any) {
+    console.error("Remove coupon error:", err);
+    throw err;
+  }
+};
+

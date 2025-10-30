@@ -316,39 +316,14 @@ const CollectionPage = () => {
 
                     {/* Stock Status */}
                     <div className="mt-auto px-2">
-                      <div className={`rounded-lg flex items-center justify-center py-2 text-base font-medium gap-2 mb-3 ${product.stock > 0
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}>
-                        <span className="inline-block">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                            stroke="currentColor"
-                            className="w-5 h-5 inline-block mr-1"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                            />
-                          </svg>
-                        </span>
-                        {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
-                      </div>
                       {/* Add to Cart Button */}
                       <button
-                        className={`w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 ${product.stock > 0
-                            ? 'bg-primary text-white hover:bg-primary/90'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
-                        onClick={() => product.stock > 0 ? handleAddToCart(product) : null}
-                        disabled={product.stock === 0}
+                        className="w-full font-semibold py-2 rounded-lg shadow transition-colors text-base mt-1 bg-primary text-white hover:bg-primary/90"
+                        onClick={() => handleAddToCart(product)}
                       >
-                        {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                        Add to Cart
                       </button>
+
                     </div>
                   </div>
                 );
@@ -375,11 +350,11 @@ const CollectionPage = () => {
         onClose={() => setQuantityDialog({ isOpen: false, product: null })}
         onConfirm={handleConfirmAddToCart}
         productName={quantityDialog.product?.name || ""}
-        maxStock={quantityDialog.product?.stock || 0}
+  
         loading={addingToCart}
         purity={quantityDialog.product?.purity}
         weight={quantityDialog.product?.weight}
-        makingCharges={quantityDialog.product?.making_charges}
+       
         sizes={(() => {
           try {
             const sizes = quantityDialog.product?.sizes;

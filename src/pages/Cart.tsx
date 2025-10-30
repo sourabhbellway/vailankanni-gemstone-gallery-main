@@ -2,10 +2,25 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getCartItems, updateCartQuantity, removeFromCart, applyCoupon, getCouponsList } from "@/lib/api/cartController";
+import {
+  getCartItems,
+  updateCartQuantity,
+  removeFromCart,
+  applyCoupon,
+  getCouponsList,
+  removeAppliedCoupon
+} from "@/lib/api/cartController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Plus, Minus, Trash2, ArrowLeft, Sparkles } from "lucide-react";
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  ArrowLeft,
+  Sparkles,
+  X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getImageUrl } from "@/config";
@@ -18,10 +33,11 @@ const Cart = () => {
   const [cartItems, setCartItems] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [updating, setUpdating] = React.useState<number | null>(null);
-  const [cartSummary, setCartSummary] = React.useState<{ total_amount: number; final_amount: number; cart_id?: number }>({
-    total_amount: 0,
-    final_amount: 0,
-  });
+  const [cartSummary, setCartSummary] = React.useState<{
+    total_amount: number;
+    final_amount: number;
+    cart_id?: number;
+  }>({ total_amount: 0, final_amount: 0 });
 
   const [formData, setFormData] = React.useState({ coupon_code: "" });
   const [appliedCoupon, setAppliedCoupon] = React.useState<any>(null);
@@ -30,28 +46,56 @@ const Cart = () => {
   const [coupons, setCoupons] = React.useState<any[]>([]);
   const [couponsLoading, setCouponsLoading] = React.useState(false);
 
-  // Fetch cart items
+  // ✅ Fetch Cart with coupon persistence
   const fetchCartItems = async () => {
     if (!token) {
       navigate("/signin");
       return;
     }
+
     setLoading(true);
     try {
       const data = await getCartItems(token);
+
       if (data.success) {
-        setCartItems(data.data.items || []);
+        const d = data.data;
+        setCartItems(d.items || []);
         setCartSummary({
-          total_amount: data.data.total_amount ?? 0,
-          final_amount: data.data.final_amount ?? 0,
-          cart_id: data.data.cart_id,
+          total_amount: d.total_amount ?? 0,
+          final_amount: d.final_amount ?? 0,
+          cart_id: d.cart_id,
         });
+
+        // ✅ Detect and store applied coupon (if present)
+        const coupon =
+          d.coupon || d.applied_coupon || (d.coupon_code && { coupon_code: d.coupon_code });
+
+        if (coupon) {
+          const discount =
+            d.discount_amount ||
+            coupon.discount_amount ||
+            (d.total_amount && d.final_amount ? d.total_amount - d.final_amount : 0);
+
+          // Save full coupon details (for card display)
+          setAppliedCoupon({
+            code: coupon.coupon_code,
+            description: coupon.description || "Discount applied successfully",
+            discount_type: coupon.discount_type || "flat",
+            value: coupon.value || 0,
+            discount_amount: discount,
+          });
+
+          setCouponDiscount(discount);
+          setFormData((prev) => ({ ...prev, coupon_code: coupon.coupon_code }));
+        } else {
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+        }
       } else {
         setCartItems([]);
         setCartSummary({ total_amount: 0, final_amount: 0 });
       }
-    } catch (err: any) {
-      console.error("Cart fetch error:", err);
+    } catch (err) {
       toast({
         title: "Error",
         description: "Failed to load cart items",
@@ -64,13 +108,13 @@ const Cart = () => {
     }
   };
 
-  // Fetch available coupons
+
   const fetchCoupons = async () => {
     setCouponsLoading(true);
     try {
       const data = await getCouponsList();
       if (data.status) setCoupons(data.data || []);
-    } catch (err: any) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to load coupons",
@@ -81,336 +125,501 @@ const Cart = () => {
     }
   };
 
-  // Quantity update
   const handleQuantityUpdate = async (cartItemId: number, newQuantity: number) => {
     if (!token) return;
     setUpdating(cartItemId);
     try {
-      const data = await updateCartQuantity({ item_id: cartItemId, quantity: newQuantity }, token);
+      const data = await updateCartQuantity(
+        { item_id: cartItemId, quantity: newQuantity },
+        token
+      );
       if (data.success) {
-        toast({ title: "Success", description: "Quantity updated successfully" });
         fetchCartItems();
+        toast({
+          title: "Updated",
+          description: "Quantity updated successfully",
+        });
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.message || "Failed to update quantity", variant: "destructive" });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
     } finally {
       setUpdating(null);
     }
   };
 
-  // Remove item from cart
   const handleRemoveFromCart = async (cartItemId: number) => {
     if (!token) return;
     try {
       const data = await removeFromCart({ item_id: cartItemId }, token);
       if (data.success) {
-        toast({ title: "Success", description: "Item removed from cart" });
         fetchCartItems();
+        toast({ title: "Removed", description: "Item removed from cart" });
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: "Failed to remove item from cart", variant: "destructive" });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
     }
   };
 
-  // Input change handler
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCouponToggle = () => {
-    setShowCoupon(prev => !prev);
-    if (!showCoupon) fetchCoupons();
-  };
-
-  // Apply coupon
   const handleApplyCoupon = async (couponCode: string) => {
     if (!token || !cartSummary.cart_id) return;
     try {
       const data = await applyCoupon(cartSummary.cart_id, couponCode, token);
       if (data.status) {
-        setAppliedCoupon({ code: couponCode, value: data.data.discount_amount ?? 0 });
+        setAppliedCoupon({
+          code: couponCode,
+          value: data.data.discount_amount ?? 0,
+        });
         setCouponDiscount(data.data.discount_amount ?? 0);
-        // Fetch updated cart totals from server
         await fetchCartItems();
-        toast({ title: "Success", description: data.message || "Coupon applied successfully!" });
+        toast({ title: "Success", description: "Coupon applied successfully!" });
       } else {
-        toast({ title: "Error", description: data.message || "Failed to apply coupon", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: data.message || "Failed to apply coupon",
+          variant: "destructive",
+        });
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.response?.data?.message || "Failed to apply coupon", variant: "destructive" });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to apply coupon",
+        variant: "destructive",
+      });
     }
   };
-  
 
-  // Remove applied coupon
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponDiscount(0);
-    setFormData(prev => ({ ...prev, coupon_code: "" }));
-    fetchCartItems();
+  const handleRemoveCoupon = async () => {
+    if (!token || !cartSummary.cart_id) return;
+    try {
+      const data = await removeAppliedCoupon(cartSummary.cart_id, token);
+      if (data.status) {
+        toast({
+          title: "Success",
+          description: data.message || "Coupon removed successfully",
+        });
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+        setFormData((prev) => ({ ...prev, coupon_code: "" }));
+        await fetchCartItems();
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to remove coupon",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to remove coupon",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInputChange = (f: string, v: string) =>
+    setFormData((p) => ({ ...p, [f]: v }));
+
+  const handleCouponToggle = () => {
+    setShowCoupon((p) => !p);
+    if (!showCoupon) fetchCoupons();
+  };
+
+  const getProductImages = (product: any) => {
+    try {
+      const img = JSON.parse(product.image || "[]");
+      if (Array.isArray(img) && img.length > 0) return getImageUrl(img[0]);
+    } catch { }
+    return "/placeholder.svg";
   };
 
   React.useEffect(() => {
     fetchCartItems();
   }, []);
 
-  const getProductImages = (product: any) => {
-    try {
-      const imageData = JSON.parse(product.image || "[]");
-      if (Array.isArray(imageData) && imageData.length > 0) return getImageUrl(imageData[0]);
-    } catch (err) {
-      console.error(err);
-    }
-    return "/placeholder.svg";
-  };
-
-  if (loading) {
+  if (loading)
     return (
       <>
         <Header />
-        <div className="min-h-screen font-serif flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
+        <div className="min-h-screen flex justify-center items-center">
+          <div className="animate-spin h-12 w-12 border-b-2 border-[#084526] rounded-full"></div>
         </div>
         <Footer />
       </>
     );
-  }
 
   return (
     <>
       <Header />
-      <div className="min-h-screen font-serif ">
-        <div className="mx-auto px-4 py-10 ">
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto px-4 py-10">
           {/* Header */}
-          <div className="mb-8">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 text-[#084526] hover:text-[#0a5a2e]">
+          <div className="mb-10">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="mb-4 text-[#084526] hover:text-[#0a5a2e] flex items-center"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#084526] rounded-full">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-[#084526] rounded-2xl shadow-md">
                 <ShoppingCart className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-[#084526]">Shopping Cart</h1>
-                <p className="text-gray-600">Your precious jewelry collection</p>
+                <h1 className="text-3xl sm:text-4xl font-bold text-[#084526] tracking-tight">
+                  Your Shopping Cart
+                </h1>
+                <p className="text-gray-600 text-sm">
+                  Your selected jewellery pieces
+                </p>
               </div>
             </div>
           </div>
 
           {cartItems.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Cart Items */}
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Left: Items + Coupons */}
               <div className="lg:col-span-2 space-y-6">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl shadow-xl p-6 border">
-                    <div className="flex items-center space-x-6">
-                      <div className="relative">
-                        <img src={getProductImages(item.product)} alt={item.product.name} className="w-32 h-32 object-cover rounded-xl shadow-lg" />
-                        <div className="absolute -top-2 -right-2 bg-[#084526] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
-                          {item.quantity}
+                  <div
+                    key={item.id}
+                    className="relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row gap-5 p-5"
+                  >
+                    {/* Remove button */}
+                    <button
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="absolute top-3 right-3 text-gray-400 hover:text-red-600 transition"
+                      title="Remove item"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+
+                    {/* Product Image */}
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0">
+                      <img
+                        src={getProductImages(item.product)}
+                        alt={item.product.name}
+                        className="w-full h-full object-cover rounded-xl border border-gray-100"
+                      />
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="flex flex-col justify-between flex-1">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {item.product.name}
+                        </h3>
+                        <div className="mt-1 text-sm text-gray-600 space-y-0.5">
+                          <p className="flex items-center gap-1 text-amber-700">
+                            <Sparkles className="w-4 h-4" /> {item.product.purity}
+                          </p>
+                          <p>Metal: {item.product.metal_type}</p>
+                          <p>Weight: {item.product.weight}g</p>
+                          <p>Size: {item.size || "—"}</p>
                         </div>
                       </div>
 
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">{item.product.name}</h3>
-                        <div className="space-y-1 mb-4 text-sm">
-                          <p className="text-amber-600 font-medium flex items-center gap-1">
-                            <Sparkles className="w-4 h-4" /> Purity: {item.product.purity}
-                          </p>
-                          <p className="text-gray-600">Metal: {item.product.metal_type}</p>
-                          <p className="text-gray-600">Weight: {item.product.weight}g</p>
-                          <p className="text-gray-600">Size: {item.size || "—"}</p>
-                          <p className="text-gray-600">Making Charges: ₹{item.product.making_charges}</p>
-                        </div>
-                        <div className="mt-2">
-                          <p className="text-2xl font-bold text-[#084526]">₹{item.unit_price}</p>
-                          <p className="text-sm text-gray-500">
-                            {item.quantity} × ₹{item.unit_price} = ₹{item.total_price}
-                          </p>
-                        </div>
-                      </div>
+                      {/* Price + Quantity */}
+                      <div className="flex items-center justify-between mt-4">
+                        <p className="text-xl font-bold text-[#084526]">
+                          ₹{item.unit_price}
+                        </p>
 
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => item.quantity > 1 && handleQuantityUpdate(item.id, item.quantity - 1)} disabled={updating === item.id || item.quantity <= 1} className="w-8 h-8 p-0">
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <Input type="number" min={1} max={item.product.stock} value={item.quantity} onChange={(e) => {
-                            const newQty = parseInt(e.target.value);
-                            if (newQty >= 1 && newQty <= item.product.stock) handleQuantityUpdate(item.id, newQty);
-                          }} disabled={updating === item.id || item.product.stock === 0} />
-                          <Button variant="outline" size="sm" onClick={() => item.quantity < item.product.stock && handleQuantityUpdate(item.id, item.quantity + 1)} disabled={updating === item.id || item.quantity >= item.product.stock} className="w-8 h-8 p-0">
-                            <Plus className="w-4 h-4" />
-                          </Button>
+                        <div className="mt-2 flex items-center bg-gray-100 border border-gray-200 rounded-full shadow-inner overflow-hidden focus-within:ring-2 focus-within:ring-[#084526]/40 transition">
+                          <button
+                            onClick={() =>
+                              handleQuantityUpdate(item.id, Math.max(1, item.quantity - 1))
+                            }
+                            disabled={updating === item.id || item.quantity <= 1}
+                            className="px-3 py-2 text-lg text-[#084526] hover:bg-[#084526]/10 transition disabled:opacity-50"
+                          >
+                            −
+                          </button>
+
+                          <input
+                            inputMode="numeric"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val) && val >= 1)
+                                handleQuantityUpdate(item.id, val);
+                            }}
+                            className="w-12 text-center bg-transparent text-sm font-medium focus:outline-none"
+                          />
+
+                          <button
+                            onClick={() =>
+                              handleQuantityUpdate(item.id, item.quantity + 1)
+                            }
+                            disabled={updating === item.id}
+                            className="px-3 py-2 text-lg text-[#084526] hover:bg-[#084526]/10 transition disabled:opacity-40"
+                          >
+                            +
+                          </button>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => handleRemoveFromCart(item.id)} className="text-red-600 hover:text-red-800 hover:bg-red-50">
-                          <Trash2 className="w-4 h-4 mr-1" /> Remove
-                        </Button>
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
 
-              {/* Coupon + Order Summary */}
-              <div className="lg:col-span-1 space-y-6">
                 {/* Coupon Section */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border sticky top-8">
-                  <div className="mb-4">
-                    <label className="text-sm font-semibold text-gray-700 flex justify-between items-center">
-                      Coupon Code
-                      <span
-                        className="text-xs font-extralight text-rose-700 cursor-pointer hover:underline"
-                        onClick={handleCouponToggle}
-                      >
-                        {showCoupon ? "Hide coupons" : "Show all coupons"}
-                      </span>
-                    </label>
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                  <h2 className="text-xl font-bold text-[#084526] mb-4 flex justify-between items-center">
+                    Apply Coupon
+                    <span
+                      onClick={handleCouponToggle}
+                      className="text-sm text-[#084526] cursor-pointer hover:underline"
+                    >
+                      {showCoupon ? "Hide" : "View All"}
+                    </span>
+                  </h2>
 
-                    <div className="relative mt-2">
+                  {appliedCoupon ? (
+                    <div className="relative mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-100 border border-green-200 rounded-2xl shadow-sm transition-all">
+                      {/* Remove Coupon Button */}
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="absolute -top-2 -right-2 text-red-100 hover:text-red-200 transition bg-red-500 rounded-full p-1"
+                        title="Remove Coupon"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+
+                      {/* Coupon Info */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold text-[#084526]">
+                            {appliedCoupon?.code}
+                          </h4>
+
+                          {/* Description & Type */}
+                          <p className="text-xs text-gray-600 italic mt-0.5">
+                            {appliedCoupon?.description || "Special discount applied on your order."}
+                          </p>
+                          {/* {appliedCoupon?.discount_type && (
+                            <p className="text-xs text-gray-500 capitalize">
+                              Type:{" "}
+                              {appliedCoupon.discount_type === "percentage"
+                                ? "Percentage Discount"
+                                : appliedCoupon.discount_type === "flat"
+                                  ? "Flat Discount"
+                                  : appliedCoupon.discount_type}
+                            </p>
+                          )} */}
+
+                          <p className="text-sm text-gray-700 mt-1">
+                            Coupon Applied Successfully!
+                          </p>
+                        </div>
+
+                        {/* Discount Amount */}
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#084526]">−₹{couponDiscount}</p>
+                          <p className="text-sm text-green-700 font-medium">
+                            You saved ₹{couponDiscount}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                  ) : (
+                    <div className="relative mb-4">
                       <Input
                         type="text"
                         value={formData.coupon_code}
-                        onChange={(e) => handleInputChange("coupon_code", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("coupon_code", e.target.value)
+                        }
                         placeholder="Enter coupon code"
-                        className="pl-3 focus:border-[#084526] focus:ring-[#084526]"
+                        className="pl-3 pr-24 rounded-full focus:border-[#084526] focus:ring-[#084526]/30"
                       />
-                      {formData.coupon_code && (
-                        <button
-                          type="button"
-                          onClick={() => handleApplyCoupon(formData.coupon_code)}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#084526] hover:bg-[#0a5a2e] rounded text-white px-3 py-1 text-sm"
-                        >
-                          Apply
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCoupon(formData.coupon_code)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#084526] hover:bg-[#0a5a2e] text-white px-4 py-1 rounded-full text-sm font-medium"
+                      >
+                        Apply
+                      </button>
                     </div>
+                  )}
 
-                    {appliedCoupon && (
-                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-green-800 font-medium">{appliedCoupon.code} applied</span>
-                          <span className="text-green-600">-₹{couponDiscount}</span>
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleRemoveCoupon}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Available Coupons */}
                   {showCoupon && (
-                    <div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 mt-4 p-3">
                       {couponsLoading ? (
                         <div className="flex justify-center py-6">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#084526]"></div>
+                          <div className="animate-spin h-6 w-6 border-b-2 border-[#084526] rounded-full"></div>
                         </div>
                       ) : coupons.length > 0 ? (
-                        coupons.map((coupon) => {
-                          const isEligible = (cartSummary.total_amount ?? 0) >= parseFloat(coupon.min_order_amount);
-                          return (
-                            <div
-                              key={coupon.id}
-                              className={`p-3 mb-2 rounded-lg border ${isEligible
-                                  ? "border-green-600 bg-white text-black"
-                                  : "border-gray-200 bg-gray-50 text-gray-600"
-                                }`}
-                            >
-                              <div className="flex justify-between font-medium mb-1">
-                                <span>{coupon.coupon_code}</span>
-                                <span className="text-sm">{isEligible ? "Eligible" : "Not Eligible"}</span>
-                              </div>
-                              <div className="flex justify-between text-sm mb-2">
-                                <span>
-                                  {coupon.discount_type === "percentage"
-                                    ? `${coupon.value}% OFF`
-                                    : `₹${coupon.value} OFF`}
-                                </span>
-                                <span className="text-xs">Min. Order: ₹{coupon.min_order_amount}</span>
-                              </div>
-                              {!isEligible && (
-                                <div className="text-xs text-red-600 mb-2">
-                                  Add ₹{(parseFloat(coupon.min_order_amount) - (cartSummary.total_amount ?? 0)).toFixed(2)} more to use
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                disabled={!isEligible}
-                                onClick={() => isEligible && handleApplyCoupon(coupon.coupon_code)}
-                                className={`w-full py-1 rounded text-sm font-medium ${isEligible
-                                    ? "bg-[#084526] text-white hover:bg-[#0a5a2e]"
-                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {coupons.map((coupon) => {
+                            const eligible =
+                              (cartSummary.total_amount ?? 0) >=
+                              parseFloat(coupon.min_order_amount);
+                            return (
+                              <div
+                                key={coupon.id}
+                                className={`p-3 rounded-lg border shadow-sm flex flex-col justify-between transition ${eligible
+                                  ? "border-green-500 bg-white hover:shadow-md"
+                                  : "border-gray-200 bg-gray-100 text-gray-500"
                                   }`}
                               >
-                                Apply
-                              </button>
-                            </div>
-                          );
-                        })
+                                <div>
+                                  <div className="flex justify-between text-sm font-medium">
+                                    <span className="text-[#084526] font-semibold">
+                                      {coupon.coupon_code}
+                                    </span>
+                                    <span
+                                      className={`text-xs ${eligible
+                                        ? "text-green-600"
+                                        : "text-gray-400"
+                                        }`}
+                                    >
+                                      {eligible ? "Eligible" : "Not Eligible"}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex justify-between text-xs mt-1 text-gray-600">
+                                    <span>
+                                      {coupon.discount_type === "percentage"
+                                        ? `${coupon.value}% OFF`
+                                        : `₹${coupon.value} OFF`}
+                                    </span>
+                                    <span>Min. ₹{coupon.min_order_amount}</span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    eligible &&
+                                    handleApplyCoupon(coupon.coupon_code)
+                                  }
+                                  disabled={!eligible}
+                                  className={`mt-3 py-1.5 text-sm font-medium rounded-full transition ${eligible
+                                    ? "bg-[#084526] text-white hover:bg-[#0a5a2e]"
+                                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                    }`}
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       ) : (
-                        <p className="text-center text-gray-500 py-6">No coupons available</p>
+                        <p className="text-center text-gray-500 text-sm py-4">
+                          No coupons available
+                        </p>
                       )}
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Order Summary */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border sticky top-8">
-                  <h3 className="text-2xl font-bold text-[#084526] mb-6">Order Summary</h3>
-                  <div className="space-y-4 mb-6">
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Subtotal</span>
+              {/* Right: Detailed Order Summary */}
+              <div className="lg:sticky lg:top-24 h-fit">
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                  <h3 className="text-xl font-bold text-[#084526] mb-6">
+                    Order Summary
+                  </h3>
+
+                  {/* Product Details */}
+                  <div className="space-y-3 mb-5">
+                    {cartItems.map((item) => (
+                      <div
+                        key={`${item.id}-${item.size ?? ""}-${item.color ?? ""}`}
+                        className="flex justify-between text-sm text-gray-700 border-b pb-2"
+                      >
+                        <div className="flex-1 pr-3">
+                          <p className="font-medium text-gray-800">
+                            {item.product?.name}
+                          </p>
+
+                          {/* Show variant details if available */}
+                          {(item.size || item.color) && (
+                            <p className="text-xs text-gray-500">
+                              {item.size && <>Size: {item.size}</>}
+                              {item.size && item.color && " • "}
+                              {item.color && <>Color: {item.color}</>}
+                            </p>
+                          )}
+
+                          {/* Price × Qty */}
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            ₹{Number(item.unit_price).toFixed(2)} × {item.quantity}
+                          </p>
+                        </div>
+
+                        <div className="text-right font-semibold text-[#084526]">
+                          ₹{(Number(item.unit_price) * item.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Totals Section */}
+                  <div className="space-y-3 mb-6 text-gray-700 text-sm">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
                       <span className="font-semibold">
-                        ₹{cartSummary.total_amount !== undefined ? cartSummary.total_amount.toFixed(2) : "0.00"}
+                        ₹{cartSummary.total_amount ?? "0.00"}
                       </span>
                     </div>
-                    {cartSummary.total_amount !== undefined &&
-                      cartSummary.final_amount !== undefined &&
-                      cartSummary.total_amount !== cartSummary.final_amount && (
-                        <div className="flex justify-between text-lg text-green-600">
-                          <span>Discount</span>
-                          <span>- ₹{(cartSummary.total_amount - cartSummary.final_amount).toFixed(2)}</span>
-                        </div>
-                      )}
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="font-semibold text-green-600">FREE</span>
-                    </div>
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between text-2xl font-bold text-[#084526]">
-                        <span>Total</span>
-                        <span>
-                          ₹{cartSummary.final_amount !== undefined ? cartSummary.final_amount.toFixed(2) : "0.00"}
-                        </span>
+
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-green-600 font-medium">
+                        <span>Coupon ({appliedCoupon.code})</span>
+                        <span>-₹{couponDiscount ?? "0.00"}</span>
                       </div>
+                    )}
+
+                    <div className="border-t pt-3 flex justify-between text-base font-bold text-[#084526]">
+                      <span>Total Payable</span>
+                      <span>₹{cartSummary.final_amount ?? "0.00"}</span>
                     </div>
                   </div>
+
+                  {/* Action Buttons */}
                   <Button
                     onClick={() => navigate("/checkout")}
-                    className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white py-3 text-lg font-semibold rounded-xl shadow-lg"
+                    className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white py-3 text-lg font-semibold rounded-xl shadow-md"
                   >
                     Proceed to Checkout
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => navigate("/")}
-                    className="w-full mt-3 text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white"
+                    className="w-full mt-3 border-[#084526] text-[#084526] hover:bg-[#084526] hover:text-white"
                   >
                     Continue Shopping
                   </Button>
                 </div>
               </div>
 
+
+
             </div>
           ) : (
-            <p className="text-center text-gray-500">Your cart is empty.</p>
+            <div className="text-center py-20">
+              <ShoppingCart className="mx-auto w-16 h-16 text-gray-300 mb-4" />
+              <p className="text-gray-600 mb-4">Your cart is empty.</p>
+              <Button
+                onClick={() => navigate("/products")}
+                className="bg-[#084526] hover:bg-[#0a5a2e] text-white rounded-full px-6 py-3 font-semibold"
+              >
+                Continue Shopping
+              </Button>
+            </div>
           )}
         </div>
       </div>
