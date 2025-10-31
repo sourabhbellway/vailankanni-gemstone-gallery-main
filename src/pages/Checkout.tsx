@@ -2,40 +2,50 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getCartItems, } from "@/lib/api/cartController";
+import { getCartItems } from "@/lib/api/cartController";
 import { createOrder } from "@/lib/api/orderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CreditCard, MapPin, Calendar, Gift, MessageSquare, Sparkles, Tag, CheckCircle, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  CreditCard,
+  MapPin,
+  Calendar,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getImageUrl } from "@/config";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { token } = useUserAuth();
   const { toast } = useToast();
+
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartId, setCartId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [cartId, setCartId] = useState(0)
-  // const [coupons, setCoupons] = useState<any[]>([]);
-  // const [couponsLoading, setCouponsLoading] = useState(false);
+
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
-  // const [showCoupon, setShowCoupon] = useState(false)
   const [serverCartTotal, setServerCartTotal] = useState<number | null>(null);
   const [serverFinalTotal, setServerFinalTotal] = useState<number | null>(null);
-  const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
+
   const [formData, setFormData] = useState({
     order_date: "",
     payment: "COD",
-    coupon_code: "",
     notes: "",
-    // Address fields
     h_no: "",
     street: "",
     landmark: "",
@@ -44,6 +54,7 @@ const Checkout = () => {
     pincode: "",
   });
 
+  // 🔹 Fetch cart data (with coupon)
   const fetchCartItems = async () => {
     if (!token) {
       navigate("/signin");
@@ -52,25 +63,32 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      const data = await getCartItems(token);
-      if (data.success) {
-        // Extract cart id from response: backend returns cart_id at root of data
-        const payload = data.data || {};
-        const items = Array.isArray(payload.items) ? payload.items : [];
-        const possibleCartId = payload.cart_id || items?.[0]?.cart_id || null;
+      const response = await getCartItems(token);
+      if (response.success && response.data) {
+        const data = response.data;
+        setCartId(data.cart_id);
+        setCartItems(data.items || []);
+        setServerCartTotal(Number(data.total_amount || 0));
+        setServerFinalTotal(Number(data.final_amount || 0));
 
-        if (possibleCartId) {
-          setCartId(possibleCartId);
+        if (data.coupon) {
+          setAppliedCoupon({
+            code: data.coupon.coupon_code,
+            description: data.coupon.description,
+            discountType: data.coupon.discount_type,
+            value: Number(data.coupon.value),
+          });
+          setCouponDiscount(Number(data.total_amount) - Number(data.final_amount));
         } else {
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
         }
-        setCartItems(items || []);
-
       }
-    } catch (err: any) {
-      // Cart fetch error - silently fail
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
       toast({
         title: "Error",
-        description: "Failed to load cart items",
+        description: "Failed to load cart details.",
         variant: "destructive",
       });
     } finally {
@@ -78,83 +96,63 @@ const Checkout = () => {
     }
   };
 
- 
-
+  // 🔹 Form handlers
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate required fields
-    if (!formData.order_date || !formData.h_no || !formData.street || !formData.city || !formData.state || !formData.pincode) {
+    if (
+      !formData.order_date ||
+      !formData.h_no ||
+      !formData.street ||
+      !formData.city ||
+      !formData.state ||
+      !formData.pincode
+    ) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill all required fields.",
         variant: "destructive",
       });
       return;
     }
 
-    // Combine address fields
     const delivery_address = `${formData.h_no}, ${formData.street}, ${formData.landmark}, ${formData.city}, ${formData.state}, ${formData.pincode}`;
-
-    // Calculate expected delivery (3 days from order date)
     const orderDate = new Date(formData.order_date);
     const expectedDelivery = new Date(orderDate);
-    expectedDelivery.setDate(expectedDelivery.getDate() + 3);
+    expectedDelivery.setDate(expectedDelivery.getDate() + 7);
 
     const orderData = {
       cart_id: cartId,
       delivery_address,
       order_date: formData.order_date,
-      expected_delivery: expectedDelivery.toISOString().split('T')[0],
+      expected_delivery: expectedDelivery.toISOString().split("T")[0],
       payment: formData.payment,
-      coupon_id: selectedCouponId ?? undefined,
       notes: formData.notes,
     };
 
     setSubmitting(true);
     try {
       const response = await createOrder(orderData, token!);
-
-      // Check if order was created successfully
       if (response.success) {
         toast({
           title: "Success",
           description: response.message || "Order placed successfully!",
         });
-        // Reset form
-        setFormData({
-          order_date: "",
-          payment: "COD",
-          coupon_code: "",
-          notes: "",
-          h_no: "",
-          street: "",
-          landmark: "",
-          city: "",
-          state: "",
-          pincode: "",
-        });
-        // Navigate to orders page
         navigate("/orders");
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to place order",
+          description: response.message || "Failed to place order.",
           variant: "destructive",
         });
       }
     } catch (error: any) {
-      // Order creation error - silently fail
       toast({
         title: "Error",
-        description: error?.response?.data?.message || error.message || "Failed to place order",
+        description: error?.message || "Failed to place order.",
         variant: "destructive",
       });
     } finally {
@@ -164,75 +162,65 @@ const Checkout = () => {
 
   useEffect(() => {
     fetchCartItems();
-   
   }, []);
 
   const getProductImages = (product: any) => {
     try {
-      const imageData = JSON.parse(product.image || "[]");
-      if (Array.isArray(imageData) && imageData.length > 0) {
-        return getImageUrl(imageData[0]);
-      }
-    } catch (error) {
-      // Error parsing product images - silently fail
+      const imgs = JSON.parse(product.image || "[]");
+      if (Array.isArray(imgs) && imgs.length > 0) return getImageUrl(imgs[0]);
+    } catch {
+      return "/placeholder.svg";
     }
     return "/placeholder.svg";
   };
 
-  const uiSubtotal = cartItems.reduce((sum, item) => sum + parseFloat(item.total_price), 0);
+  const uiSubtotal = cartItems.reduce(
+    (sum, item) => sum + parseFloat(item.total_price),
+    0
+  );
   const totalAmount = serverCartTotal ?? uiSubtotal;
-  const finalAmount = serverFinalTotal ?? (totalAmount - couponDiscount);
+  const finalAmount = serverFinalTotal ?? totalAmount - couponDiscount;
 
-
-
-  if (loading) {
+  if (loading)
     return (
       <>
         <Header />
-        <div className="min-h-screen font-serif ">
-          <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
+        <div className="min-h-screen flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
+        </div>
+        <Footer />
+      </>
+    );
+
+  if (cartItems.length === 0)
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex flex-col items-center justify-center">
+          <div className="text-center">
+            <CreditCard className="w-16 h-16 text-amber-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">No items to checkout</h2>
+            <p className="text-gray-600 mb-6">
+              Add some beautiful jewelry to your cart first.
+            </p>
+            <Button
+              onClick={() => navigate("/cart")}
+              className="bg-[#084526] hover:bg-[#0a5a2e]"
+            >
+              View Cart
+            </Button>
           </div>
         </div>
         <Footer />
       </>
     );
-  }
-
-  if (cartItems.length === 0) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen font-serif ">
-          <div className="mx-auto px-4 py-10 ">
-            <div className="text-center py-20">
-              <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
-                <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CreditCard className="w-12 h-12 text-amber-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">No items to checkout</h3>
-                <p className="text-gray-600 mb-8">Add some beautiful jewelry to your cart first</p>
-                <Button
-                  onClick={() => navigate("/cart")}
-                  className="bg-[#084526] hover:bg-[#0a5a2e] text-white px-8 py-3 text-lg font-semibold rounded-xl"
-                >
-                  View Cart
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
       <Header />
-      <div className="min-h-screen font-serif ">
-        <div className="mx-auto px-4 py-10 ">
-          {/* Header Section */}
+      <div className="min-h-screen font-serif">
+        <div className="mx-auto px-4 py-10">
+          {/* Header */}
           <div className="mb-8">
             <Button
               variant="ghost"
@@ -254,219 +242,190 @@ const Checkout = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Checkout Form */}
+            {/* Left: Form */}
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Order Details */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border ">
+                <div className="bg-white rounded-2xl shadow-xl p-6 border">
                   <div className="flex items-center space-x-2 mb-6">
                     <Calendar className="w-6 h-6 text-[#084526]" />
-                    <h2 className="text-2xl font-bold text-[#084526]">Order Details</h2>
+                    <h2 className="text-2xl font-bold text-[#084526]">
+                      Order Details
+                    </h2>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="order_date" className="text-sm font-semibold text-gray-700">Order Date *</Label>
+                      <Label>Order Date *</Label>
                       <Input
-                        id="order_date"
                         type="date"
                         value={formData.order_date}
-                        onChange={(e) => handleInputChange("order_date", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("order_date", e.target.value)
+                        }
                         required
-                        min={new Date().toISOString().split('T')[0]}
-                        className="mt-2 b focus:border-[#084526] focus:ring-[#084526]"
+                        min={new Date().toISOString().split("T")[0]}
+                        className="mt-2 focus:border-[#084526] focus:ring-[#084526]"
                       />
                     </div>
-
                     <div>
-                      <Label htmlFor="payment" className="text-sm font-semibold text-gray-700">Payment Mode *</Label>
-                      <Select value={formData.payment} onValueChange={(value) => handleInputChange("payment", value)}>
-                        <SelectTrigger className="mt-2  focus:border-[#084526] focus:ring-[#084526]">
+                      <Label>Payment Mode *</Label>
+                      <Select
+                        value={formData.payment}
+                        onValueChange={(v) => handleInputChange("payment", v)}
+                      >
+                        <SelectTrigger className="mt-2">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
+                          <SelectItem value="COD">
+                            Cash on Delivery (COD)
+                          </SelectItem>
                           <SelectItem value="upi">UPI</SelectItem>
                           <SelectItem value="card">Card Payment</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-
-                   
                   </div>
                 </div>
 
-             
-
-
-
-                {/* Address Details */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border ">
+                {/* Address */}
+                <div className="bg-white rounded-2xl shadow-xl p-6 border">
                   <div className="flex items-center space-x-2 mb-6">
                     <MapPin className="w-6 h-6 text-[#084526]" />
-                    <h2 className="text-2xl font-bold text-[#084526]">Delivery Address</h2>
+                    <h2 className="text-2xl font-bold text-[#084526]">
+                      Delivery Address
+                    </h2>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="h_no" className="text-sm font-semibold text-gray-700">House/Flat No. *</Label>
-                      <Input
-                        id="h_no"
-                        type="text"
-                        value={formData.h_no}
-                        onChange={(e) => handleInputChange("h_no", e.target.value)}
-                        required
-                        placeholder="e.g., 123"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="street" className="text-sm font-semibold text-gray-700">Street/Area *</Label>
-                      <Input
-                        id="street"
-                        type="text"
-                        value={formData.street}
-                        onChange={(e) => handleInputChange("street", e.target.value)}
-                        required
-                        placeholder="e.g., Main Street"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="landmark" className="text-sm font-semibold text-gray-700">Landmark</Label>
-                      <Input
-                        id="landmark"
-                        type="text"
-                        value={formData.landmark}
-                        onChange={(e) => handleInputChange("landmark", e.target.value)}
-                        placeholder="e.g., Near City Mall"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="city" className="text-sm font-semibold text-gray-700">City *</Label>
-                      <Input
-                        id="city"
-                        type="text"
-                        value={formData.city}
-                        onChange={(e) => handleInputChange("city", e.target.value)}
-                        required
-                        placeholder="e.g., Mumbai"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="state" className="text-sm font-semibold text-gray-700">State *</Label>
-                      <Input
-                        id="state"
-                        type="text"
-                        value={formData.state}
-                        onChange={(e) => handleInputChange("state", e.target.value)}
-                        required
-                        placeholder="e.g., Maharashtra"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="pincode" className="text-sm font-semibold text-gray-700">Pincode *</Label>
-                      <Input
-                        id="pincode"
-                        type="text"
-                        value={formData.pincode}
-                        onChange={(e) => handleInputChange("pincode", e.target.value)}
-                        required
-                        placeholder="e.g., 400001"
-                        pattern="[0-9]{6}"
-                        className="mt-2  focus:border-[#084526] focus:ring-[#084526]"
-                      />
-                    </div>
+                    {[
+                      ["h_no", "House/Flat No. *", "e.g., 123"],
+                      ["street", "Street/Area *", "e.g., Main Street"],
+                      ["landmark", "Landmark", "e.g., Near City Mall"],
+                      ["city", "City *", "e.g., Mumbai"],
+                      ["state", "State *", "e.g., Maharashtra"],
+                      ["pincode", "Pincode *", "e.g., 400001"],
+                    ].map(([key, label, placeholder]) => (
+                      <div key={key}>
+                        <Label>{label}</Label>
+                        <Input
+                          type="text"
+                          value={(formData as any)[key]}
+                          onChange={(e) =>
+                            handleInputChange(key, e.target.value)
+                          }
+                          required={label.includes("*")}
+                          placeholder={placeholder}
+                          className="mt-2 focus:border-[#084526] focus:ring-[#084526]"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Special Instructions */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 border ">
+                {/* Special Notes */}
+                <div className="bg-white rounded-2xl shadow-xl p-6 border">
                   <div className="flex items-center space-x-2 mb-6">
                     <MessageSquare className="w-6 h-6 text-[#084526]" />
-                    <h2 className="text-2xl font-bold text-[#084526]">Special Instructions</h2>
+                    <h2 className="text-2xl font-bold text-[#084526]">
+                      Special Instructions
+                    </h2>
                   </div>
-
                   <Textarea
-                    id="notes"
                     value={formData.notes}
-                    onChange={(e) => handleInputChange("notes", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("notes", e.target.value)
+                    }
                     placeholder="Any special delivery instructions..."
                     rows={4}
-                    className=" focus:border-[#084526] focus:ring-[#084526]"
+                    className="focus:border-[#084526] focus:ring-[#084526]"
                   />
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-[#084526] hover:bg-[#0a5a2e] text-white px-12 py-4 text-lg font-semibold rounded-xl shadow-lg"
-                  >
-                    {submitting ? "Placing Order..." : "Place Order"}
-                  </Button>
                 </div>
               </form>
             </div>
 
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-xl p-6 border  sticky top-8">
-                <h3 className="text-2xl font-bold text-[#084526] mb-6">Order Summary</h3>
+            {/* Right: Order Summary */}
+            <div className="lg:sticky lg:top-24 h-fit">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-xl font-bold text-[#084526] mb-6">
+                  Order Summary
+                </h3>
 
-                <div className="space-y-4 mb-6">
+                {/* Product Details */}
+                <div className="space-y-3 mb-5">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg">
-                      <img
-                        src={getProductImages(item.product)}
-                        alt={item.product.name}
-                        className="w-12 h-12 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">{item.product.name}</p>
-                        <p className="text-xs text-amber-600">Qty: {item.quantity}</p>
+                    <div
+                      key={`${item.id}-${item.size ?? ""}`}
+                      className="flex justify-between text-sm text-gray-700 border-b pb-2"
+                    >
+                      <div className="flex-1 pr-3">
+                        <p className="font-medium text-gray-800">
+                          {item.product?.name}
+                        </p>
+                        {item.size && (
+                          <p className="text-xs text-gray-500">
+                            Size: {item.size}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          ₹{Number(item.unit_price).toFixed(2)} ×{" "}
+                          {item.quantity}
+                        </p>
                       </div>
-                      <p className="text-sm font-bold text-[#084526]">₹{item.total_price}</p>
+                      <div className="text-right font-semibold text-[#084526]">
+                        ₹
+                        {(Number(item.unit_price) * item.quantity).toFixed(2)}
+                      </div>
                     </div>
                   ))}
+                </div>
 
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
+                {/* Totals */}
+                <div className="space-y-3 mb-6 text-gray-700 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span className="font-semibold">
+                      ₹{totalAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>
+                        Coupon ({appliedCoupon.code}){" "}
+                        <span className="text-gray-500 text-xs ml-1">
+                          {appliedCoupon.description}
+                        </span>
+                      </span>
+                      <span>-₹{couponDiscount.toFixed(2)}</span>
                     </div>
-                    {appliedCoupon && (
-                      <div className="flex justify-between text-lg">
-                        <span className="text-gray-600">Coupon Discount</span>
-                        <span className="font-semibold text-green-600">-₹{couponDiscount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="font-semibold text-green-600">FREE</span>
-                    </div>
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between text-2xl font-bold text-[#084526]">
-                        <span>Total</span>
-                        <span>₹{finalAmount.toFixed(2)}</span>
-                      </div>
-                    </div>
+                  )}
+
+                  <div className="flex justify-between">
+                    <span>Shipping</span>
+                    <span className="font-semibold text-green-600">FREE</span>
+                  </div>
+
+                  <div className="border-t pt-3 flex justify-between text-base font-bold text-[#084526]">
+                    <span>Total Payable</span>
+                    <span>₹{finalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                {/* Free Shipping Note */}
+                <div className="flex items-center space-x-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg mb-4">
                   <Sparkles className="w-4 h-4" />
                   <span>Free shipping on all orders</span>
                 </div>
+
+                {/* ✅ Place Order Button below summary */}
+                <Button
+                  type="submit"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white py-3 text-lg font-semibold rounded-xl shadow-md"
+                >
+                  {submitting ? "Placing Order..." : "Place Order"}
+                </Button>
               </div>
             </div>
           </div>

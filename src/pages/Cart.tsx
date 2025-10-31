@@ -259,7 +259,7 @@ const Cart = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen font-serif  ">
         <div className="mx-auto px-4 py-10">
           {/* Header */}
           <div className="mb-10">
@@ -578,8 +578,13 @@ const Cart = () => {
 
                     {appliedCoupon && (
                       <div className="flex justify-between text-green-600 font-medium">
-                        <span>Coupon ({appliedCoupon.code})</span>
-                        <span>-₹{couponDiscount ?? "0.00"}</span>
+                        <span>
+                          Coupon ({appliedCoupon.code}){" "}
+                          <span className="text-gray-500 text-xs ml-1">
+                            {appliedCoupon.description}
+                          </span>
+                        </span>
+                        <span>-₹{couponDiscount.toFixed(2)}</span>
                       </div>
                     )}
 
@@ -589,6 +594,11 @@ const Cart = () => {
                     </div>
                   </div>
 
+                  {/* Free Shipping Note */}
+                  <div className="flex items-center space-x-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg mb-4">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Free shipping on all orders</span>
+                  </div>
                   {/* Action Buttons */}
                   <Button
                     onClick={() => navigate("/checkout")}
