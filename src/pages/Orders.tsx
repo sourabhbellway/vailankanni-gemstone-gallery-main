@@ -88,9 +88,9 @@ const Orders = () => {
     return (
       <>
         <Header />
-        <div className="min-h-screen font-serif bg-gradient-to-br from-amber-50 to-orange-50">
+        <div className="min-h-screen font-serif">
           <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
+            <div className="animate-spin h-12 w-12 border-b-2 border-[#084526] rounded-full"></div>
           </div>
         </div>
         <Footer />
@@ -101,8 +101,8 @@ const Orders = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen font-serif ">
-        <div className="mx-auto px-4 py-10 ">
+      <div className="min-h-screen font-serif">
+        <div className="mx-auto px-4 py-10">
           {/* Header Section */}
           <div className="mb-8">
             <Button
@@ -114,12 +114,12 @@ const Orders = () => {
               Back
             </Button>
             <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#084526] rounded-full">
+              <div className="p-3 bg-[#084526] rounded-2xl shadow-md">
                 <Package className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-[#084526]">My Orders</h1>
-                <p className="text-gray-600">Track your precious jewelry orders</p>
+                <h1 className="text-3xl sm:text-4xl font-bold text-[#084526] tracking-tight">My Orders</h1>
+                <p className="text-gray-600 text-sm">Track your precious jewelry orders</p>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ const Orders = () => {
           {orders.length > 0 ? (
             <div className="space-y-6">
               {orders.map((order) => (
-                <div key={order.id} className="bg-white rounded-2xl border p-6 ">
+                <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all p-6">
                   {/* Order Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center space-x-4">

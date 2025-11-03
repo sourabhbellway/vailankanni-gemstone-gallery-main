@@ -148,8 +148,8 @@ const OrderDetails = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen font-serif ">
-        <div className="mx-auto px-4 py-10 ">
+      <div className="min-h-screen font-serif">
+        <div className="mx-auto px-4 py-10">
           {/* Header Section */}
           <div className="mb-8">
             <Button
@@ -161,25 +161,76 @@ const OrderDetails = () => {
               Back to Orders
             </Button>
             <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#084526] rounded-full">
+              <div className="p-3 bg-[#084526] rounded-2xl shadow-md">
                 <Package className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-[#084526]">Order Details</h1>
-                <p className="text-gray-600">Order #{order.order_code}</p>
+                <h1 className="text-3xl sm:text-4xl font-bold text-[#084526] tracking-tight">Order Details</h1>
+                <p className="text-gray-600 text-sm">Order #{order.order_code}</p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Order Details */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Order Status Card */}
-              <div className="bg-white rounded-2xl shadow p-6 border ">
+              {/* Order Items */}
+              {order.items && order.items.length > 0 && (
+                <div>
+                  {order.items.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row gap-5 p-5 mb-6"
+                    >
+                      {/* Product Image */}
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0">
+                        <img
+                          src={getProductImages(item.product)}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover rounded-xl border border-gray-100"
+                        />
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="flex flex-col justify-between flex-1">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {item.product.name}
+                          </h3>
+                          <div className="mt-1 text-sm text-gray-600 space-y-0.5">
+                            <p className="flex items-center gap-1 text-amber-700">
+                              <Sparkles className="w-4 h-4" /> {item.product.purity}
+                            </p>
+                            <p>Metal: {item.product.metal_type}</p>
+                            <p>Weight: {item.product.weight}g</p>
+                            {item.product.making_charges && (
+                              <p>Making Charges: ₹{item.product.making_charges}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Price + Quantity */}
+                        <div className="flex items-center justify-between mt-4">
+                          <p className="text-xl font-bold text-[#084526]">
+                            ₹{item.unit_price}
+                          </p>
+
+                          <div className="mt-2 flex items-center bg-gray-100 border border-gray-200 rounded-full shadow-inner px-4 py-2">
+                            <span className="text-sm font-medium text-gray-700">Qty: {item.quantity}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Order Status & Timeline */}
+              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Order #{order.order_code}</h2>
-                    <p className="text-gray-600 flex items-center">
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Order Status</h2>
+                    <p className="text-gray-600 flex items-center text-sm">
                       <Calendar className="w-4 h-4 mr-2" />
                       Placed on {new Date(order.order_date).toLocaleDateString('en-US', {
                         year: 'numeric',
@@ -189,30 +240,29 @@ const OrderDetails = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold text-[#084526] mb-2">₹{order.final_amount}</p>
-                    <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(order.status)}`}>
-                      <span className="mr-2">{getStatusIcon(order.status)}</span>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                      <span className="mr-1">{getStatusIcon(order.status)}</span>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
                   </div>
                 </div>
 
                 {/* Order Timeline */}
-                <div className="border-t pt-6">
+                <div className="border-t pt-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Timeline</h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <div className="w-3 h-3 bg-[#084526] rounded-full"></div>
                       <div>
-                        <p className="font-medium text-gray-800">Order Placed</p>
-                        <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleString()}</p>
+                        <p className="font-medium text-gray-800 text-sm">Order Placed</p>
+                        <p className="text-xs text-gray-600">{new Date(order.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${order.status === 'processing' || order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                       <div>
-                        <p className="font-medium text-gray-800">Order Processing</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-800 text-sm">Order Processing</p>
+                        <p className="text-xs text-gray-600">
                           {order.status === 'processing' || order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered' 
                             ? 'Order is being processed' 
                             : 'Pending processing'
@@ -223,8 +273,8 @@ const OrderDetails = () => {
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                       <div>
-                        <p className="font-medium text-gray-800">Order Confirmed</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-800 text-sm">Order Confirmed</p>
+                        <p className="text-xs text-gray-600">
                           {order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered' 
                             ? 'Confirmed by merchant' 
                             : 'Pending confirmation'
@@ -235,8 +285,8 @@ const OrderDetails = () => {
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${order.status === 'shipped' || order.status === 'delivered' ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
                       <div>
-                        <p className="font-medium text-gray-800">Shipped</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-800 text-sm">Shipped</p>
+                        <p className="text-xs text-gray-600">
                           {order.status === 'shipped' || order.status === 'delivered' 
                             ? 'Order has been shipped' 
                             : 'Not yet shipped'
@@ -247,8 +297,8 @@ const OrderDetails = () => {
                     <div className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${order.status === 'delivered' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                       <div>
-                        <p className="font-medium text-gray-800">Delivered</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-800 text-sm">Delivered</p>
+                        <p className="text-xs text-gray-600">
                           {order.status === 'delivered' 
                             ? 'Order has been delivered' 
                             : 'Expected delivery: ' + new Date(order.expected_delivery).toLocaleDateString()
@@ -261,31 +311,31 @@ const OrderDetails = () => {
               </div>
 
               {/* Delivery Information */}
-              <div className="bg-white rounded-2xl shadow-xl p-6 border ">
-                <div className="flex items-center space-x-2 mb-6">
-                  <MapPin className="w-6 h-6 text-[#084526]" />
-                  <h2 className="text-2xl font-bold text-[#084526]">Delivery Information</h2>
+              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <MapPin className="w-5 h-5 text-[#084526]" />
+                  <h2 className="text-xl font-bold text-[#084526]">Delivery Information</h2>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Delivery Address</label>
-                    <p className="text-gray-800 mt-1">{order.delivery_address}</p>
+                    <label className="text-xs font-medium text-gray-500">Delivery Address</label>
+                    <p className="text-sm text-gray-800 mt-1">{order.delivery_address}</p>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Payment Method</label>
-                      <p className="text-gray-800 mt-1 flex items-center">
-                        <CreditCard className="w-4 h-4 mr-2" />
+                      <label className="text-xs font-medium text-gray-500">Payment Method</label>
+                      <p className="text-sm text-gray-800 mt-1 flex items-center">
+                        <CreditCard className="w-4 h-4 mr-1" />
                         {order.payment_method}
                       </p>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Expected Delivery</label>
-                      <p className="text-gray-800 mt-1 flex items-center">
-                        <Clock className="w-4 h-4 mr-2" />
+                      <label className="text-xs font-medium text-gray-500">Expected Delivery</label>
+                      <p className="text-sm text-gray-800 mt-1 flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
                         {new Date(order.expected_delivery).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
@@ -297,9 +347,9 @@ const OrderDetails = () => {
 
                   {order.notes && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Special Instructions</label>
-                      <p className="text-gray-800 mt-1 flex items-start">
-                        <MessageSquare className="w-4 h-4 mr-2 mt-0.5" />
+                      <label className="text-xs font-medium text-gray-500">Special Instructions</label>
+                      <p className="text-sm text-gray-800 mt-1 flex items-start">
+                        <MessageSquare className="w-4 h-4 mr-1 mt-0.5" />
                         {order.notes}
                       </p>
                     </div>
@@ -307,96 +357,39 @@ const OrderDetails = () => {
                 </div>
               </div>
 
-              {/* Order Items */}
-              {order.items && order.items.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-xl p-6 border ">
-                  <div className="flex items-center space-x-2 mb-6">
-                    <Package className="w-6 h-6 text-[#084526]" />
-                    <h2 className="text-2xl font-bold text-[#084526]">Order Items</h2>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {order.items.map((item: any) => (
-                      <div key={item.id} className="flex items-center space-x-4 p-4 bg-amber-50 rounded-lg">
-                        <img
-                          src={getProductImages(item.product)}
-                          alt={item.product.name}
-                          className="w-20 h-20 object-cover rounded-lg shadow-md"
-                        />
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-800">{item.product.name}</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
-                            <div>
-                              <span className="text-gray-500">Purity:</span>
-                              <p className="font-medium text-amber-600">{item.product.purity}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Weight:</span>
-                              <p className="font-medium">{item.product.weight}g</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Quantity:</span>
-                              <p className="font-medium">{item.quantity}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Unit Price:</span>
-                              <p className="font-medium">₹{item.unit_price}</p>
-                            </div>
-                            {item.product.making_charges && (
-                              <div>
-                                <span className="text-gray-500">Making Charges:</span>
-                                <p className="font-medium">₹{item.product.making_charges}</p>
-                              </div>
-                            )}
-                            <div>
-                              <span className="text-gray-500">Stock Available:</span>
-                              <p className="font-medium">{item.product.stock}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-[#084526]">₹{item.total_price}</p>
-                          <p className="text-sm text-gray-500">Total</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Customer Information */}
               {order.customer && (
-                <div className="bg-white rounded-2xl shadow-xl p-6 border ">
-                  <div className="flex items-center space-x-2 mb-6">
-                    <User className="w-6 h-6 text-[#084526]" />
-                    <h2 className="text-2xl font-bold text-[#084526]">Customer Information</h2>
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <User className="w-5 h-5 text-[#084526]" />
+                    <h2 className="text-xl font-bold text-[#084526]">Customer Information</h2>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Name</label>
-                      <p className="text-gray-800 mt-1">{order.customer.name}</p>
+                      <label className="text-xs font-medium text-gray-500">Name</label>
+                      <p className="text-sm text-gray-800 mt-1">{order.customer.name}</p>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Email</label>
-                      <p className="text-gray-800 mt-1 flex items-center">
-                        <Mail className="w-4 h-4 mr-2" />
+                      <label className="text-xs font-medium text-gray-500">Email</label>
+                      <p className="text-sm text-gray-800 mt-1 flex items-center">
+                        <Mail className="w-4 h-4 mr-1" />
                         {order.customer.email}
                       </p>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Mobile</label>
-                      <p className="text-gray-800 mt-1 flex items-center">
-                        <Phone className="w-4 h-4 mr-2" />
+                      <label className="text-xs font-medium text-gray-500">Mobile</label>
+                      <p className="text-sm text-gray-800 mt-1 flex items-center">
+                        <Phone className="w-4 h-4 mr-1" />
                         {order.customer.mobile}
                       </p>
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-500">User Code</label>
-                      <p className="text-gray-800 mt-1">{order.customer.user_code}</p>
+                      <label className="text-xs font-medium text-gray-500">User Code</label>
+                      <p className="text-sm text-gray-800 mt-1">{order.customer.user_code}</p>
                     </div>
                   </div>
                 </div>
@@ -404,61 +397,67 @@ const OrderDetails = () => {
             </div>
 
             {/* Order Summary Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-xl p-6 border  sticky top-8">
-                <h3 className="text-2xl font-bold text-[#084526] mb-6">Order Summary</h3>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-lg">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-semibold">₹{order.total_amount}</span>
+            <div className="lg:sticky lg:top-24 h-fit">
+              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                <h3 className="text-xl font-bold text-[#084526] mb-6">
+                  Order Summary
+                </h3>
+
+                {/* Product Details */}
+                <div className="space-y-3 mb-5">
+                  {order.items.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between text-sm text-gray-700 border-b pb-2"
+                    >
+                      <div className="flex-1 pr-3">
+                        <p className="font-medium text-gray-800">
+                          {item.product?.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          ₹{Number(item.unit_price).toFixed(2)} × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right font-semibold text-[#084526]">
+                        ₹{Number(item.total_price).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Totals Section */}
+                <div className="space-y-3 mb-6 text-gray-700 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span className="font-semibold">
+                      ₹{Number(order.total_amount).toFixed(2)}
+                    </span>
                   </div>
-                  
-                  {order.items && order.items.length > 0 && order.items[0].product.making_charges && (
-                    <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Making Charges</span>
-                      <span className="font-semibold">₹{order.items[0].product.making_charges}</span>
-                    </div>
-                  )}
-                  
+
                   {order.coupon && (
-                    <div className="flex justify-between text-lg text-green-600">
-                      <span className="flex items-center">
-                        <Gift className="w-4 h-4 mr-1" />
-                        Discount ({order.coupon.coupon_code})
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>
+                        Coupon ({order.coupon.coupon_code}){" "}
+                        <span className="text-gray-500 text-xs ml-1">
+                          {order.coupon.description}
+                        </span>
                       </span>
-                      <span className="font-semibold">-₹{order.discount_amount}</span>
+                      <span>-₹{Number(order.discount_amount).toFixed(2)}</span>
                     </div>
                   )}
-                  
-                  <div className="flex justify-between text-lg">
-                    <span className="text-gray-600">Shipping</span>
+
+                  <div className="flex justify-between">
+                    <span>Shipping</span>
                     <span className="font-semibold text-green-600">FREE</span>
                   </div>
-                  
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between text-2xl font-bold text-[#084526]">
-                      <span>Total</span>
-                      <span>₹{order.final_amount}</span>
-                    </div>
+
+                  <div className="border-t pt-3 flex justify-between text-base font-bold text-[#084526]">
+                    <span>Total Payable</span>
+                    <span>₹{Number(order.final_amount).toFixed(2)}</span>
                   </div>
                 </div>
 
-                {order.coupon && (
-                  <div className="bg-amber-50 p-4 rounded-lg mb-6">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Gift className="w-5 h-5 text-amber-600" />
-                      <span className="font-semibold text-gray-800">Coupon Applied</span>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      {order.coupon.coupon_code} - {order.coupon.discount_type === 'percentage' ? order.coupon.value + '%' : '₹' + order.coupon.value} off
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Valid until {new Date(order.coupon.valid_until).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
-
+                {/* Free Shipping Note */}
                 <div className="flex items-center space-x-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
                   <Sparkles className="w-4 h-4" />
                   <span>Free shipping on all orders</span>
