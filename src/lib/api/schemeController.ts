@@ -7,6 +7,7 @@ export type Scheme = {
     name: string; // maps from `scheme`
     timeline: string;
     minAmount: number; // maps from `min_amount`
+    maturityAmount?: number; // maps from `maturity_amount`
     isPopular: number; // 0/1
     status: number; // 0/1
     points: string[];
@@ -34,6 +35,7 @@ function normalizeScheme(apiItem: any): Scheme {
         name: String(apiItem?.scheme ?? apiItem?.name ?? ""),
         timeline: String(apiItem?.timeline ?? ""),
         minAmount: Number(apiItem?.min_amount ?? apiItem?.minAmount ?? 0),
+        maturityAmount: apiItem?.maturity_amount || apiItem?.maturityAmount ? Number(apiItem?.maturity_amount ?? apiItem?.maturityAmount) : undefined,
         status: Number(apiItem?.status ?? 0),
         isPopular: Number(apiItem?.is_popular ?? apiItem?.isPopular ?? 0),
         points: pointsArray,
@@ -62,6 +64,7 @@ export type UpdateSchemePayload = {
     name: string; // maps to `scheme`
     timeline: string;
     minAmount: number; // maps to `min_amount`
+    maturityAmount?: number; // maps to `maturity_amount`
     status: number; // 0 or 1
     isPopular: number; // 0 or 1
     points: string[];
@@ -79,6 +82,9 @@ export async function updateScheme(
     form.append("scheme", payload.name);
     form.append("timeline", payload.timeline);
     form.append("min_amount", String(payload.minAmount));
+    if (payload.maturityAmount !== undefined) {
+        form.append("maturity_amount", String(payload.maturityAmount));
+    }
     form.append("status", String(payload.status));
     form.append("is_popular", String(payload.isPopular));
     payload.points.forEach((p, idx) => {

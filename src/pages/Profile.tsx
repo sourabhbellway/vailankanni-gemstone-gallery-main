@@ -6,14 +6,16 @@ import { getUserProfile } from "@/lib/api/userController";
 import { getCartItems } from "@/lib/api/cartController";
 import { getWishlistItems } from "@/lib/api/wishlistController";
 import { getOrders } from "@/lib/api/orderController";
+import { getMyCustomOrders, type CustomOrder } from "@/lib/api/customOrderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers } from "lucide-react";
+import { ShoppingCart, Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMyPlans, createNextInstallmentOrder, verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 import { load } from "@cashfreepayments/cashfree-js";
 import { extractCashfreeSessionId } from "@/lib/api/customGoldPlanController";
 import { getGoldInvestments, type GoldInvestmentsSummary } from "@/lib/api/userController";
+import { getImageUrl } from "@/config";
 import logo from "@/assets/logo.jpg";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -29,10 +31,12 @@ const Profile = () => {
   const [ordersCount, setOrdersCount] = React.useState(0);
   const [plans, setPlans] = React.useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "vault">("profile");
+  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "vault" | "customOrders">("profile");
   const [vaultLoading, setVaultLoading] = React.useState(false);
   const [vaultError, setVaultError] = React.useState<string | null>(null);
   const [vaultSummary, setVaultSummary] = React.useState<GoldInvestmentsSummary["data"] | null>(null);
+  const [customOrders, setCustomOrders] = React.useState<CustomOrder[]>([]);
+  const [customOrdersLoading, setCustomOrdersLoading] = React.useState(false);
 
   const fetchProfile = async () => {
     if (!token) {
@@ -65,7 +69,10 @@ const Profile = () => {
   };
 
   const fetchCounts = async () => {
-    if (!token) return;
+    if (!token) {
+      console.log("No token available for fetchCounts");
+      return;
+    }
 
     try {
       // Fetch cart count
@@ -79,20 +86,73 @@ const Profile = () => {
       if (wishlistData.success) {
         setWishlistCount(wishlistData.data.items?.length || 0);
       }
-
-      // Fetch orders count
-      const ordersData = await getOrders(token);
-      if (ordersData.success) {
-        setOrdersCount(ordersData.data?.length || 0);
-      }
     } catch (err: any) {
-      // Error fetching counts - silently fail
+      console.error("Error fetching cart/wishlist counts:", err);
+    }
+
+    // Fetch orders count separately to avoid outer catch interfering
+    try {
+      console.log("Fetching orders with token:", token ? "exists" : "missing");
+      const ordersData = await getOrders(token);
+      console.log("Full orders response:", ordersData);
+      console.log("ordersData.success:", ordersData?.success);
+      console.log("ordersData.data:", ordersData?.data);
+      console.log("Is array?", Array.isArray(ordersData?.data));
+      
+      if (ordersData && ordersData.success && ordersData.data) {
+        // Response structure: { success: true, data: [...] }
+        const ordersArray = ordersData.data;
+        const count = Array.isArray(ordersArray) ? ordersArray.length : 0;
+        console.log("ordersArray:", ordersArray, "count:", count);
+        console.log("About to set ordersCount to:", count);
+        // Use functional update to ensure we don't overwrite a valid count
+        setOrdersCount((prevCount) => {
+          const newCount = count;
+          console.log("setOrdersCount functional update - prevCount:", prevCount, "newCount:", newCount);
+          return newCount;
+        });
+        console.log("Orders count set to:", count);
+      } else {
+        console.log("Orders response check failed - success:", ordersData?.success, "data exists:", !!ordersData?.data);
+        // Only reset to 0 if we don't have a valid count
+        setOrdersCount((prevCount) => {
+          if (prevCount === 0) {
+            console.log("Setting ordersCount to 0 (no valid data)");
+            return 0;
+          }
+          console.log("Keeping previous ordersCount:", prevCount);
+          return prevCount;
+        });
+      }
+    } catch (orderErr: any) {
+      console.error("Error fetching orders count:", orderErr);
+      console.error("Error details:", orderErr?.response?.data || orderErr?.message);
+      // Only reset to 0 if we don't have a valid count
+      setOrdersCount((prevCount) => {
+        if (prevCount === 0) {
+          console.log("Setting ordersCount to 0 (error occurred)");
+          return 0;
+        }
+        console.log("Keeping previous ordersCount after error:", prevCount);
+        return prevCount;
+      });
     }
   };
 
+  // Debug: Log ordersCount changes
   React.useEffect(() => {
-    fetchProfile();
-    fetchCounts();
+    console.log("ordersCount state changed to:", ordersCount);
+  }, [ordersCount]);
+
+  React.useEffect(() => {
+    if (token) {
+      fetchProfile();
+      fetchCounts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Only run when token changes
+
+  React.useEffect(() => {
     (async () => {
       if (!token) return;
       try {
@@ -120,6 +180,20 @@ const Profile = () => {
         setVaultError(e?.response?.data?.message || e?.message || "Failed to load gold investments");
       } finally {
         setVaultLoading(false);
+      }
+    })();
+    (async () => {
+      if (!token) return;
+      try {
+        setCustomOrdersLoading(true);
+        const res = await getMyCustomOrders(token);
+        if (res.status) {
+          setCustomOrders(res.data || []);
+        }
+      } catch (e: any) {
+        console.error("Error fetching custom orders:", e);
+      } finally {
+        setCustomOrdersLoading(false);
       }
     })();
   }, []);
@@ -322,6 +396,159 @@ const Profile = () => {
                 </Tabs>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'confirmed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const renderCustomOrders = () => (
+    <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">Custom Orders</h2>
+        <Button
+          onClick={() => navigate("/custom-order")}
+          className="bg-[#084526] hover:bg-[#0a5a2e] text-white"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Create New
+        </Button>
+      </div>
+      <div className="bg-white">
+        {customOrdersLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 lg:h-10 lg:w-10 border-b-2 border-[#084526]"></div>
+          </div>
+        ) : customOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="w-12 h-12 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">No custom orders yet</h3>
+            <p className="text-gray-600 mb-6">Create your first custom jewelry piece</p>
+            <Button
+              onClick={() => navigate("/custom-order")}
+              className="bg-[#084526] hover:bg-[#0a5a2e] text-white"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Create Custom Order
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {customOrders.map((order) => {
+              let designImages: string[] = [];
+              try {
+                if (order.design_image) {
+                  const parsed = JSON.parse(order.design_image);
+                  designImages = Array.isArray(parsed) ? parsed : [parsed];
+                }
+              } catch {
+                designImages = order.design_image ? [order.design_image] : [];
+              }
+
+              return (
+                <div key={order.id} className="border rounded-lg p-4 lg:p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                    {/* Design Images */}
+                    {designImages.length > 0 && (
+                      <div className="flex-shrink-0">
+                        <div className="grid grid-cols-2 gap-2 w-32 lg:w-40">
+                          {designImages.slice(0, 4).map((img, idx) => (
+                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border">
+                              <img
+                                src={getImageUrl(img)}
+                                alt={`Design ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Order Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">
+                            {order.category?.name || "Custom Order"} #{order.id}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                              {order.metal} {order.purity}
+                            </span>
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                              Size: {order.size}
+                            </span>
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                              Weight: {order.weight}g
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mb-4">
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Description:</span>
+                          <p className="text-sm text-gray-600 mt-1">{order.description}</p>
+                        </div>
+                        {order.note && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">Special Instructions:</span>
+                            <p className="text-sm text-gray-600 mt-1">{order.note}</p>
+                          </div>
+                        )}
+                        {order.admin_note && (
+                          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <span className="text-sm font-medium text-blue-700">Admin Note:</span>
+                            <p className="text-sm text-blue-600 mt-1">{order.admin_note}</p>
+                          </div>
+                        )}
+                        {order.price && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">Price:</span>
+                            <p className="text-lg font-bold text-[#084526]">₹{Number(order.price).toLocaleString("en-IN")}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center text-xs text-gray-500 pt-4 border-t">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        <span>Created: {new Date(order.created_at).toLocaleDateString()}</span>
+                        {order.updated_at !== order.created_at && (
+                          <span className="ml-4">
+                            Updated: {new Date(order.updated_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -549,6 +776,14 @@ const Profile = () => {
                     </button>
 
                     <button
+                      onClick={() => setActiveSection("customOrders")}
+                      className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'customOrders' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <span>Custom Orders ({customOrders.length})</span>
+                    </button>
+
+                    <button
                       onClick={() => navigate("/wishlist")}
                       className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
                     >
@@ -561,7 +796,7 @@ const Profile = () => {
                       className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
                     >
                       <Package className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>Orders ({ordersCount})</span>
+                      <span>Orders ({ordersCount || 0})</span>
                     </button>
 
                     <button
@@ -583,6 +818,7 @@ const Profile = () => {
                 {activeSection === "profile" && renderProfileSection()}
                 {activeSection === "plans" && <div className="mt-0">{renderMyPlans()}</div>}
                 {activeSection === "vault" && <div className="mt-0">{renderGoldVault()}</div>}
+                {activeSection === "customOrders" && <div className="mt-0">{renderCustomOrders()}</div>}
               </div>
             </div>
           )}

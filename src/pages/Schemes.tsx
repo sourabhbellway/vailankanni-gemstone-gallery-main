@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins, Download, ArrowUpRight } from "lucide-react";
+import { Calculator, CreditCard, Gift, Shield, TrendingUp, Users, ChevronRight, Star, Calendar, Coins, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -134,11 +134,11 @@ const Schemes = () => {
                   <button
                     type="button"
                     aria-label="Download template"
-                    title="download template to see more details"
+                    title="Download PDF/DOC template"
                     onClick={() => window.open(String(scheme.attachments[0]), '_blank', 'noopener,noreferrer')}
-                    className="absolute top-3 right-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur border border-gray-200 text-foreground shadow-xl transition-transform duration-1000 animate-pulse hover:scale-110 hover:-rotate-6 hover:shadow-lg"
+                    className="absolute top-3 right-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur border border-gray-200 text-foreground shadow-xl transition-transform duration-300 hover:scale-110 hover:shadow-lg"
                   >
-                    <ArrowUpRight className="h-6 w-6" />
+                    <FileText className="h-6 w-6" />
                   </button>
                 )}
                 {scheme.isPopular === 1 && (
@@ -154,8 +154,15 @@ const Schemes = () => {
                   <CardDescription className="text-lg font-semibold text-primary font-serif">
                     {scheme.timeline.replace("months", " Months")}
                   </CardDescription>
-                  <div className="text-sm text-muted-foreground">
-                    Min. Amount: ₹{scheme.minAmount}/month
+                  <div className="space-y-1 mt-2">
+                    <div className="text-sm text-muted-foreground">
+                      Min. Amount: ₹{scheme.minAmount}/month
+                    </div>
+                    {scheme.maturityAmount && (
+                      <div className="text-sm font-semibold text-primary">
+                        Maturity Amount: ₹{scheme.maturityAmount.toLocaleString("en-IN")}
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>

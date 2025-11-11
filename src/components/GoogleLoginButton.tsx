@@ -53,7 +53,7 @@ const GoogleLoginButton: React.FC = () => {
               localStorage.setItem("va_user_token", token);
               setToken(token);
               toast.success("Successfully logged in with Google");
-              navigate("/", { replace: true });
+              navigate("/profile", { replace: true });
             } else {
               toast.error(res?.message || "Unable to login with Google");
             }

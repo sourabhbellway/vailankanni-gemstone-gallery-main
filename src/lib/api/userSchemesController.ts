@@ -6,6 +6,7 @@ export type UserScheme = {
   name: string; // maps from `scheme`
   timeline: string;
   minAmount: number; // maps from `min_amount`
+  maturityAmount?: number; // maps from `maturity_amount`
   status: number; // 0/1
   isPopular: number; // 0/1
   points: string[];
@@ -31,6 +32,7 @@ function normalize(item: any): UserScheme {
     name: String(item?.scheme ?? item?.name ?? ""),
     timeline: String(item?.timeline ?? ""),
     minAmount: Number(item?.min_amount ?? item?.minAmount ?? 0),
+    maturityAmount: item?.maturity_amount || item?.maturityAmount ? Number(item?.maturity_amount ?? item?.maturityAmount) : undefined,
     status: Number(item?.status ?? 0),
     isPopular: Number(item?.is_popular ?? item?.isPopular ?? 0),
     points: parsePoints(item?.points),

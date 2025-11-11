@@ -42,7 +42,13 @@ import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import UserOrderDetails from "./pages/OrderDetails";
+import CustomOrder from "./pages/CustomOrder";
 import SchemeManagement from "./pages/admin/SchemeManagement";
+import UserOverview from "./pages/admin/users/UserOverview";
+import UserOrders from "./pages/admin/users/UserOrders";
+import UserCustomOrders from "./pages/admin/users/UserCustomOrders";
+import UserSchemes from "./pages/admin/users/UserSchemes";
+import UserCustomPlans from "./pages/admin/users/UserCustomPlans";
 import ScrollToTop from "./hooks/ScrollToTop";
 const queryClient = new QueryClient();
 
@@ -125,6 +131,14 @@ const App = () => (
                 </ProtectedUserRoute>
               }
             />
+            <Route
+              path="/custom-order"
+              element={
+                <ProtectedUserRoute>
+                  <CustomOrder />
+                </ProtectedUserRoute>
+              }
+            />
             <Route path="/login" element={<AdminLogin />} />
             <Route
               path="/admin"
@@ -172,6 +186,56 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <UserManagement />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/overview"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserOverview />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/orders"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserOrders />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/custom-orders"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserCustomOrders />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/schemes"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserSchemes />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/custom-plans"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserCustomPlans />
                   </AdminLayout>
                 </ProtectedRoute>
               }

@@ -38,6 +38,7 @@ type Scheme = {
     name: string;
     timeline: string;
     minAmount: number;
+    maturityAmount?: number;
     isPopular: boolean;
     status: "Active" | "Inactive";
     points: string[]; // editable bullet points/benefits
@@ -93,6 +94,10 @@ const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit })
                         <Input type="number" value={form.minAmount} onChange={(e) => setForm({ ...form, minAmount: Number(e.target.value) })} />
                     </div>
                     <div>
+                        <Label>Maturity Amount</Label>
+                        <Input type="number" value={form.maturityAmount || ""} onChange={(e) => setForm({ ...form, maturityAmount: e.target.value ? Number(e.target.value) : undefined })} placeholder="Optional" />
+                    </div>
+                    <div>
                         <Label>Status</Label>
                         <Select value={form.status} onValueChange={(v: "Active" | "Inactive") => setForm({ ...form, status: v })}>
                             <SelectTrigger>
@@ -104,19 +109,19 @@ const EditSchemeDialog: React.FC<SchemeModalProps> = ({ initialData, onSubmit })
                             </SelectContent>
                         </Select>
                     </div>
-                </div>
-                <div className="mt-4">
-                    <Label>Is Popular</Label>
-                    <div className="mt-2">
-                        <Select value={String(form.isPopular)} onValueChange={(v) => setForm({ ...form, isPopular: v === "true" })}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="true">Yes</SelectItem>
-                                <SelectItem value="false">No</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div>
+                        <Label>Is Popular</Label>
+                        <div className="mt-2">
+                            <Select value={String(form.isPopular)} onValueChange={(v) => setForm({ ...form, isPopular: v === "true" })}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="true">Yes</SelectItem>
+                                    <SelectItem value="false">No</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
                 <div className="mt-6">
@@ -153,6 +158,7 @@ const SchemeManagement: React.FC = () => {
         name: item.name,
         timeline: item.timeline,
         minAmount: item.minAmount,
+        maturityAmount: item.maturityAmount,
         isPopular: Number(item.isPopular) === 1,
         status: Number(item.status) === 1 ? "Active" : "Inactive",
         points: item.points || [],
@@ -202,6 +208,7 @@ const SchemeManagement: React.FC = () => {
                                 <TableHead>Scheme</TableHead>
                                 <TableHead>Timeline</TableHead>
                                 <TableHead>Min Amount</TableHead>
+                                <TableHead>Maturity Amount</TableHead>
                                 <TableHead>Is Popular</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Edit</TableHead>
@@ -214,7 +221,8 @@ const SchemeManagement: React.FC = () => {
                                     <TableCell className="font-medium">{scheme.id}</TableCell>
                                     <TableCell>{scheme.name}</TableCell>
                                     <TableCell>{scheme.timeline}</TableCell>
-                                    <TableCell>{scheme.minAmount}</TableCell>
+                                    <TableCell>₹{scheme.minAmount}</TableCell>
+                                    <TableCell>{scheme.maturityAmount ? `₹${scheme.maturityAmount}` : "—"}</TableCell>
                                     <TableCell>
                                         <Badge variant={scheme.isPopular ? "default" : "secondary"}>
                                             {scheme.isPopular ? "Yes" : "No"}
@@ -235,6 +243,7 @@ const SchemeManagement: React.FC = () => {
                                                         name: updated.name,
                                                         timeline: updated.timeline,
                                                         minAmount: updated.minAmount,
+                                                        maturityAmount: updated.maturityAmount,
                                                         status: updated.status === "Active" ? 1 : 0,
                                                         isPopular: updated.isPopular ? 1 : 0,
                                                         points: updated.points,

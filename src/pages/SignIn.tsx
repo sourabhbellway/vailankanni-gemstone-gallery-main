@@ -63,7 +63,7 @@ const SignIn = () => {
       }
       setShowOtp(false);
       toast.success("Successfully logged in");
-      navigate("/", { replace: true });
+      navigate("/profile", { replace: true });
     } catch (error: any) {
       setMessage(error.response?.data?.message || "Invalid OTP");
     } finally {
