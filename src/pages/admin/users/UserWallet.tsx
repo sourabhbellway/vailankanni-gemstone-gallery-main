@@ -178,7 +178,7 @@ const UserWallet = () => {
                         <TableCell>{t.user_scheme_id ? `#${t.user_scheme_id}` : "—"}</TableCell>
                         <TableCell>{new Date(t.created_at).toLocaleString()}</TableCell>
                         <TableCell>
-                          <Badge className={t.type === "credit" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                          <Badge className={t.type === "credit" ? "bg-green-200/70 text-green-800 hover:bg-green-200" : "bg-red-200/70 text-red-800 hover:bg-red-200"}>
                             {t.type === "credit" ? "Credit" : "Debit"}
                           </Badge>
                         </TableCell>

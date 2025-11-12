@@ -400,7 +400,7 @@ const RateManagement = () => {
     }
     try {
       await applyManualRatesToProducts(token);
-      toast({ title: `Applied manual rates`, description: `Manual ${metal} rates applied to products.` });
+      toast({ title: `Applied manual rates`, description: `Manual ${metal} rates applied successfully` });
     } catch (error: any) {
       toast({ title: "Failed to apply rates", description: error?.message || "Please try again.", variant: "destructive" });
     }
@@ -817,7 +817,7 @@ const RateManagement = () => {
                       disabled={rateSourceByMetal[metal] === "live"}
                       className={rateSourceByMetal[metal] === "live" ? "opacity-50 cursor-not-allowed" : ""}
                     >
-                      {rateSourceByMetal[metal] === "live" ? "Live Rates Active" : "Apply to Products"}
+                      {rateSourceByMetal[metal] === "live" ? "Live Rates Active" : "Apply Everywhere"}
                     </Button>
                   </div>
                 </div>

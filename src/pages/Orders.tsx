@@ -220,10 +220,10 @@ const Orders = () => {
                 )}
 
                 <div className="flex justify-between items-center pt-4 border-t border-amber-100">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Order ID: {order.id}</span>
-                  </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <span>Order ID: {order.id}</span>
+          </div>
                   <div className="flex space-x-2">
                     <Button
                       variant="outline"

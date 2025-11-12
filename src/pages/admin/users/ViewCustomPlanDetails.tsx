@@ -61,11 +61,11 @@ const ViewCustomPlanDetails = () => {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "paid": return "bg-green-100 text-green-800";
-      case "success": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "upcoming": return "bg-blue-100 text-blue-800";
-      case "failed": return "bg-red-100 text-red-800";
+      case "paid": return "bg-green-200/70 text-green-800 hover:bg-green-200";
+      case "success": return "bg-green-200/70 text-green-800 hover:bg-green-200";
+      case "pending": return "bg-yellow-200/70 text-yellow-800 hover:bg-yellow-200";
+      case "upcoming": return "bg-blue-200/70 text-blue-800 hover:bg-blue-200";
+      case "failed": return "bg-red-200/70 text-red-800 hover:bg-red-200";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -145,7 +145,7 @@ const ViewCustomPlanDetails = () => {
                   <tr key={pay.id}>
                     <td className="py-2 px-2">#{pay.id}</td>
                     <td className="py-2 px-2">{pay.order_id}</td>
-                    <td className="py-2 px-2"><Badge className={getPaymentStatusColor(pay.status)}>{pay.status}</Badge></td>
+                    <td className="py-2 px-2"><Badge className={`capitalize ${getPaymentStatusColor(pay.status)}`}>{pay.status}</Badge></td>
                     <td className="py-2 px-2">₹{Number(pay.amount).toLocaleString("en-IN")}</td>
                   </tr>
                 )) : (

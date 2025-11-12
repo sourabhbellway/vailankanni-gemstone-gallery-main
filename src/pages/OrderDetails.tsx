@@ -202,6 +202,7 @@ const OrderDetails = () => {
                 Order Details
               </h1>
               <p className="text-gray-600 text-sm">Order #{order.order_code}</p>
+              
             </div>
           </div>
           <Button
@@ -358,20 +359,7 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-amber-100">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <span>Order ID: {order.id}</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/orders`)}
-            className="text-[#084526] border-[#084526]/20"
-          >
-            Back to Orders
-          </Button>
-        </div>
+       
       </div>
     </ProfileLayout>
   );

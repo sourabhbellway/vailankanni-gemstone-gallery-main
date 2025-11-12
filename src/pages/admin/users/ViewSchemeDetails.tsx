@@ -48,7 +48,7 @@ const ViewSchemeDetails = () => {
       if (!token || !userId || !userSchemeId) return;
       setLoadingPayments(true);
       try {
-        const resp = await getUserSchemesPayments(token, Number(userId), Number(scheme?.scheme_id));
+        const resp = await getUserSchemesPayments(token, Number(userId), Number(scheme?.id));
         if (resp.status) {
           setSchemePayments(resp.data.payments || []);
         }
@@ -61,12 +61,12 @@ const ViewSchemeDetails = () => {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "paid": return "bg-green-100 text-green-800";
-      case "success": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "upcoming": return "bg-blue-100 text-blue-800";
-      case "failed": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "paid": return "bg-green-200/70 text-green-800 hover:bg-green-200";
+      case "success": return "bg-green-200/70 text-green-800 hover:bg-green-200";
+      case "pending": return "bg-yellow-200/70 text-yellow-800 hover:bg-yellow-200";
+      case "upcoming": return "bg-blue-200/70 text-blue-800 hover:bg-blue-200";
+      case "failed": return "bg-red-200/70 text-red-800 hover:bg-red-200";
+      default: return "bg-gray-200/70 text-gray-800 hover:bg-gray-200";
     }
   };
 
@@ -108,7 +108,7 @@ const ViewSchemeDetails = () => {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <div className="text-muted-foreground">Status</div>
-              <Badge className={scheme.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>{scheme.status}</Badge>
+              <Badge className={`capitalize ${scheme.status === "active" ? "bg-green-200/70 text-green-800 hover:bg-green-200" : "bg-blue-200/70 text-blue-800 hover:bg-blue-200"}`}>{scheme.status}</Badge>
             </div>
             <div>
               <div className="text-muted-foreground">Scheme Name</div>
@@ -153,7 +153,7 @@ const ViewSchemeDetails = () => {
                   <tr key={p.id}>
                     <td className="py-2 px-2">#{p.installment_number}</td>
                     <td className="py-2 px-2">{new Date(p.due_date).toLocaleDateString()}</td>
-                    <td className="py-2 px-2"><Badge className={getPaymentStatusColor(p.status)}>{p.status}</Badge></td>
+                    <td className="py-2 px-2"><Badge className={`capitalize ${getPaymentStatusColor(p.status)}`}>{p.status}</Badge></td>
                     <td className="py-2 px-2">₹{Number(p.amount).toLocaleString("en-IN")}</td>
                   </tr>
                 )) : (

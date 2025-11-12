@@ -52,7 +52,7 @@ const UserOverview = () => {
   }, [token, userId, navigate, toast]);
 
   const getStatusColor = (status: number) => {
-    return status === 1 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+    return status === 1 ? "bg-green-200/70 text-green-800 hover:bg-green-200" : "bg-red-200 text-red-800 hover:bg-red-200";
   };
 
   const handleUpdateStatus = async () => {
@@ -153,75 +153,116 @@ const UserOverview = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">Personal Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
-                    <p className="text-sm">{user.name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                    <p className="text-sm">{user.email}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Mobile</Label>
-                    <p className="text-sm">{user.mobile || "N/A"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">User Code</Label>
-                    <p className="text-sm">{user.user_code || "N/A"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="overview" className="space-y-8">
+  <div className="grid gap-6 md:grid-cols-2">
+    {/* Personal Info */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-5 h-5 text-emerald-600 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.485 0 4.795.604 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Personal Information
+      </h3>
 
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">Account Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
-                    <p className="text-sm">{user.id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Role</Label>
-                    <p className="text-sm capitalize">{user.role}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <Badge className={getStatusColor(user.status)}>
-                      {user.status === 1 ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Created At</Label>
-                    <p className="text-sm">{new Date(user.created_at).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Last Login</Label>
-                    <p className="text-sm">{user.last_login_at ? new Date(user.last_login_at).toLocaleString() : "Never"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Mobile Verified</Label>
-                    <p className="text-sm">{user.mobile_verified_at ? new Date(user.mobile_verified_at).toLocaleString() : "Not Verified"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">2FA Verified</Label>
-                    <Badge className={user.two_factor_verified === 1 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                      {user.two_factor_verified === 1 ? "Yes" : "No"}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="space-y-3 text-sm">
+        <div>
+          <p className="text-gray-500 font-medium">Full Name</p>
+          <p className="text-gray-800">{user.name}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Email</p>
+          <p className="text-gray-800">{user.email}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Mobile</p>
+          <p className="text-gray-800">{user.mobile || "N/A"}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">User Code</p>
+          <p className="text-gray-800">{user.user_code || "N/A"}</p>
+        </div>
+      </div>
+    </div>
 
-        
-        </TabsContent>
+    {/* Account Info */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all p-6">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-5 h-5 text-indigo-600 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0 .552.448 1 1 1s1-.448 1-1-.448-1-1-1-1 .448-1 1zm-6 8v-1a2 2 0 012-2h8a2 2 0 012 2v1m-4-4a4 4 0 10-8 0" />
+        </svg>
+        Account Information
+      </h3>
+
+      <div className="space-y-3 text-sm">
+        <div>
+          <p className="text-gray-500 font-medium">User ID</p>
+          <p className="text-gray-800">{user.id}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Role</p>
+          <p className="capitalize text-gray-800">{user.role}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Status</p>
+          <span
+            className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+              user.status === 1
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {user.status === 1 ? "Active" : "Inactive"}
+          </span>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Created At</p>
+          <p className="text-gray-800">{new Date(user.created_at).toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Last Login</p>
+          <p className="text-gray-800">
+            {user.last_login_at
+              ? new Date(user.last_login_at).toLocaleString()
+              : "Never"}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">Mobile Verified</p>
+          <p className="text-gray-800">
+            {user.mobile_verified_at
+              ? new Date(user.mobile_verified_at).toLocaleString()
+              : "Not Verified"}
+          </p>
+        </div>
+        <div>
+          <p className="text-gray-500 font-medium">2FA Verified</p>
+          <span
+            className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+              user.two_factor_verified === 1
+                ? "bg-sky-100 text-sky-800"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {user.two_factor_verified === 1 ? "Yes" : "No"}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</TabsContent>
+
       </Tabs>
     </div>
   );

@@ -244,7 +244,7 @@ const Profile = () => {
       default:
         return 'bg-slate-50 text-slate-700 border border-slate-200'; // Neutral gray
     }
-  };  
+  };
 
   const renderProfileSection = () => (
     <div className="space-y-6 border p-6 rounded-2xl bg-gray-50 shadow-sm">
@@ -253,7 +253,7 @@ const Profile = () => {
         <h2 className="text-2xl font-bold text-[#084526] tracking-tight">Profile Information</h2>
         <p className="text-sm text-gray-600">View your account details and current status</p>
       </div>
-  
+
       {profile && (
         <div className="bg-white rounded-2xl shadow-md p-6 transition-all hover:shadow-lg">
           {/* Name / Top Section */}
@@ -265,7 +265,7 @@ const Profile = () => {
               Member since {new Date(profile?.data.created_at).toLocaleDateString() || "-"}
             </p>
           </div>
-  
+
           {/* Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
@@ -274,36 +274,35 @@ const Profile = () => {
                 {profile?.data.name ?? "-"}
               </p>
             </div>
-  
+
             <div>
               <label className="text-sm font-medium text-gray-500">Email Address</label>
               <p className="text-base text-gray-900 font-semibold mt-1 break-words">
                 {profile?.data.email ?? "-"}
               </p>
             </div>
-  
+
             <div>
               <label className="text-sm font-medium text-gray-500">Mobile Number</label>
               <p className="text-base text-gray-900 font-semibold mt-1">
                 {profile?.data.mobile ?? "-"}
               </p>
             </div>
-  
+
             <div>
               <label className="text-sm font-medium text-gray-500">Account Status</label>
               <div className="mt-1">
                 <Badge
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                    profile?.data.status
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold ${profile?.data.status
+                      ? "bg-green-200/70 text-green-700 hover:bg-emerald-200"
+                      : "bg-red-200/70 text-red-700 hover:bg-red-200"
+                    }`}
                 >
                   {profile?.data.status ? "Active" : "Inactive"}
                 </Badge>
               </div>
             </div>
-  
+
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-500">Last Login</label>
               <p className="text-sm text-gray-900 font-semibold mt-1">
@@ -407,17 +406,24 @@ const Profile = () => {
                     </td>
 
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${plan.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : plan.status === "pending"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                      >
-                        {plan.status}
-                      </Badge>
-                    </td>
+  <Badge
+    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 cursor-default
+      ${plan.status === "active"
+        ? "bg-emerald-200/70 text-emerald-900 border-emerald-200 hover:bg-emerald-200"
+        : plan.status === "pending"
+          ? "bg-amber-200/70 text-amber-900 border-amber-200 hover:bg-amber-200"
+          : plan.status === "disbursed"
+            ? "bg-sky-200/70 text-sky-900 border-sky-200 hover:bg-sky-200"
+            : plan.status === "cancelled"
+              ? "bg-rose-200/70 text-rose-900 border-rose-200 hover:bg-rose-200"
+              : "bg-slate-200/70 text-slate-900 border-slate-200 hover:bg-slate-200"
+      }`}
+  >
+    {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+  </Badge>
+</td>
+
+
 
                     <td className="px-4 py-3 whitespace-nowrap text-gray-700">
                       {new Date(plan.start_date).toLocaleDateString()}
@@ -465,7 +471,7 @@ const Profile = () => {
           Your digital gold summary & transactions
         </span>
       </div>
-  
+
       {vaultLoading ? (
         <div className="flex justify-center items-center h-32">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#084526] border-t-transparent"></div>
@@ -485,7 +491,7 @@ const Profile = () => {
               </div>
               <div className="absolute top-2 right-3 text-yellow-400">🏆</div>
             </div>
-  
+
             <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 p-5 rounded-2xl shadow-md border border-emerald-200">
               <div className="text-xs uppercase text-gray-500 tracking-wide">Total Invested</div>
               <div className="mt-2 text-2xl font-bold text-gray-800">
@@ -493,7 +499,7 @@ const Profile = () => {
               </div>
               <div className="absolute top-2 right-3 text-emerald-500">💰</div>
             </div>
-  
+
             <div className="relative bg-gradient-to-br from-sky-50 to-blue-100 p-5 rounded-2xl shadow-md border border-blue-200">
               <div className="text-xs uppercase text-gray-500 tracking-wide">Current Rate</div>
               <div className="mt-2 text-2xl font-bold text-gray-800">
@@ -501,7 +507,7 @@ const Profile = () => {
               </div>
               <div className="absolute top-2 right-3 text-sky-500">📈</div>
             </div>
-  
+
             <div className="relative bg-gradient-to-br from-amber-50 to-yellow-100 p-5 rounded-2xl shadow-md border border-yellow-200">
               <div className="text-xs uppercase text-gray-500 tracking-wide">Total Value</div>
               <div className="mt-2 text-2xl font-bold text-gray-800">
@@ -510,7 +516,7 @@ const Profile = () => {
               <div className="absolute top-2 right-3 text-yellow-500">🏅</div>
             </div>
           </div>
-  
+
           {/* Table */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-5 border-b flex items-center justify-between">
@@ -524,7 +530,7 @@ const Profile = () => {
                 {vaultSummary?.plans?.length || 0} Plans
               </div>
             </div>
-  
+
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50">
@@ -539,7 +545,7 @@ const Profile = () => {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Transaction Date & Time</th>
                   </tr>
                 </thead>
-  
+
                 <tbody className="divide-y">
                   {(vaultSummary.plans || []).map((plan) =>
                     plan.payments && plan.payments.length > 0 ? (
@@ -600,7 +606,7 @@ const Profile = () => {
       )}
     </div>
   );
-  
+
   const renderCustomOrders = () => (
     <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
       <div className="flex items-center justify-between">

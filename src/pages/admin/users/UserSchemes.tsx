@@ -141,7 +141,7 @@ const UserSchemes = () => {
                   <TableRow key={s.id}>
                     <TableCell>#{s.id}</TableCell>
                     <TableCell>
-                      <Badge className={s.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                      <Badge className={`capitalize ${s.status === "active" ? "bg-green-200/70 text-green-800 hover:bg-green-200" : "bg-blue-200/70 text-blue-800 hover:bg-blue-200"}`}>
                         {s.status}
                       </Badge>
                     </TableCell>
