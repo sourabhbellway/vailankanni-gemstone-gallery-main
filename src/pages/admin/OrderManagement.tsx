@@ -762,10 +762,7 @@ const OrderManagement = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedCustomOrder(order);
-                                setViewDialogOpen(true);
-                              }}
+                              onClick={() => navigate(`/admin/custom-orders/${order.id}`)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>

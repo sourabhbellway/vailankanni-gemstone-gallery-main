@@ -214,6 +214,15 @@ const CollectionsSection = () => {
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </a>
+          <a href="/custom-order">  
+            <Button
+              size="lg"
+              className=" bg-gradient-to-r from-[#8e6e00] via-[#fce56b] to-[#fff2b2] text-black font-semibold px-6 py-2 rounded-full  transition-all duration-300 hover:brightness-125  hover:scale-105 relative overflow-hidden shimmer-btn"
+            >
+              Custom Order
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </a>
         </div>
         {/* Section Header */}
         <div className="text-center mb-16 animate-fade-in">

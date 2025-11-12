@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Coins } from "lucide-react";
@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getUserCustomPlans, getUserGoldPlanPayments, type CustomPlan, type GoldPlanPayment } from "@/lib/api/adminUserController";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const UserCustomPlans = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -44,35 +46,16 @@ const UserCustomPlans = () => {
     fetchCustomPlans();
   }, [token, userId, toast]);
 
-  const handleTogglePayments = async (goldPlanId: number) => {
-    if (goldPlanPayments[goldPlanId]) {
-      // Hide payments
-      setGoldPlanPayments((prev) => {
-        const newPayments = { ...prev };
-        delete newPayments[goldPlanId];
-        return newPayments;
-      });
-      return;
-    }
-
-    // Fetch payments
+  const loadPayments = async (goldPlanId: number) => {
     if (!token || !userId) return;
     try {
       setLoadingPayments((prev) => ({ ...prev, [goldPlanId]: true }));
       const response = await getUserGoldPlanPayments(token, Number(userId), goldPlanId);
       if (response.status) {
-        setGoldPlanPayments((prev) => ({
-          ...prev,
-          [goldPlanId]: response.data.payments || [],
-        }));
+        setGoldPlanPayments((prev) => ({ ...prev, [goldPlanId]: response.data.payments || [] }));
       }
     } catch (err: any) {
-      console.error("Error fetching gold plan payments:", err);
-      toast({
-        title: "Error",
-        description: "Failed to load gold plan payments",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load gold plan payments", variant: "destructive" });
     } finally {
       setLoadingPayments((prev) => ({ ...prev, [goldPlanId]: false }));
     }
@@ -121,6 +104,12 @@ const UserCustomPlans = () => {
           <TabsTrigger value="customPlans" onClick={() => navigate(`/admin/users/${userId}/custom-plans`)}>
             Custom Plans
           </TabsTrigger>
+          <TabsTrigger value="wallet" onClick={() => navigate(`/admin/users/${userId}/wallet`)}>
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="vault" onClick={() => navigate(`/admin/users/${userId}/gold-vault`)}>
+            Gold vault
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -129,64 +118,46 @@ const UserCustomPlans = () => {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : customPlans.length > 0 ? (
-        <div className="space-y-4 mt-4">
-          {customPlans.map((plan) => (
-            <Card key={plan.id}>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm font-medium">Custom Plan #{plan.id}</p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleTogglePayments(plan.id)}
-                    disabled={loadingPayments[plan.id]}
-                  >
-                    {loadingPayments[plan.id] ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : goldPlanPayments[plan.id] ? (
-                      "Hide Payments"
-                    ) : (
-                      "View Payments"
-                    )}
-                  </Button>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Invested Amount:</span> ₹{Number(plan.invested_amount).toLocaleString("en-IN")}</p>
-                    <p className="text-sm"><span className="font-medium">Gold Grams:</span> {Number(plan.gold_grams).toFixed(4)}g</p>
-                  </div>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Gold Rate:</span> ₹{Number(plan.gold_rate).toLocaleString("en-IN")}/gram</p>
-                    <p className="text-sm"><span className="font-medium">Created:</span> {new Date(plan.created_at).toLocaleString()}</p>
-                  </div>
-                </div>
-                {goldPlanPayments[plan.id] && goldPlanPayments[plan.id].length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm font-medium mb-2">Payments:</p>
-                    <div className="space-y-2">
-                      {goldPlanPayments[plan.id].map((payment) => (
-                        <div key={payment.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                          <div>
-                            <p className="text-sm">Payment #{payment.id}</p>
-                            <p className="text-xs text-muted-foreground">Order: {payment.order_id}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">₹{Number(payment.amount).toLocaleString("en-IN")}</p>
-                            <Badge className={`mt-1 ${getPaymentStatusColor(payment.status)}`}>
-                              {payment.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Custom Plans ({customPlans.length})</CardTitle>
+            <CardDescription>User’s gold custom plans</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plan ID</TableHead>
+                  <TableHead>Invested</TableHead>
+                  <TableHead>Gold (g)</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customPlans.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>#{p.id}</TableCell>
+                    <TableCell>₹{Number(p.invested_amount).toLocaleString("en-IN")}</TableCell>
+                    <TableCell>{Number(p.gold_grams).toFixed(4)} g</TableCell>
+                    <TableCell>₹{Number(p.gold_rate).toLocaleString("en-IN")}/g</TableCell>
+                    <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/users/${userId}/custom-plans/${p.id}/details`)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       ) : (
         <div className="text-center py-8 mt-4">
           <Coins className="mx-auto h-12 w-12 text-muted-foreground" />

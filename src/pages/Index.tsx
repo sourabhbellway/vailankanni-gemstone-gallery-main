@@ -17,7 +17,7 @@ const Index = () => {
       <Header />
       <HeroSection />
       {/* Custom Order Button Section */}
-      <div className="bg-gradient-to-b from-white to-amber-50 py-8">
+      {/* <div className="bg-gradient-to-b from-white to-amber-50 py-8">
         <div className="container mx-auto px-4 flex justify-center">
           <Button
             onClick={() => navigate("/custom-order")}
@@ -27,7 +27,7 @@ const Index = () => {
             Create Custom Order
           </Button>
         </div>
-      </div>
+      </div> */}
       <CollectionsSection />
       <div id="about">
         <AboutSection />

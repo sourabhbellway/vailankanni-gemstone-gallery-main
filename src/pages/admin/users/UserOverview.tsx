@@ -145,6 +145,12 @@ const UserOverview = () => {
           <TabsTrigger value="customPlans" onClick={() => navigate(`/admin/users/${userId}/custom-plans`)}>
             Custom Plans
           </TabsTrigger>
+          <TabsTrigger value="wallet" onClick={() => navigate(`/admin/users/${userId}/wallet`)}>
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="vault" onClick={() => navigate(`/admin/users/${userId}/gold-vault`)}>
+            Gold vault
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -214,29 +220,7 @@ const UserOverview = () => {
             </Card>
           </div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-4">Summary</h3>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium">Total Orders</p>
-                  <p className="text-2xl font-bold">{user.orders?.length || 0}</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium">Custom Orders</p>
-                  <p className="text-2xl font-bold">{user.custom_orders?.length || 0}</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium">Active Schemes</p>
-                  <p className="text-2xl font-bold">{user.schemes?.length || 0}</p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium">Custom Plans</p>
-                  <p className="text-2xl font-bold">{user.custom_plan?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        
         </TabsContent>
       </Tabs>
     </div>

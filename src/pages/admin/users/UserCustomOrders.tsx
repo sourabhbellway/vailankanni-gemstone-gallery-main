@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Package } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getUserWithCustomOrders, type CustomOrder } from "@/lib/api/adminUserController";
-import { getImageUrl } from "@/config";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const UserCustomOrders = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -86,93 +86,88 @@ const UserCustomOrders = () => {
           <TabsTrigger value="customPlans" onClick={() => navigate(`/admin/users/${userId}/custom-plans`)}>
             Custom Plans
           </TabsTrigger>
+          <TabsTrigger value="wallet" onClick={() => navigate(`/admin/users/${userId}/wallet`)}>
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="vault" onClick={() => navigate(`/admin/users/${userId}/gold-vault`)}>
+            Gold vault
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : customOrders.length > 0 ? (
-        <div className="space-y-4 mt-4">
-          {customOrders.map((order) => {
-            let images: string[] = [];
-            try {
-              const parsed = JSON.parse(order.design_image);
-              images = Array.isArray(parsed) ? parsed : [parsed];
-            } catch {
-              images = [order.design_image];
-            }
-            return (
-              <Card key={order.id}>
-                <CardContent className="pt-6">
-                  <div className="grid gap-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium">Custom Order #{order.id}</p>
-                        <Badge className={`mt-2 ${getCustomOrderStatusColor(order.status)}`}>
-                          {order.status}
-                        </Badge>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Custom Orders ({customOrders.length})</CardTitle>
+          <CardDescription>User-specific custom jewelry orders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : customOrders.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Metal & Purity</TableHead>
+                  <TableHead>Size & Weight</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">#{order.id}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>{order.metal}</span>
+                        <span className="text-xs text-muted-foreground">{order.purity}</span>
                       </div>
-                      {order.price && (
-                        <p className="text-sm font-semibold">₹{Number(order.price).toLocaleString("en-IN")}</p>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>Size: {order.size}</span>
+                        <span className="text-xs text-muted-foreground">Weight: {order.weight}g</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getCustomOrderStatusColor(order.status)}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {order.price ? (
+                        <span className="font-medium">₹{Number(order.price).toLocaleString("en-IN")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Not quoted</span>
                       )}
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div>
-                        <p className="text-sm"><span className="font-medium">Metal:</span> {order.metal}</p>
-                        <p className="text-sm"><span className="font-medium">Purity:</span> {order.purity}</p>
-                        <p className="text-sm"><span className="font-medium">Size:</span> {order.size}</p>
-                        <p className="text-sm"><span className="font-medium">Weight:</span> {order.weight}g</p>
-                      </div>
-                      <div>
-                        <p className="text-sm"><span className="font-medium">Created:</span> {new Date(order.created_at).toLocaleString()}</p>
-                        <p className="text-sm"><span className="font-medium">Updated:</span> {new Date(order.updated_at).toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Description:</p>
-                      <p className="text-sm text-muted-foreground">{order.description}</p>
-                    </div>
-                    {order.note && (
-                      <div>
-                        <p className="text-sm font-medium">Note:</p>
-                        <p className="text-sm text-muted-foreground">{order.note}</p>
-                      </div>
-                    )}
-                    {order.admin_note && (
-                      <div>
-                        <p className="text-sm font-medium">Admin Note:</p>
-                        <p className="text-sm text-muted-foreground">{order.admin_note}</p>
-                      </div>
-                    )}
-                    {images.length > 0 && (
-                      <div>
-                        <p className="text-sm font-medium mb-2">Design Images:</p>
-                        <div className="grid grid-cols-4 gap-2">
-                          {images.map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={getImageUrl(img)}
-                              alt={`Design ${idx + 1}`}
-                              className="w-full h-24 object-cover rounded border"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-8 mt-4">
-          <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">No custom orders found</p>
-        </div>
-      )}
+                    </TableCell>
+                    <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/custom-orders/${order.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-16">
+              <Package className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No custom orders found</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

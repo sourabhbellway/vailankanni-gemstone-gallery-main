@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getUserProfile } from "@/lib/api/userController";
@@ -9,18 +9,23 @@ import { getOrders } from "@/lib/api/orderController";
 import { getMyCustomOrders, type CustomOrder } from "@/lib/api/customOrderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles } from "lucide-react";
+import {  Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles, Wallet as WalletIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMyPlans, createNextInstallmentOrder, verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 import { load } from "@cashfreepayments/cashfree-js";
 import { extractCashfreeSessionId } from "@/lib/api/customGoldPlanController";
 import { getGoldInvestments, type GoldInvestmentsSummary } from "@/lib/api/userController";
 import { getImageUrl } from "@/config";
-import logo from "@/assets/logo.jpg";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { getUserWallet, type WalletTransaction } from "@/lib/api/walletController";
+import ProfileLayout from "@/components/ProfileLayout";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, logout } = useUserAuth();
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(true);
@@ -31,12 +36,17 @@ const Profile = () => {
   const [ordersCount, setOrdersCount] = React.useState(0);
   const [plans, setPlans] = React.useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "vault" | "customOrders">("profile");
+  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "wallet" | "vault" | "customOrders">(
+    (location.state as any)?.activeSection || "profile"
+  );
   const [vaultLoading, setVaultLoading] = React.useState(false);
   const [vaultError, setVaultError] = React.useState<string | null>(null);
   const [vaultSummary, setVaultSummary] = React.useState<GoldInvestmentsSummary["data"] | null>(null);
   const [customOrders, setCustomOrders] = React.useState<CustomOrder[]>([]);
   const [customOrdersLoading, setCustomOrdersLoading] = React.useState(false);
+  const [walletLoading, setWalletLoading] = React.useState(false);
+  const [walletBalance, setWalletBalance] = React.useState<string>("0");
+  const [walletTxns, setWalletTxns] = React.useState<WalletTransaction[]>([]);
 
   const fetchProfile = async () => {
     if (!token) {
@@ -139,10 +149,7 @@ const Profile = () => {
     }
   };
 
-  // Debug: Log ordersCount changes
-  React.useEffect(() => {
-    console.log("ordersCount state changed to:", ordersCount);
-  }, [ordersCount]);
+ 
 
   React.useEffect(() => {
     if (token) {
@@ -197,6 +204,30 @@ const Profile = () => {
       }
     })();
   }, []);
+
+  React.useEffect(() => {
+    (async () => {
+      if (!token || !profile?.data?.id) return;
+      if (activeSection !== "wallet") return;
+      try {
+        setWalletLoading(true);
+        const res = await getUserWallet(token, Number(profile.data.id));
+        if (res.success && res.data) {
+          setWalletBalance(res.data.balance);
+          setWalletTxns(res.data.transactions || []);
+        } else if ((res as any).status && (res as any).data) {
+          setWalletBalance((res as any).data.balance);
+          setWalletTxns((res as any).data.transactions || []);
+        } else {
+          toast({ title: "Wallet", description: res.message || "Failed to fetch wallet" });
+        }
+      } catch (e: any) {
+        toast({ title: "Wallet error", description: e?.response?.data?.message || e?.message || "Failed to fetch wallet", variant: "destructive" });
+      } finally {
+        setWalletLoading(false);
+      }
+    })();
+  }, [activeSection, token, profile, toast]);
 
   const renderProfileSection = () => (
     <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
@@ -304,7 +335,7 @@ const Profile = () => {
     }
   };
 
-  const renderMyPlans = () => (
+  const renderMyPlansTabular = () => (
     <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
       <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">My Plans</h2>
       <div className="bg-white">
@@ -315,92 +346,40 @@ const Profile = () => {
         ) : plans.length === 0 ? (
           <div className="text-sm text-gray-600">No active plans found.</div>
         ) : (
-          <div className="space-y-6 lg:space-y-8">
+          <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Scheme</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">End</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monthly</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Paid</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+            </tr>
+          </thead>
+          <tbody>
             {plans.map((plan) => (
-              <div key={plan.id} className="border rounded-lg p-3 lg:p-4">
-                <div className="mb-4">
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-800 break-words">{plan.scheme?.scheme}</h3>
-                  <div className="text-xs lg:text-sm text-gray-600">Status: <span className="font-medium">{plan.status}</span></div>
-                </div>
-
-                <Tabs defaultValue="details" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="details" className="text-xs lg:text-sm">Plan Details</TabsTrigger>
-                    <TabsTrigger value="installments" className="text-xs lg:text-sm">Installments</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="details" className="mt-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                      <div className="bg-gray-50 rounded p-3 lg:p-4">
-                        <div className="flex items-center gap-2 mb-2 text-[#084526]">
-                          <Calendar className="w-4 h-4" />
-                          <span className="font-semibold text-sm lg:text-base">Overview</span>
-                        </div>
-                        <div className="text-xs lg:text-sm space-y-1">
-                          <div>Timeline: {plan.scheme?.timeline?.replace("months", " Months")}</div>
-                          <div>Monthly Amount: ₹{Number(plan.monthly_amount)}</div>
-                          <div>Start: {new Date(plan.start_date).toLocaleDateString()}</div>
-                          <div>End: {new Date(plan.end_date).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 rounded p-3 lg:p-4">
-                        <div className="flex items-center gap-2 mb-2 text-[#084526]">
-                          <IndianRupee className="w-4 h-4" />
-                          <span className="font-semibold text-sm lg:text-base">Payments</span>
-                        </div>
-                        <div className="text-xs lg:text-sm space-y-1">
-                          <div>Total Paid: ₹{Number(plan.total_paid)}</div>
-                          <div>Installments: {plan.payments?.length || 0}</div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 rounded p-3 lg:p-4 lg:col-span-1">
-                        <div className="flex items-center gap-2 mb-2 text-[#084526]">
-                          <Clock className="w-4 h-4" />
-                          <span className="font-semibold text-sm lg:text-base">Benefits</span>
-                        </div>
-                        <ul className="list-disc pl-4 text-xs lg:text-sm space-y-1">
-                          {(plan.scheme?.points || []).map((p: string, idx: number) => (
-                            <li key={idx} className="break-words">{p}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="installments" className="mt-4">
-                    <div className="space-y-2">
-                      {(plan.payments || []).map((payment: any) => (
-                        <div key={payment.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border rounded p-3 gap-3">
-                          <div className="flex items-center gap-3">
-                            {payment.status === 'paid' ? (
-                              <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-600 flex-shrink-0" />
-                            ) : (
-                              <Clock className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-600 flex-shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <div className="text-xs lg:text-sm font-medium">Installment #{payment.installment_number}</div>
-                              <div className="text-xs text-gray-600 break-words">Due: {new Date(payment.due_date).toLocaleDateString()} • Amount: ₹{Number(payment.amount)}</div>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0">
-                            {payment.status === 'paid' ? (
-                              <span className="text-xs lg:text-sm text-green-700 font-semibold">Paid</span>
-                            ) : (
-                              <Button size="sm" onClick={() => openCashfreeForPayment(plan, payment)} className="text-xs lg:text-sm">Pay Now</Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
+              <tr key={plan.id} className="bg-white border-b">
+                <td className="px-3 py-2 whitespace-nowrap font-bold">{plan.scheme?.scheme}</td>
+                <td className="px-3 py-2 whitespace-nowrap"><span className="inline-block rounded px-2 py-1 text-xs bg-gray-100 font-semibold">{plan.status}</span></td>
+                <td className="px-3 py-2 whitespace-nowrap">{new Date(plan.start_date).toLocaleDateString()}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{new Date(plan.end_date).toLocaleDateString()}</td>
+                <td className="px-3 py-2 whitespace-nowrap">₹{Number(plan.monthly_amount).toLocaleString("en-IN")}</td>
+                <td className="px-3 py-2 whitespace-nowrap">₹{Number(plan.total_paid).toLocaleString("en-IN")}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/my-plans/${plan.id}/details`)}>View Details</Button>
+                </td>
+              </tr>
             ))}
-          </div>
-        )}
-      </div>
+          </tbody>
+        </table>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -590,47 +569,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* <div className="overflow-x-auto">
-              <table className="min-w-full border rounded">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Transactions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(vaultSummary.plans || []).map((plan) => (
-                    <tr key={plan.plan_id} className="border-t">
-                      <td className="px-3 py-3 text-sm">
-                        <div className="flex flex-wrap gap-x-4 gap-y-1">
-                          <span className="text-muted-foreground">Date:</span>
-                          <span className="font-medium mr-4">{new Date(plan.created_at).toLocaleDateString()}</span>
-                          <span className="text-muted-foreground">Plan:</span>
-                          <span className="font-medium mr-4">#{plan.plan_id}</span>
-                          <span className="text-muted-foreground">Invested:</span>
-                          <span className="font-medium mr-4">₹ {Number(plan.invested_amount).toLocaleString("en-IN")}</span>
-                          <span className="text-muted-foreground">Gold:</span>
-                          <span className="font-medium mr-4">{plan.gold_grams} g</span>
-                          <span className="text-muted-foreground">Rate:</span>
-                          <span className="font-medium">₹ {plan.gold_rate}</span>
-                        </div>
-                        {(plan.payments || []).length > 0 && (
-                          <div className="mt-2 text-xs text-gray-600">
-                            {(plan.payments || []).map((p) => (
-                              <div key={p.payment_id} className="flex flex-wrap gap-x-4 gap-y-1">
-                                <span>Order: <span className="font-medium">{p.order_id}</span></span>
-                                <span>Amount: <span className="font-medium">₹ {Number(p.amount).toLocaleString("en-IN")}</span></span>
-                                <span>Status: <span className="font-medium capitalize">{p.status}</span></span>
-                                <span>Date: <span className="font-medium">{new Date(p.start_date).toLocaleDateString()}</span></span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div> */}
+          
             <div className="overflow-x-auto">
               <table className="min-w-full border rounded">
                 <thead className="bg-stone-200">
@@ -702,130 +641,129 @@ const Profile = () => {
     </div>
   );
 
+  // const renderWallet = () => (
+  //   <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
+  //     <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">Wallet</h2>
+  //     <div className="bg-white">
+  //       <div className="grid gap-4 lg:grid-cols-3">
+  //         <Card className="lg:col-span-1">
+  //           <CardHeader>
+  //             <CardTitle className="flex items-center gap-2">
+  //               <WalletIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+  //               Balance
+  //             </CardTitle>
+  //             <CardDescription>Maturity amounts from plans are credited here</CardDescription>
+  //           </CardHeader>
+  //           <CardContent>
+  //             {walletLoading ? (
+  //               <div className="py-6 flex justify-center">
+  //                 <Loader2 className="h-6 w-6 animate-spin" />
+  //               </div>
+  //             ) : (
+  //               <div className="text-3xl lg:text-4xl font-bold">₹{Number(walletBalance || 0).toLocaleString("en-IN")}</div>
+  //             )}
+  //           </CardContent>
+  //         </Card>
+  //         <Card className="lg:col-span-2">
+  //           <CardHeader>
+  //             <CardTitle>Transactions</CardTitle>
+  //             <CardDescription>Credits and debits</CardDescription>
+  //           </CardHeader>
+  //           <CardContent>
+  //             {walletLoading ? (
+  //               <div className="flex justify-center py-12">
+  //                 <Loader2 className="h-6 w-6 animate-spin" />
+  //               </div>
+  //             ) : walletTxns.length ? (
+  //               <Table>
+  //                 <TableHeader>
+  //                   <TableRow>
+  //                     <TableHead>Date</TableHead>
+  //                     <TableHead>Type</TableHead>
+  //                     <TableHead>Description</TableHead>
+  //                     <TableHead>Amount</TableHead>
+  //                     <TableHead>Actions</TableHead>  {/* Add this */}
+  //                   </TableRow>
+  //                 </TableHeader>
+  //                 <TableBody>
+  //                   {walletTxns.map((t) => (
+  //                     <TableRow key={t.id}>
+  //                       <TableCell>{new Date(t.created_at).toLocaleString()}</TableCell>
+  //                       <TableCell>
+  //                         <Badge className={t.type === "credit" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+  //                           {t.type === "credit" ? "Credit" : "Debit"}
+  //                         </Badge>
+  //                       </TableCell>
+  //                       <TableCell className="max-w-[420px] truncate" title={t.description}>
+  //                         {t.description}
+  //                       </TableCell>
+  //                       <TableCell className={t.type === "credit" ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
+  //                         {t.type === "credit" ? "+" : "-"}₹{Number(t.amount).toLocaleString("en-IN")}
+  //                       </TableCell>
+  //                       <TableCell>
+  //       {t.type === "credit" && t.user_scheme_id ? (
+  //         <Button
+  //           variant="outline"
+  //           size="sm"
+  //           onClick={() => navigate(`/my-plans/${t.user_scheme_id}/details`)}
+  //         >
+  //           View Scheme Details
+  //         </Button>
+  //       ) : (
+  //         <span className="text-muted-foreground text-xs">—</span>
+  //       )}
+  //     </TableCell>
+  //                     </TableRow>
+  //                   ))}
+  //                 </TableBody>
+  //               </Table>
+  //             ) : (
+  //               <div className="text-sm text-gray-600 py-8 text-center">No transactions yet.</div>
+  //             )}
+  //           </CardContent>
+  //         </Card>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+
   return (
-    <>
-      <Header />
-      <div className="min-h-screen font-serif bg-gray-50">
-        <div className="mx-auto px-4 lg:px-6 py-6 lg:py-10 ">
-
-          {loading && (
-            <div className="flex justify-center items-center h-48 lg:h-64">
-              <div className="animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-[#084526]"></div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-6 p-4 rounded-lg text-sm bg-red-100 text-red-700 border border-red-300">
-              <div className="flex items-center justify-between">
-                <span>{error}</span>
-                <button
-                  onClick={fetchProfile}
-                  className="ml-4 px-4 py-2 bg-[#084526] text-white rounded hover:bg-[#0a5a2e] transition-colors text-sm"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          )}
-
-          {profile && (
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-              {/* Left Sidebar */}
-              <div className="w-full lg:w-80 flex-shrink-0">
-                <div className="bg-white rounded-lg border p-4 lg:p-6">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 lg:w-10 lg:h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <h2 className="text-base lg:text-lg font-semibold text-gray-800">
-                      {profile.data.name}
-                    </h2>
-                    <p className="text-gray-500 text-xs lg:text-sm">
-                      {profile?.data.user_code}
-                    </p>
-                  </div>
-
-                  <nav className="space-y-2">
-                    <button
-                      onClick={() => setActiveSection("profile")}
-                      className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'profile' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <User className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>View Profile</span>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveSection("plans")}
-                      className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'plans' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <Layers className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>My Plans</span>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveSection("vault")}
-                      className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'vault' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <svg className="w-4 h-4 lg:w-5 lg:h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 10.5L12 6L20 10.5V18C20 18.8284 19.3284 19.5 18.5 19.5H5.5C4.67157 19.5 4 18.8284 4 18V10.5Z" stroke="currentColor" strokeWidth="1.5" />
-                        <path d="M9 19.5V13.5H15V19.5" stroke="currentColor" strokeWidth="1.5" />
-                      </svg>
-                      <span>Gold Vault</span>
-                    </button>
-
-                    <button
-                      onClick={() => setActiveSection("customOrders")}
-                      className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'customOrders' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <Sparkles className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>Custom Orders ({customOrders.length})</span>
-                    </button>
-
-                    <button
-                      onClick={() => navigate("/wishlist")}
-                      className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
-                    >
-                      <Heart className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>Wishlist ({wishlistCount})</span>
-                    </button>
-
-                    <button
-                      onClick={() => navigate("/orders")}
-                      className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
-                    >
-                      <Package className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>Orders ({ordersCount || 0})</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        logout();
-                        window.location.href = "/signin";
-                      }}
-                      className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50 text-sm lg:text-base"
-                    >
-                      <LogOut className="w-4 h-4 lg:w-5 lg:h-5" />
-                      <span>Logout</span>
-                    </button>
-                  </nav>
-                </div>
-              </div>
-
-              {/* Right Content Area */}
-              <div className="flex-1 min-w-0">
-                {activeSection === "profile" && renderProfileSection()}
-                {activeSection === "plans" && <div className="mt-0">{renderMyPlans()}</div>}
-                {activeSection === "vault" && <div className="mt-0">{renderGoldVault()}</div>}
-                {activeSection === "customOrders" && <div className="mt-0">{renderCustomOrders()}</div>}
-              </div>
-            </div>
-          )}
+    <ProfileLayout
+      activeSection={activeSection}
+      setActiveSection={setActiveSection}
+      profile={profile}
+      wishlistCount={wishlistCount}
+      ordersCount={ordersCount}
+      customOrdersCount={customOrders.length}
+    >
+      {/* Only content area changes per section; all layout handled by ProfileLayout */}
+      {loading && (
+        <div className="flex justify-center items-center h-48 lg:h-64">
+          <div className="animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-b-2 border-[#084526]"></div>
         </div>
-      </div>
-      <Footer />
-    </>
+      )}
+      {error && (
+        <div className="mb-6 p-4 rounded-lg text-sm bg-red-100 text-red-700 border border-red-300">
+          <div className="flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={fetchProfile}
+              className="ml-4 px-4 py-2 bg-[#084526] text-white rounded hover:bg-[#0a5a2e] transition-colors text-sm"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+      {profile && (
+        <div className="flex-1 min-w-0">
+          {activeSection === "profile" && renderProfileSection()}
+          {activeSection === "plans" && <div className="mt-0">{renderMyPlansTabular()}</div>}
+          {activeSection === "vault" && <div className="mt-0">{renderGoldVault()}</div>}
+          {activeSection === "customOrders" && <div className="mt-0">{renderCustomOrders()}</div>}
+        </div>
+      )}
+    </ProfileLayout>
   );
 };
 

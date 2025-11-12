@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Calendar } from "lucide-react";
@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getUserWithSchemes, getUserSchemesPayments, type UserScheme, type SchemePayment } from "@/lib/api/adminUserController";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const UserSchemes = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -27,7 +29,7 @@ const UserSchemes = () => {
         setLoading(true);
         const response = await getUserWithSchemes(token, Number(userId));
         if (response.status) {
-          setSchemes(response.data.schemes || []);
+          setSchemes(response.data.user_schemes || []);
           setUserName(response.data.name);
         }
       } catch (err: any) {
@@ -44,35 +46,16 @@ const UserSchemes = () => {
     fetchSchemes();
   }, [token, userId, toast]);
 
-  const handleTogglePayments = async (schemeId: number) => {
-    if (schemePayments[schemeId]) {
-      // Hide payments
-      setSchemePayments((prev) => {
-        const newPayments = { ...prev };
-        delete newPayments[schemeId];
-        return newPayments;
-      });
-      return;
-    }
-
-    // Fetch payments
+  const loadPayments = async (schemeId: number) => {
     if (!token || !userId) return;
     try {
       setLoadingPayments((prev) => ({ ...prev, [schemeId]: true }));
       const response = await getUserSchemesPayments(token, Number(userId), schemeId);
       if (response.status) {
-        setSchemePayments((prev) => ({
-          ...prev,
-          [schemeId]: response.data.payments || [],
-        }));
+        setSchemePayments((prev) => ({ ...prev, [schemeId]: response.data.payments || [] }));
       }
     } catch (err: any) {
-      console.error("Error fetching scheme payments:", err);
-      toast({
-        title: "Error",
-        description: "Failed to load scheme payments",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load scheme payments", variant: "destructive" });
     } finally {
       setLoadingPayments((prev) => ({ ...prev, [schemeId]: false }));
     }
@@ -121,6 +104,12 @@ const UserSchemes = () => {
           <TabsTrigger value="customPlans" onClick={() => navigate(`/admin/users/${userId}/custom-plans`)}>
             Custom Plans
           </TabsTrigger>
+          <TabsTrigger value="wallet" onClick={() => navigate(`/admin/users/${userId}/wallet`)}>
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="vault" onClick={() => navigate(`/admin/users/${userId}/gold-vault`)}>
+            Gold vault
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -129,68 +118,52 @@ const UserSchemes = () => {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : schemes.length > 0 ? (
-        <div className="space-y-4 mt-4">
-          {schemes.map((scheme) => (
-            <Card key={scheme.id}>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm font-medium">Scheme #{scheme.id}</p>
-                    <Badge className={`mt-2 ${scheme.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
-                      {scheme.status}
-                    </Badge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleTogglePayments(scheme.scheme_id)}
-                    disabled={loadingPayments[scheme.scheme_id]}
-                  >
-                    {loadingPayments[scheme.scheme_id] ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : schemePayments[scheme.scheme_id] ? (
-                      "Hide Payments"
-                    ) : (
-                      "View Payments"
-                    )}
-                  </Button>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Scheme ID:</span> {scheme.scheme_id}</p>
-                    <p className="text-sm"><span className="font-medium">Monthly Amount:</span> ₹{Number(scheme.monthly_amount).toLocaleString("en-IN")}</p>
-                    <p className="text-sm"><span className="font-medium">Total Paid:</span> ₹{Number(scheme.total_paid).toLocaleString("en-IN")}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Start Date:</span> {new Date(scheme.start_date).toLocaleString()}</p>
-                    <p className="text-sm"><span className="font-medium">End Date:</span> {new Date(scheme.end_date).toLocaleString()}</p>
-                  </div>
-                </div>
-                {schemePayments[scheme.scheme_id] && schemePayments[scheme.scheme_id].length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm font-medium mb-2">Payments:</p>
-                    <div className="space-y-2">
-                      {schemePayments[scheme.scheme_id].map((payment) => (
-                        <div key={payment.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                          <div>
-                            <p className="text-sm">Installment #{payment.installment_number}</p>
-                            <p className="text-xs text-muted-foreground">Due: {new Date(payment.due_date).toLocaleDateString()}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">₹{Number(payment.amount).toLocaleString("en-IN")}</p>
-                            <Badge className={`mt-1 ${getPaymentStatusColor(payment.status)}`}>
-                              {payment.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Schemes ({schemes.length})</CardTitle>
+            <CardDescription>User’s enrolled schemes</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Scheme ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Monthly</TableHead>
+                  <TableHead>Total Paid</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {schemes.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>#{s.id}</TableCell>
+                    <TableCell>
+                      <Badge className={s.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                        {s.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>₹{Number(s.monthly_amount).toLocaleString("en-IN")}</TableCell>
+                    <TableCell>₹{Number(s.total_paid).toLocaleString("en-IN")}</TableCell>
+                    <TableCell>{new Date(s.start_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(s.end_date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/admin/users/${userId}/schemes/${s.id}/details`)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       ) : (
         <div className="text-center py-8 mt-4">
           <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />

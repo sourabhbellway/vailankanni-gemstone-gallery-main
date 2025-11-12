@@ -340,13 +340,13 @@ const NotificationManagement = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">Email Notifications</h4>
                     <p className="text-sm text-muted-foreground">Send notifications via email</p>
                   </div>
                   <Switch defaultChecked />
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">SMS Notifications</h4>
@@ -354,13 +354,13 @@ const NotificationManagement = () => {
                   </div>
                   <Switch defaultChecked />
                 </div>
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">Push Notifications</h4>
                     <p className="text-sm text-muted-foreground">Send browser push notifications</p>
                   </div>
                   <Switch />
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">WhatsApp Integration</h4>
@@ -370,7 +370,7 @@ const NotificationManagement = () => {
                 </div>
               </div>
               
-              <div className="border-t pt-6">
+              {/* <div className="border-t pt-6">
                 <h4 className="font-medium mb-4">Delivery Settings</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -382,7 +382,7 @@ const NotificationManagement = () => {
                     <Input id="delay" type="number" defaultValue="30" />
                   </div>
                 </div>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </TabsContent>

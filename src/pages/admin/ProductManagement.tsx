@@ -860,7 +860,7 @@ const ProductManagement = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                {/* <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label>Stock</Label>
                     <Input value={stock} disabled placeholder="Auto-managed" />
                   </div> */}
@@ -1289,7 +1289,7 @@ const ProductManagement = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-             
+
                   {/* <div className="grid gap-2">
                     <Label htmlFor="editStock">Stock</Label>
                     <Input id="editStock" value={editStock} disabled placeholder="Auto-managed" />
@@ -2229,11 +2229,11 @@ const ProductManagement = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <Button variant="outline">
+                {/* <Button variant="outline">
                   <Upload className="mr-2 h-4 w-4" />
                   Import Products (CSV)
                 </Button>
-                <Button variant="outline">Export Products (CSV)</Button>
+                <Button variant="outline">Export Products (CSV)</Button> */}
                 <Button
                   variant="outline"
                   onClick={() => {

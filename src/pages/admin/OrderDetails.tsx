@@ -210,10 +210,7 @@ const OrderDetails = () => {
             <Download className="mr-2 h-4 w-4" />
             Download Invoice
           </Button>
-          <Button variant="outline">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Contact Customer
-          </Button>
+        
           <Button
             variant="outline"
             size="sm"

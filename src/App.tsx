@@ -43,13 +43,20 @@ import Orders from "./pages/Orders";
 import Wishlist from "./pages/Wishlist";
 import UserOrderDetails from "./pages/OrderDetails";
 import CustomOrder from "./pages/CustomOrder";
+import Wallet from "./pages/Wallet";
 import SchemeManagement from "./pages/admin/SchemeManagement";
 import UserOverview from "./pages/admin/users/UserOverview";
 import UserOrders from "./pages/admin/users/UserOrders";
 import UserCustomOrders from "./pages/admin/users/UserCustomOrders";
 import UserSchemes from "./pages/admin/users/UserSchemes";
 import UserCustomPlans from "./pages/admin/users/UserCustomPlans";
+import CustomOrderDetails from "./pages/admin/CustomOrderDetails";
+import UserWallet from "./pages/admin/users/UserWallet";
+import UserGoldVault from "./pages/admin/users/UserGoldVault";
 import ScrollToTop from "./hooks/ScrollToTop";
+import ViewSchemeDetails from "./pages/admin/users/ViewSchemeDetails";
+import ViewCustomPlanDetails from "./pages/admin/users/ViewCustomPlanDetails";
+import MyPlanDetails from "./pages/MyPlanDetails";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -80,6 +87,14 @@ const App = () => (
               element={
                 <ProtectedUserRoute>
                   <Profile />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/my-plans/:planId/details"
+              element={
+                <ProtectedUserRoute>
+                  <MyPlanDetails />
                 </ProtectedUserRoute>
               }
             />
@@ -120,6 +135,14 @@ const App = () => (
               element={
                 <ProtectedUserRoute>
                   <Wishlist />
+                </ProtectedUserRoute>
+              }
+            />
+            <Route
+              path="/wallet"
+              element={
+                <ProtectedUserRoute>
+                  <Wallet />
                 </ProtectedUserRoute>
               }
             />
@@ -181,6 +204,16 @@ const App = () => (
               }
             />
             <Route
+              path="/admin/custom-orders/:orderId"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <CustomOrderDetails />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/users"
               element={
                 <ProtectedRoute>
@@ -231,11 +264,51 @@ const App = () => (
               }
             />
             <Route
+              path="/admin/users/:userId/schemes/:userSchemeId/details"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <ViewSchemeDetails />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/custom-plans/:customPlanId/details"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <ViewCustomPlanDetails />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/users/:userId/custom-plans"
               element={
                 <ProtectedRoute>
                   <AdminLayout>
                     <UserCustomPlans />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/wallet"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserWallet />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId/gold-vault"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <UserGoldVault />
                   </AdminLayout>
                 </ProtectedRoute>
               }
