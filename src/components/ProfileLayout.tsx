@@ -7,8 +7,8 @@ import { useUserAuth } from "@/context/UserAuthContext";
 
 type ProfileLayoutProps = {
   children: React.ReactNode;
-  activeSection?: "profile" | "plans" | "wallet" | "vault" | "customOrders";
-  setActiveSection?: (section: "profile" | "plans" | "wallet" | "vault" | "customOrders") => void;
+  activeSection?: "profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist";
+  setActiveSection?: (section: "profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist") => void;
   profile?: any;
   wishlistCount?: number;
   ordersCount?: number;
@@ -27,9 +27,17 @@ const ProfileLayout = ({
     const navigate = useNavigate();
     const { logout } = useUserAuth();
 
-    const goto = (section: "profile" | "plans" | "wallet" | "vault" | "customOrders") => {
+    const goto = (section: "profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist") => {
       if (section === "wallet") {
         navigate("/wallet");
+        return;
+      }
+      if (section === "orders") {
+        navigate("/orders");
+        return;
+      }
+      if (section === "wishlist") {
+        navigate("/wishlist");
         return;
       }
       if (setActiveSection) {
@@ -107,16 +115,16 @@ const ProfileLayout = ({
                                     </button>
                                     <button 
                                         type="button"
-                                        onClick={() => navigate("/wishlist")}
-                                        className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
+                                        onClick={() => goto("wishlist")}
+                                        className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'wishlist' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                                     >
                                         <Heart className="w-4 h-4 lg:w-5 lg:h-5" />
                                         <span>Wishlist ({wishlistCount})</span>
                                     </button>
                                     <button 
                                         type="button"
-                                        onClick={() => navigate("/orders")}
-                                        className="w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-gray-700 hover:bg-gray-100 text-sm lg:text-base"
+                                        onClick={() => goto("orders")}
+                                        className={`w-full flex items-center space-x-3 px-3 lg:px-4 py-2 lg:py-3 rounded-lg text-left transition-colors text-sm lg:text-base ${activeSection === 'orders' ? 'bg-[#084526] text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                                     >
                                         <Package className="w-4 h-4 lg:w-5 lg:h-5" />
                                         <span>Orders ({ordersCount || 0})</span>

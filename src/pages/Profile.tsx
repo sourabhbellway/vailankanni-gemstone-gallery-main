@@ -9,7 +9,7 @@ import { getOrders } from "@/lib/api/orderController";
 import { getMyCustomOrders, type CustomOrder } from "@/lib/api/customOrderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import {  Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles, Wallet as WalletIcon, Loader2 } from "lucide-react";
+import { Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles, Wallet as WalletIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMyPlans, createNextInstallmentOrder, verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 import { load } from "@cashfreepayments/cashfree-js";
@@ -36,7 +36,7 @@ const Profile = () => {
   const [ordersCount, setOrdersCount] = React.useState(0);
   const [plans, setPlans] = React.useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "wallet" | "vault" | "customOrders">(
+  const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist">(
     (location.state as any)?.activeSection || "profile"
   );
   const [vaultLoading, setVaultLoading] = React.useState(false);
@@ -108,7 +108,7 @@ const Profile = () => {
       console.log("ordersData.success:", ordersData?.success);
       console.log("ordersData.data:", ordersData?.data);
       console.log("Is array?", Array.isArray(ordersData?.data));
-      
+
       if (ordersData && ordersData.success && ordersData.data) {
         // Response structure: { success: true, data: [...] }
         const ordersArray = ordersData.data;
@@ -149,7 +149,7 @@ const Profile = () => {
     }
   };
 
- 
+
 
   React.useEffect(() => {
     if (token) {
@@ -229,58 +229,86 @@ const Profile = () => {
     })();
   }, [activeSection, token, profile, toast]);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-amber-50 text-amber-700 border border-amber-200'; // Soft warm yellow
+      case 'processing':
+        return 'bg-sky-50 text-sky-700 border border-sky-200'; // Calm blue tone
+      case 'confirmed':
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200'; // Fresh mint green
+      case 'completed':
+        return 'bg-green-50 text-green-700 border border-green-200'; // Success green
+      case 'cancelled':
+        return 'bg-rose-50 text-rose-700 border border-rose-200'; // Elegant red/pink tone
+      default:
+        return 'bg-slate-50 text-slate-700 border border-slate-200'; // Neutral gray
+    }
+  };  
+
   const renderProfileSection = () => (
-    <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">Profile Information</h2>
+    <div className="space-y-6 border p-6 rounded-2xl bg-gray-50 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+        <h2 className="text-2xl font-bold text-[#084526] tracking-tight">Profile Information</h2>
+        <p className="text-sm text-gray-600">View your account details and current status</p>
+      </div>
+  
       {profile && (
-        <div className="bg-white">
-          <div className="mb-4 lg:mb-6">
-            <h3 className="text-lg lg:text-xl font-semibold text-gray-800 uppercase">
-              {profile.data.name}
+        <div className="bg-white rounded-2xl shadow-md p-6 transition-all hover:shadow-lg">
+          {/* Name / Top Section */}
+          <div className="mb-6 border-b pb-4">
+            <h3 className="text-xl font-semibold text-gray-900">
+              {profile?.data.name || "User Name"}
             </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Member since {new Date(profile?.data.created_at).toLocaleDateString() || "-"}
+            </p>
           </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
-              <div>
-                <label className="text-xs lg:text-sm font-medium text-gray-500">Full Name</label>
-                <p className="text-sm lg:text-base text-gray-800 font-semibold break-words">
-                  {profile?.data.name ?? "-"}
-                </p>
+  
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-medium text-gray-500">Full Name</label>
+              <p className="text-base text-gray-900 font-semibold mt-1">
+                {profile?.data.name ?? "-"}
+              </p>
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-500">Email Address</label>
+              <p className="text-base text-gray-900 font-semibold mt-1 break-words">
+                {profile?.data.email ?? "-"}
+              </p>
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-500">Mobile Number</label>
+              <p className="text-base text-gray-900 font-semibold mt-1">
+                {profile?.data.mobile ?? "-"}
+              </p>
+            </div>
+  
+            <div>
+              <label className="text-sm font-medium text-gray-500">Account Status</label>
+              <div className="mt-1">
+                <Badge
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    profile?.data.status
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {profile?.data.status ? "Active" : "Inactive"}
+                </Badge>
               </div>
-
-              <div>
-                <label className="text-xs lg:text-sm font-medium text-gray-500">Email Address</label>
-                <p className="text-sm lg:text-base text-gray-800 font-semibold break-words">
-                  {profile?.data.email ?? "-"}
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs lg:text-sm font-medium text-gray-500">Mobile Number</label>
-                <p className="text-sm lg:text-base text-gray-800 font-semibold">
-                  {profile?.data.mobile ?? "-"}
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs lg:text-sm font-medium text-gray-500">Account Status</label>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${profile?.data.status
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                    }`}>
-                    {profile?.data.status ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-xs lg:text-sm font-medium text-gray-500">Last Login</label>
-                <p className="text-xs lg:text-sm text-gray-800 font-semibold">
-                  {profile?.data.last_login_at ?? "-"}
-                </p>
-              </div>
+            </div>
+  
+            <div className="sm:col-span-2">
+              <label className="text-sm font-medium text-gray-500">Last Login</label>
+              <p className="text-sm text-gray-900 font-semibold mt-1">
+                {profile?.data.last_login_at ?? "-"}
+              </p>
             </div>
           </div>
         </div>
@@ -288,116 +316,291 @@ const Profile = () => {
     </div>
   );
 
-  const openCashfreeForPayment = async (plan: any, payment: any) => {
-    if (!token) return;
-    try {
-      const create = await createNextInstallmentOrder(token, Number(payment.id));
-      if (!create?.success) throw new Error("Failed to create order");
-      const activeOrder = (create as any)?.cashfree_order || (create as any)?.razorpay_order || {};
-      const sessionId =
-        extractCashfreeSessionId(activeOrder) ||
-        extractCashfreeSessionId((create as any)?.data) ||
-        extractCashfreeSessionId(create) ||
-        (activeOrder as any)?.payment_session_id ||
-        (create as any)?.payment_session_id;
-      if (!sessionId) {
-        toast({ title: "Payment error", description: "Missing Cashfree session. Please try again." });
-        return;
-      }
+  // const openCashfreeForPayment = async (plan: any, payment: any) => {
+  //   if (!token) return;
+  //   try {
+  //     const create = await createNextInstallmentOrder(token, Number(payment.id));
+  //     if (!create?.success) throw new Error("Failed to create order");
+  //     const activeOrder = (create as any)?.cashfree_order || (create as any)?.razorpay_order || {};
+  //     const sessionId =
+  //       extractCashfreeSessionId(activeOrder) ||
+  //       extractCashfreeSessionId((create as any)?.data) ||
+  //       extractCashfreeSessionId(create) ||
+  //       (activeOrder as any)?.payment_session_id ||
+  //       (create as any)?.payment_session_id;
+  //     if (!sessionId) {
+  //       toast({ title: "Payment error", description: "Missing Cashfree session. Please try again." });
+  //       return;
+  //     }
 
-      const cashfree = await load({ mode: "sandbox" as any });
-      await cashfree.checkout({
-        paymentSessionId: sessionId,
-        redirectTarget: "_self",
-        returnUrl: `${window.location.origin}/payment-success?type=scheme&order_id=${encodeURIComponent(String((activeOrder as any)?.order_id || ""))}&scheme_payment_id=${encodeURIComponent(String(payment.id))}`,
-        onSuccess: async (data: any) => {
-          try {
-            const cfPaymentId = data?.txnReference || data?.payment?.paymentId || data?.paymentId || data?.cf_payment_id || "";
-            await verifySchemePaymentCashfree(token, {
-              scheme_payment_id: Number(payment.id),
-              order_id: String(activeOrder?.order_id || ""),
-              razorpay_payment_id: String(cfPaymentId || ""),
-            });
-            toast({ title: "Payment verified", description: "Installment paid successfully" });
-            const res = await getMyPlans(token);
-            if (res.success) setPlans(res.data || []);
-          } catch (err: any) {
-            toast({ title: "Verification failed", description: err?.response?.data?.message || "Please contact support" });
-          }
-        },
-        onFailure: (err: any) => {
-          toast({ title: "Payment failed", description: err?.message || "Please try again" });
-        },
-      });
-    } catch (err: any) {
-      const serverMsg = err?.response?.data?.message || err?.response?.data?.error;
-      toast({ title: "Payment init failed", description: serverMsg || err?.message || "Try again later" });
-    }
-  };
+  //     const cashfree = await load({ mode: "sandbox" as any });
+  //     await cashfree.checkout({
+  //       paymentSessionId: sessionId,
+  //       redirectTarget: "_self",
+  //       returnUrl: `${window.location.origin}/payment-success?type=scheme&order_id=${encodeURIComponent(String((activeOrder as any)?.order_id || ""))}&scheme_payment_id=${encodeURIComponent(String(payment.id))}`,
+  //       onSuccess: async (data: any) => {
+  //         try {
+  //           const cfPaymentId = data?.txnReference || data?.payment?.paymentId || data?.paymentId || data?.cf_payment_id || "";
+  //           await verifySchemePaymentCashfree(token, {
+  //             scheme_payment_id: Number(payment.id),
+  //             order_id: String(activeOrder?.order_id || ""),
+  //             razorpay_payment_id: String(cfPaymentId || ""),
+  //           });
+  //           toast({ title: "Payment verified", description: "Installment paid successfully" });
+  //           const res = await getMyPlans(token);
+  //           if (res.success) setPlans(res.data || []);
+  //         } catch (err: any) {
+  //           toast({ title: "Verification failed", description: err?.response?.data?.message || "Please contact support" });
+  //         }
+  //       },
+  //       onFailure: (err: any) => {
+  //         toast({ title: "Payment failed", description: err?.message || "Please try again" });
+  //       },
+  //     });
+  //   } catch (err: any) {
+  //     const serverMsg = err?.response?.data?.message || err?.response?.data?.error;
+  //     toast({ title: "Payment init failed", description: serverMsg || err?.message || "Try again later" });
+  //   }
+  // };
 
   const renderMyPlansTabular = () => (
-    <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">My Plans</h2>
-      <div className="bg-white">
+    <div className="space-y-6 border p-6 rounded-2xl bg-gray-50 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+        <h2 className="text-2xl font-bold text-[#084526] tracking-tight">My Plans</h2>
+        <p className="text-sm text-gray-600">Overview of your active investment plans</p>
+      </div>
+
+      {/* Table / Loader / Empty State */}
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
         {loadingPlans ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 lg:h-10 lg:w-10 border-b-2 border-[#084526]"></div>
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#084526]"></div>
           </div>
         ) : plans.length === 0 ? (
-          <div className="text-sm text-gray-600">No active plans found.</div>
+          <div className="p-8 text-center text-gray-500 text-sm">
+            No active plans found.
+          </div>
         ) : (
           <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Scheme</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">End</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monthly</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Paid</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plans.map((plan) => (
-              <tr key={plan.id} className="bg-white border-b">
-                <td className="px-3 py-2 whitespace-nowrap font-bold">{plan.scheme?.scheme}</td>
-                <td className="px-3 py-2 whitespace-nowrap"><span className="inline-block rounded px-2 py-1 text-xs bg-gray-100 font-semibold">{plan.status}</span></td>
-                <td className="px-3 py-2 whitespace-nowrap">{new Date(plan.start_date).toLocaleDateString()}</td>
-                <td className="px-3 py-2 whitespace-nowrap">{new Date(plan.end_date).toLocaleDateString()}</td>
-                <td className="px-3 py-2 whitespace-nowrap">₹{Number(plan.monthly_amount).toLocaleString("en-IN")}</td>
-                <td className="px-3 py-2 whitespace-nowrap">₹{Number(plan.total_paid).toLocaleString("en-IN")}</td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/my-plans/${plan.id}/details`)}>View Details</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Scheme</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Start</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">End</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Monthly</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Total Paid</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wide">Action</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100">
+                {plans.map((plan) => (
+                  <tr
+                    key={plan.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                      {plan.scheme?.scheme}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Badge
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${plan.status === "active"
+                            ? "bg-green-100 text-green-700"
+                            : plan.status === "pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
+                        {plan.status}
+                      </Badge>
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                      {new Date(plan.start_date).toLocaleDateString()}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                      {new Date(plan.end_date).toLocaleDateString()}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">
+                      ₹{Number(plan.monthly_amount).toLocaleString("en-IN")}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">
+                      ₹{Number(plan.total_paid).toLocaleString("en-IN")}
+                    </td>
+
+                    <td className="px-4 py-3 whitespace-nowrap ">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white transition-colors"
+                        onClick={() => navigate(`/my-plans/${plan.id}/details`)}
+                      >
+                        View Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderGoldVault = () => (
+    <div className="space-y-6 border rounded-2xl p-4 lg:p-6 bg-gray-50/50">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-2xl font-bold text-[#084526] flex items-center gap-2">
+          🪙 Gold Vault
+        </h2>
+        <span className="text-sm text-gray-500">
+          Your digital gold summary & transactions
+        </span>
+      </div>
+  
+      {vaultLoading ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#084526] border-t-transparent"></div>
+        </div>
+      ) : vaultError ? (
+        <div className="text-sm text-gray-600">{vaultError}</div>
+      ) : !vaultSummary ? (
+        <div className="text-sm text-gray-600">No data found.</div>
+      ) : (
+        <div className="space-y-8">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="relative bg-gradient-to-br from-yellow-50 to-amber-100 p-5 rounded-2xl shadow-md border border-amber-200">
+              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Gold (g)</div>
+              <div className="mt-2 text-2xl font-bold text-gray-800">
+                {Number(vaultSummary.total_gold_grams || 0).toFixed(4)} g
+              </div>
+              <div className="absolute top-2 right-3 text-yellow-400">🏆</div>
+            </div>
+  
+            <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 p-5 rounded-2xl shadow-md border border-emerald-200">
+              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Invested</div>
+              <div className="mt-2 text-2xl font-bold text-gray-800">
+                ₹ {Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}
+              </div>
+              <div className="absolute top-2 right-3 text-emerald-500">💰</div>
+            </div>
+  
+            <div className="relative bg-gradient-to-br from-sky-50 to-blue-100 p-5 rounded-2xl shadow-md border border-blue-200">
+              <div className="text-xs uppercase text-gray-500 tracking-wide">Current Rate</div>
+              <div className="mt-2 text-2xl font-bold text-gray-800">
+                ₹ {Number(vaultSummary.current_gold_rate || 0)}
+              </div>
+              <div className="absolute top-2 right-3 text-sky-500">📈</div>
+            </div>
+  
+            <div className="relative bg-gradient-to-br from-amber-50 to-yellow-100 p-5 rounded-2xl shadow-md border border-yellow-200">
+              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Value</div>
+              <div className="mt-2 text-2xl font-bold text-gray-800">
+                ₹ {Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}
+              </div>
+              <div className="absolute top-2 right-3 text-yellow-500">🏅</div>
+            </div>
+          </div>
+  
+          {/* Table */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-5 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Gold Transactions</h3>
+                <p className="text-sm text-gray-500">
+                  Overview of all plan payments and gold accumulation
+                </p>
+              </div>
+              <div className="text-sm text-gray-500">
+                {vaultSummary?.plans?.length || 0} Plans
+              </div>
+            </div>
+  
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Plan ID</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Gold (g)</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Rate</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Paid Amount</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Order ID</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Payment ID</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Transaction Date & Time</th>
+                  </tr>
+                </thead>
+  
+                <tbody className="divide-y">
+                  {(vaultSummary.plans || []).map((plan) =>
+                    plan.payments && plan.payments.length > 0 ? (
+                      plan.payments.map((p) => (
+                        <tr key={p.payment_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-[#084526]">#{plan.plan_id}</td>
+                          <td className="px-4 py-3">{plan.gold_grams} g</td>
+                          <td className="px-4 py-3">₹ {plan.gold_rate}</td>
+                          <td className="px-4 py-3 font-semibold text-emerald-700">
+                            ₹ {Number(p.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{p.order_id}</td>
+                          <td className="px-4 py-3 text-gray-700">{p.payment_id}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border
+                                ${p.status === "success"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                                }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${p.status === "success" ? "bg-emerald-500" : "bg-rose-500"}`}
+                              ></span>
+                              {p.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {new Date(p.start_date).toLocaleDateString()}
+                            <div className="text-xs text-gray-500">
+                              {new Date(p.start_date).toLocaleTimeString()}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr key={plan.plan_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-[#084526]">#{plan.plan_id}</td>
+                        <td className="px-4 py-3">{plan.gold_grams} g</td>
+                        <td className="px-4 py-3">₹ {plan.gold_rate}</td>
+                        <td className="px-4 py-3 text-gray-400" colSpan={4}>
+                          No payments
+                        </td>
+                        <td className="px-4 py-3">
+                          {new Date(plan.created_at).toLocaleDateString()}
+                          <div className="text-xs text-gray-500">
+                            {new Date(plan.created_at).toLocaleTimeString()}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>
-  </div>
-);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
+  );
+  
   const renderCustomOrders = () => (
     <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
       <div className="flex items-center justify-between">
@@ -534,198 +737,8 @@ const Profile = () => {
     </div>
   );
 
-  const renderGoldVault = () => (
-    <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
-      <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">Gold Vault</h2>
-      <div className="bg-white">
-        {vaultLoading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 lg:h-10 lg:w-10 border-b-2 border-[#084526]"></div>
-          </div>
-        ) : vaultError ? (
-          <div className="text-sm text-gray-600">{vaultError}</div>
-        ) : !vaultSummary ? (
-          <div className="text-sm text-gray-600">No data found.</div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="bg-amber-100 rounded p-4 shadow-lg  ">
-                <div className="text-xs text-muted-foreground">Total Gold (g)</div>
-                <div className="text-lg font-semibold">{Number(vaultSummary.total_gold_grams || 0).toFixed(4)} g</div>
-              </div>
-              <div className="bg-amber-100 rounded p-4 shadow-lg">
-                <div className="text-xs text-muted-foreground">Total Invested</div>
-                <div className="text-lg font-semibold">₹ {Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}</div>
-              </div>
-              <div className="bg-amber-100 rounded p-4 shadow-lg">
-                <div className="text-xs text-muted-foreground">Current Rate</div>
-                <div className="text-lg font-semibold">₹ {Number(vaultSummary.current_gold_rate || 0)}</div>
-              </div>
 
 
-              <div className="bg-amber-100 rounded p-4 shadow-lg">
-                <div className="text-xs text-muted-foreground">Total value </div>
-                <div className="text-lg font-semibold">{Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}</div>
-              </div>
-            </div>
-
-          
-            <div className="overflow-x-auto">
-              <table className="min-w-full border rounded">
-                <thead className="bg-stone-200">
-                  <tr>
-                    {/* <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Date</th> */}
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Plan ID</th>
-                    {/* <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Invested</th> */}
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Gold (g)</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Rate</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Paid Amount</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Order ID</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Payment ID</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Status</th>
-                    <th className="text-left text-sm font-semibold text-gray-700 px-3 py-2">Transaction Date & Time</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {(vaultSummary.plans || []).map((plan) => (
-                    (plan.payments && plan.payments.length > 0
-                      ? plan.payments.map((p) => (
-                        <tr key={p.payment_id} className="border-t">
-                          {/* <td className="px-3 py-2 text-sm">
-                  {new Date(plan.created_at).toLocaleDateString()}
-                </td> */}
-                          <td className="px-3 py-2 text-sm font-medium">#{plan.plan_id}</td>
-                          {/* <td className="px-3 py-2 text-sm">₹ {Number(plan.invested_amount).toLocaleString("en-IN")}</td> */}
-                          <td className="px-3 py-2 text-sm">{plan.gold_grams} g</td>
-                          <td className="px-3 py-2 text-sm">₹ {plan.gold_rate}</td>
-                          <td className="px-3 py-2 text-sm">₹ {Number(p.amount).toLocaleString("en-IN")}</td>
-                          <td className="px-3 py-2 text-sm">{p.order_id}</td>
-                          <td className="px-3 py-2 text-sm">{p.payment_id}</td>
-                          <td className="px-3 py-2 text-sm capitalize ">
-                            <span className={`${p.status === 'success' ? 'bg-lime-900 ' : 'bg-red-400 '} rounded px-4 py-1 text-white`}>
-                              {p.status}
-                            </span>
-
-                          </td>
-                          <td className="px-3 py-2 text-sm">
-                            {new Date(p.start_date).toLocaleDateString()} <br />
-                            <span className="text-xs text-gray-500">
-                              {new Date(p.start_date).toLocaleTimeString()}
-                            </span>
-                          </td>
-
-                        </tr>
-                      ))
-                      : (
-                        <tr key={plan.plan_id} className="border-t">
-                          <td className="px-3 py-2 text-sm">
-                            {new Date(plan.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-3 py-2 text-sm font-medium">#{plan.plan_id}</td>
-                          <td className="px-3 py-2 text-sm">₹ {Number(plan.invested_amount).toLocaleString("en-IN")}</td>
-                          <td className="px-3 py-2 text-sm">{plan.gold_grams} g</td>
-                          <td className="px-3 py-2 text-sm">₹ {plan.gold_rate}</td>
-                          <td className="px-3 py-2 text-sm text-gray-400" colSpan={4}>No payments</td>
-                        </tr>
-                      )
-                    )
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // const renderWallet = () => (
-  //   <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
-  //     <h2 className="text-xl lg:text-2xl font-bold text-[#084526]">Wallet</h2>
-  //     <div className="bg-white">
-  //       <div className="grid gap-4 lg:grid-cols-3">
-  //         <Card className="lg:col-span-1">
-  //           <CardHeader>
-  //             <CardTitle className="flex items-center gap-2">
-  //               <WalletIcon className="w-4 h-4 lg:w-5 lg:h-5" />
-  //               Balance
-  //             </CardTitle>
-  //             <CardDescription>Maturity amounts from plans are credited here</CardDescription>
-  //           </CardHeader>
-  //           <CardContent>
-  //             {walletLoading ? (
-  //               <div className="py-6 flex justify-center">
-  //                 <Loader2 className="h-6 w-6 animate-spin" />
-  //               </div>
-  //             ) : (
-  //               <div className="text-3xl lg:text-4xl font-bold">₹{Number(walletBalance || 0).toLocaleString("en-IN")}</div>
-  //             )}
-  //           </CardContent>
-  //         </Card>
-  //         <Card className="lg:col-span-2">
-  //           <CardHeader>
-  //             <CardTitle>Transactions</CardTitle>
-  //             <CardDescription>Credits and debits</CardDescription>
-  //           </CardHeader>
-  //           <CardContent>
-  //             {walletLoading ? (
-  //               <div className="flex justify-center py-12">
-  //                 <Loader2 className="h-6 w-6 animate-spin" />
-  //               </div>
-  //             ) : walletTxns.length ? (
-  //               <Table>
-  //                 <TableHeader>
-  //                   <TableRow>
-  //                     <TableHead>Date</TableHead>
-  //                     <TableHead>Type</TableHead>
-  //                     <TableHead>Description</TableHead>
-  //                     <TableHead>Amount</TableHead>
-  //                     <TableHead>Actions</TableHead>  {/* Add this */}
-  //                   </TableRow>
-  //                 </TableHeader>
-  //                 <TableBody>
-  //                   {walletTxns.map((t) => (
-  //                     <TableRow key={t.id}>
-  //                       <TableCell>{new Date(t.created_at).toLocaleString()}</TableCell>
-  //                       <TableCell>
-  //                         <Badge className={t.type === "credit" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-  //                           {t.type === "credit" ? "Credit" : "Debit"}
-  //                         </Badge>
-  //                       </TableCell>
-  //                       <TableCell className="max-w-[420px] truncate" title={t.description}>
-  //                         {t.description}
-  //                       </TableCell>
-  //                       <TableCell className={t.type === "credit" ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
-  //                         {t.type === "credit" ? "+" : "-"}₹{Number(t.amount).toLocaleString("en-IN")}
-  //                       </TableCell>
-  //                       <TableCell>
-  //       {t.type === "credit" && t.user_scheme_id ? (
-  //         <Button
-  //           variant="outline"
-  //           size="sm"
-  //           onClick={() => navigate(`/my-plans/${t.user_scheme_id}/details`)}
-  //         >
-  //           View Scheme Details
-  //         </Button>
-  //       ) : (
-  //         <span className="text-muted-foreground text-xs">—</span>
-  //       )}
-  //     </TableCell>
-  //                     </TableRow>
-  //                   ))}
-  //                 </TableBody>
-  //               </Table>
-  //             ) : (
-  //               <div className="text-sm text-gray-600 py-8 text-center">No transactions yet.</div>
-  //             )}
-  //           </CardContent>
-  //         </Card>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
 
   return (
     <ProfileLayout

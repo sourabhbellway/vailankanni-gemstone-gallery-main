@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { getWishlistItems, removeFromWishlist } from "@/lib/api/wishlistController";
 import { addToCart } from "@/lib/api/cartController";
 import { useUserAuth } from "@/context/UserAuthContext";
@@ -10,6 +8,9 @@ import { Heart, ArrowLeft, ShoppingCart, Plus, Sparkles, Trash2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import QuantityDialog from "@/components/QuantityDialog";
 import { getImageUrl } from "@/config";
+import ProfileLayout from "@/components/ProfileLayout";
+import { getUserProfile } from "@/lib/api/userController";
+import { Loader2 } from "lucide-react";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -21,8 +22,19 @@ const Wishlist = () => {
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [showQuantityDialog, setShowQuantityDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
-  const fetchWishlistItems = async () => {
+  const fetchProfile = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getUserProfile(token);
+      setProfile(data);
+    } catch (err) {
+      console.error("Profile fetch error:", err);
+    }
+  }, [token]);
+
+  const fetchWishlistItems = useCallback(async () => {
     if (!token) {
       navigate("/signin");
       return;
@@ -44,7 +56,7 @@ const Wishlist = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigate, toast]);
 
   const handleRemoveFromWishlist = async (wishlistId: number) => {
     if (!token) return;
@@ -103,8 +115,24 @@ const Wishlist = () => {
   };
 
   useEffect(() => {
+    fetchProfile();
     fetchWishlistItems();
-  }, []);
+  }, [fetchProfile, fetchWishlistItems]);
+
+  const handleSectionChange = (
+    section: "profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist"
+  ) => {
+    if (section === "wishlist") return;
+    if (section === "orders") {
+      navigate("/orders");
+      return;
+    }
+    if (section === "wallet") {
+      navigate("/wallet");
+      return;
+    }
+    navigate("/profile", { state: { activeSection: section } });
+  };
 
   const getProductImages = (product: any) => {
     try {
@@ -120,167 +148,144 @@ const Wishlist = () => {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen font-serif ">
-          <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#084526]"></div>
-          </div>
+      <ProfileLayout
+        activeSection="wishlist"
+        setActiveSection={handleSectionChange}
+        profile={profile}
+      >
+        <div className="flex justify-center items-center h-80">
+          <Loader2 className="w-6 h-6 animate-spin text-[#084526]" />
         </div>
-        <Footer />
-      </>
+      </ProfileLayout>
     );
   }
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen font-serif ">
-        <div className="mx-auto px-4 py-10 ">
-          {/* Header Section */}
-          <div className="mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(-1)}
-              className="mb-4 text-[#084526] hover:text-[#0a5a2e]"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#084526] rounded-full">
-                <Heart className="w-8 h-8 text-white" />
+    <ProfileLayout
+      activeSection="wishlist"
+      setActiveSection={handleSectionChange}
+      profile={profile}
+    >
+      <div className="space-y-6 border p-6 rounded-2xl bg-gray-50 shadow-sm">
+        <div className="flex items-center space-x-3 border-b pb-4">
+          <div className="p-3 bg-[#084526] rounded-full">
+            <Heart className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-[#084526]">My Wishlist</h1>
+            <p className="text-gray-600">Your favorite jewelry pieces</p>
+          </div>
+        </div>
+
+        {wishlistItems.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {wishlistItems.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-2xl shadow-xl p-6 border border-amber-100 group hover:shadow-2xl transition-all duration-300"
+              >
+                <div className="relative mb-4">
+                  <img
+                    src={getProductImages(item.product)}
+                    alt={item.product.name}
+                    className="w-full h-48 object-cover rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRemoveFromWishlist(item.id)}
+                      disabled={removing === item.id}
+                      className="w-8 h-8 p-0 bg-white/90 hover:bg-red-50 text-red-600 hover:text-red-800 border-red-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="absolute top-3 left-3">
+                    <div className="bg-[#084526] text-white px-2 py-1 rounded-full text-xs font-bold">
+                      {item.product.purity}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-gray-800 line-clamp-2 group-hover:text-[#084526] transition-colors">
+                    {item.product.name}
+                  </h3>
+
+                  <div className="space-y-1">
+                    <p className="text-sm text-amber-600 font-medium flex items-center">
+                      <Sparkles className="w-4 h-4 mr-1" />
+                      Purity: {item.product.purity}
+                    </p>
+                    <p className="text-sm text-gray-600">Weight: {item.product.weight} g</p>
+                    <p className="text-xl font-bold text-[#084526]">
+                      ₹{Number(item.product.price).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3">
+                    <Button
+                      size="sm"
+                      className="bg-[#084526] hover:bg-[#0a5a2e] text-white"
+                      onClick={() => handleAddToCart(item.product)}
+                      disabled={addingToCart === item.product.id}
+                    >
+                      {addingToCart === item.product.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                      )}
+                      Add to Cart
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-[#084526] border-[#084526]"
+                      onClick={() => navigate(`/plan/${item.product.slug}`)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Details
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h1 className="text-4xl font-bold text-[#084526]">My Wishlist</h1>
-                <p className="text-gray-600">Your favorite jewelry pieces</p>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <div className="bg-white rounded-2xl shadow p-12 max-w-md mx-auto">
+              <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Heart className="w-12 h-12 text-amber-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Wishlist is empty</h3>
+              <p className="text-gray-600 mb-8">Start adding your favourite jewelry items</p>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => navigate("/")}
+                  className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white px-8 py-3 text-lg font-semibold rounded-xl"
+                >
+                  Explore Collections
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/cart")}
+                  className="w-full text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white"
+                >
+                  View Cart
+                </Button>
               </div>
             </div>
           </div>
-
-          {wishlistItems.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {wishlistItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-2xl shadow-xl p-6 border border-amber-100 group hover:shadow-2xl transition-all duration-300">
-                  {/* Product Image */}
-                  <div className="relative mb-4">
-                    <img
-                      src={getProductImages(item.product)}
-                      alt={item.product.name}
-                      className="w-full h-48 object-cover rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveFromWishlist(item.id)}
-                        disabled={removing === item.id}
-                        className="w-8 h-8 p-0 bg-white/90 hover:bg-red-50 text-red-600 hover:text-red-800 border-red-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="absolute top-3 left-3">
-                      <div className="bg-[#084526] text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {item.product.purity}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-bold text-gray-800 line-clamp-2 group-hover:text-[#084526] transition-colors">
-                      {item.product.name}
-                    </h3>
-                    
-                    <div className="space-y-1">
-                      <p className="text-sm text-amber-600 font-medium flex items-center">
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Purity: {item.product.purity}
-                      </p>
-                      <p className="text-sm text-gray-600">Weight: {item.product.weight}g</p>
-                      <p className="text-sm text-gray-600">Stock: {item.product.stock} available</p>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <p className="text-xl font-bold text-[#084526]">₹{item.product.price}</p>
-                      <div className="text-sm text-gray-500">
-                        {item.product.stock > 0 ? (
-                          <span className="text-green-600 font-medium">In Stock</span>
-                        ) : (
-                          <span className="text-red-600 font-medium">Out of Stock</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-2 pt-2">
-                      <Button
-                        onClick={() => handleAddToCart(item.product)}
-                        disabled={addingToCart === item.product.id || item.product.stock === 0}
-                        className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white rounded-xl"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        {addingToCart === item.product.id ? "Adding..." : "Add to Cart"}
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate(`/product/${item.product.id}`)}
-                        className="w-full text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white rounded-xl"
-                      >
-                
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
-                <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Heart className="w-12 h-12 text-amber-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">Your wishlist is empty</h3>
-                <p className="text-gray-600 mb-8">Add some beautiful jewelry to your wishlist</p>
-                <div className="space-y-3">
-                  <Button
-                    onClick={() => navigate("/collections")}
-                    className="w-full bg-[#084526] hover:bg-[#0a5a2e] text-white px-8 py-3 text-lg font-semibold rounded-xl"
-                  >
-                    Explore Collections
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/cart")}
-                    className="w-full text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white"
-                  >
-                    View Cart
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Quantity Dialog */}
       <QuantityDialog
-        isOpen={showQuantityDialog}
-        onClose={() => {
-          setShowQuantityDialog(false);
-          setSelectedProduct(null);
-        }}
+        open={showQuantityDialog}
+        onOpenChange={setShowQuantityDialog}
         onConfirm={handleQuantityConfirm}
-        productName={selectedProduct?.name || ""}
-        maxStock={selectedProduct?.stock || 0}
-        loading={addingToCart === selectedProduct?.id}
+        product={selectedProduct}
       />
-
-      <Footer />
-    </>
+    </ProfileLayout>
   );
 };
 

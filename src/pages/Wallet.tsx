@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Eye, Image as ImageIcon } from "lucide-react";
+import { Loader2, Wallet as WalletIcon, Eye, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProfileLayout from "@/components/ProfileLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -62,9 +62,17 @@ const Wallet = () => {
   }, [isAuthenticated, token, toast, navigate]);
 
   const handleSectionChange = (
-    section: "profile" | "plans" | "wallet" | "vault" | "customOrders"
+    section: "profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist"
   ) => {
     if (section === "wallet") return;
+    if (section === "orders") {
+      navigate("/orders");
+      return;
+    }
+    if (section === "wishlist") {
+      navigate("/wishlist");
+      return;
+    }
     navigate("/profile", { state: { activeSection: section } });
   };
 
@@ -74,159 +82,154 @@ const Wallet = () => {
       profile={profile}
       setActiveSection={handleSectionChange}
     >
-      <div className="relative space-y-6">
-        {/* Header with top-right wallet balance */}
-        <div className="flex items-center justify-between mb-4 p-4">
+      <div className="space-y-6 border p-6 rounded-2xl bg-gray-50 shadow-sm">
+        {/* Header + Balance */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[#084526] flex items-center gap-2">
-              <WalletIcon className="h-6 w-6" /> Wallet
+            <h2 className="text-2xl font-bold text-[#084526] flex items-center gap-3">
+              <WalletIcon className="h-6 w-6 text-[#084526]" /> Wallet
             </h2>
-            <p className="text-sm text-muted-foreground">
-              View your credits and debits below
-            </p>
+            <p className="text-sm text-gray-600">All credits & debits related to your account</p>
           </div>
 
-          {/* Wallet balance on top-right */}
-          <Card className="w-[180px] bg-gradient-to-r from-[#084526] to-green-700 text-white border-none shadow-md">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-sm font-medium flex items-center gap-1 text-white/90">
-                <WalletIcon className="h-4 w-4" /> Available Balance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+          {/* Balance card */}
+          <div className="self-start md:self-center">
+            <div className="relative w-[200px]">
+              <div className="rounded-2xl overflow-hidden shadow-lg">
+                <div className="bg-gradient-to-r from-[#08603a] to-[#0f7f4a] p-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium flex items-center gap-2">
+                      <WalletIcon className="h-4 w-4 opacity-90" />
+                      Available Balance
+                    </div>
+                    <div className="text-xs bg-white/10 px-2 py-1 rounded-full text-white/90">LIVE</div>
+                  </div>
+                  <div className="mt-3 text-lg font-extrabold tracking-tight">
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="text-white text-lg">Loading</span>
+                      </div>
+                    ) : (
+                      <>₹{Number(balance || 0).toLocaleString("en-IN")}</>
+                    )}
+                  </div>
+                 
                 </div>
-              ) : (
-                <div className="text-2xl font-bold">
-                  ₹{Number(balance || 0).toLocaleString("en-IN")}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Transactions Table */}
-        <Card className="shadow-sm border rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">
-              Transactions
-            </CardTitle>
-            <CardDescription>All wallet activities</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Transactions */}
+        <div className="bg-white rounded-2xl shadow-sm border">
+          <div className="p-5 border-b flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Transactions</h3>
+              <p className="text-sm text-gray-500">Recent wallet activities</p>
+            </div>
+            <div className="text-sm text-gray-500">{transactions.length} records</div>
+          </div>
+
+          <div className="p-4">
             {loading ? (
-              <div className="flex justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-[#084526]" />
               </div>
             ) : transactions.length ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead>Scheme ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((t) => (
-                    <TableRow
-                      key={t.id}
-                      className="hover:bg-gray-50 transition"
-                    >
-                      <TableCell>
-                        {t.user_scheme_id ? (
-                          <span className="font-semibold text-[#084526]">
-                            #{t.user_scheme_id}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Scheme ID</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Description</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
 
-                      <TableCell>
-                        {new Date(t.created_at).toLocaleString()}
-                      </TableCell>
-
-                      {/* Credit/Debit pill centered */}
-                      <TableCell>
-                        <div className="flex justify-center items-center">
-                          {t.type === "credit" ? (
-                            <Badge
-                              className="bg-green-100 text-green-700 rounded-full  text-xs flex items-center gap-1 justify-center hover:bg-green-100"
+                  <tbody className="divide-y">
+                    {transactions.map((t) => (
+                      <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          {t.user_scheme_id ? (
+                            <button
+                              onClick={() => navigate(`/my-plans/${t.user_scheme_id}/details`)}
+                              className="text-[#084526] font-semibold hover:underline"
                             >
-                              Credit
-                            </Badge>
+                              #{t.user_scheme_id}
+                            </button>
                           ) : (
-                            <Badge
-                              className="bg-red-100 text-red-700 rounded-full  text-xs flex items-center gap-1 justify-center hover:bg-red-100"
-                            >
-                               Debit
-                            </Badge>
+                            <span className="text-gray-400">—</span>
                           )}
-                        </div>
-                      </TableCell>
+                        </td>
 
-                      <TableCell
-                        className="max-w-[320px] truncate"
-                        title={t.description}
-                      >
-                        {t.description}
-                      </TableCell>
+                        <td className="px-4 py-3 text-gray-700">{new Date(t.created_at).toLocaleString()}</td>
 
-                      <TableCell
-                        className={`font-semibold ${
-                          t.type === "credit"
-                            ? "text-green-700"
-                            : "text-red-700"
-                        }`}
-                      >
-                        {t.type === "credit" ? "+" : "-"}₹
-                        {Number(t.amount).toLocaleString("en-IN")}
-                      </TableCell>
+                        {/* Credit/Debit pill centered */}
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center">
+                            {t.type === "credit" ? (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                                Credit
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                <span className="inline-block w-2 h-2 rounded-full bg-rose-500" />
+                                Debit
+                              </span>
+                            )}
+                          </div>
+                        </td>
 
-                      {/* Actions */}
-                      <TableCell>
-                        {t.user_scheme_id ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/my-plans/${t.user_scheme_id}/details`)
-                            }
-                          >
-                            View Scheme Details
-                          </Button>
-                        ) : t.attachments?.length ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setPreviewImages(t.attachments || []);
-                              setPreviewOpen(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1" /> Preview
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <td className="px-4 py-3 max-w-[420px] truncate text-gray-700" title={t.description}>
+                          {t.description || "—"}
+                        </td>
+
+                        <td className={`px-4 py-3 font-semibold text-right ${t.type === "credit" ? "text-emerald-700" : "text-rose-700"}`}>
+                          {t.type === "credit" ? "+" : "-"}₹{Number(t.amount).toLocaleString("en-IN")}
+                        </td>
+
+                        <td className="px-4 py-3 text-center">
+                          {t.user_scheme_id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/my-plans/${t.user_scheme_id}/details`)}
+                              className="text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white transition-colors"
+                            >
+                              View Scheme
+                            </Button>
+                          ) : t.attachments?.length ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setPreviewImages(t.attachments || []);
+                                setPreviewOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" /> Preview
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div className="text-sm text-muted-foreground py-8 text-center">
+              <div className="py-12 text-center text-gray-500">
                 No transactions yet.
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Preview Dialog */}
         <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
@@ -236,17 +239,10 @@ const Wallet = () => {
                 <ImageIcon className="h-5 w-5" /> Attachments
               </DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-2">
               {previewImages.map((src, idx) => (
-                <div
-                  key={idx}
-                  className="aspect-square rounded overflow-hidden border"
-                >
-                  <img
-                    src={src}
-                    alt={`Attachment ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                <div key={idx} className="aspect-square rounded-lg overflow-hidden border">
+                  <img src={src} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
