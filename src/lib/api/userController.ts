@@ -88,10 +88,10 @@ export interface GoldInvestmentsSummary {
   success: boolean;
   message?: string;
   data?: {
-    total_invested: number;
-    total_gold_grams: number;
-    current_gold_rate: number;
-    plans: Array<{
+    total_invested?: number;
+    total_gold_grams?: number;
+    current_gold_rate?: number;
+    plans?: Array<{
       plan_id: number;
       invested_amount: number;
       gold_grams: number;
@@ -105,8 +105,36 @@ export interface GoldInvestmentsSummary {
         start_date: string;
       }>;
     }>;
+    wallet?: {
+      total_gold_grams: number;
+      total_invested_amount: number;
+      current_gold_rate: number;
+      total_current_value: number;
+      transactions: Array<{
+        id: number;
+        type: string;
+        gold_plan_id: number | null;
+        gold_grams: number;
+        invested_amount: number;
+        current_value: number;
+        purchase_rate: number | string | null;
+        description: string | null;
+        attachments: string[];
+        created_at: string;
+      }>;
+    };
   };
 }
+
+export type GoldWalletSummary = NonNullable<
+  NonNullable<GoldInvestmentsSummary["data"]>["wallet"]
+>;
+
+export type GoldWalletTransaction = GoldWalletSummary["transactions"][number];
+
+export type GoldPlanSummary = NonNullable<
+  NonNullable<GoldInvestmentsSummary["data"]>["plans"]
+>[number];
 
 export const getGoldInvestments = async (token: string): Promise<GoldInvestmentsSummary> => {
   try {

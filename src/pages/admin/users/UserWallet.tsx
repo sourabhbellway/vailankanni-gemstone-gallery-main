@@ -102,7 +102,7 @@ const UserWallet = () => {
         </TabsList>
       </Tabs>
 
-      <div className="grid gap-4 md:grid-cols-3 mt-4">
+      <div className="grid gap-4 md:grid-cols-4 mt-4">
         {/* Left column: Balance and Debit */}
         <div className="md:col-span-1 space-y-4">
           <Card>
@@ -149,7 +149,7 @@ const UserWallet = () => {
         </div>
 
         {/* Right column: Transactions */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <Card className="h-full">
             <CardHeader>
               <CardTitle>Recent Transactions</CardTitle>

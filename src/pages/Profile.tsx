@@ -9,16 +9,25 @@ import { getOrders } from "@/lib/api/orderController";
 import { getMyCustomOrders, type CustomOrder } from "@/lib/api/customOrderController";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, User, Package, LogOut, Calendar, IndianRupee, Clock, CheckCircle2, Layers, Sparkles, Wallet as WalletIcon, Loader2 } from "lucide-react";
+import {
+  Heart,
+  User,
+  Package,
+  LogOut,
+  Calendar,
+  IndianRupee,
+  Clock,
+  CheckCircle2,
+  Layers,
+  Sparkles,
+  Wallet as WalletIcon,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMyPlans, createNextInstallmentOrder, verifySchemePaymentCashfree } from "@/lib/api/userSchemesController";
 import { load } from "@cashfreepayments/cashfree-js";
 import { extractCashfreeSessionId } from "@/lib/api/customGoldPlanController";
-import { getGoldInvestments, type GoldInvestmentsSummary } from "@/lib/api/userController";
 import { getImageUrl } from "@/config";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getUserWallet, type WalletTransaction } from "@/lib/api/walletController";
 import ProfileLayout from "@/components/ProfileLayout";
@@ -39,9 +48,6 @@ const Profile = () => {
   const [activeSection, setActiveSection] = React.useState<"profile" | "plans" | "wallet" | "vault" | "customOrders" | "orders" | "wishlist">(
     (location.state as any)?.activeSection || "profile"
   );
-  const [vaultLoading, setVaultLoading] = React.useState(false);
-  const [vaultError, setVaultError] = React.useState<string | null>(null);
-  const [vaultSummary, setVaultSummary] = React.useState<GoldInvestmentsSummary["data"] | null>(null);
   const [customOrders, setCustomOrders] = React.useState<CustomOrder[]>([]);
   const [customOrdersLoading, setCustomOrdersLoading] = React.useState(false);
   const [walletLoading, setWalletLoading] = React.useState(false);
@@ -102,48 +108,48 @@ const Profile = () => {
 
     // Fetch orders count separately to avoid outer catch interfering
     try {
-      console.log("Fetching orders with token:", token ? "exists" : "missing");
+      // console.log("Fetching orders with token:", token ? "exists" : "missing");
       const ordersData = await getOrders(token);
-      console.log("Full orders response:", ordersData);
-      console.log("ordersData.success:", ordersData?.success);
-      console.log("ordersData.data:", ordersData?.data);
-      console.log("Is array?", Array.isArray(ordersData?.data));
+      // console.log("Full orders response:", ordersData);
+      // console.log("ordersData.success:", ordersData?.success);
+      // console.log("ordersData.data:", ordersData?.data);
+      // console.log("Is array?", Array.isArray(ordersData?.data));
 
       if (ordersData && ordersData.success && ordersData.data) {
         // Response structure: { success: true, data: [...] }
         const ordersArray = ordersData.data;
         const count = Array.isArray(ordersArray) ? ordersArray.length : 0;
-        console.log("ordersArray:", ordersArray, "count:", count);
-        console.log("About to set ordersCount to:", count);
+        // console.log("ordersArray:", ordersArray, "count:", count);
+        // console.log("About to set ordersCount to:", count);
         // Use functional update to ensure we don't overwrite a valid count
         setOrdersCount((prevCount) => {
           const newCount = count;
-          console.log("setOrdersCount functional update - prevCount:", prevCount, "newCount:", newCount);
+          // console.log("setOrdersCount functional update - prevCount:", prevCount, "newCount:", newCount);
           return newCount;
         });
-        console.log("Orders count set to:", count);
+        // console.log("Orders count set to:", count);
       } else {
-        console.log("Orders response check failed - success:", ordersData?.success, "data exists:", !!ordersData?.data);
+        // console.log("Orders response check failed - success:", ordersData?.success, "data exists:", !!ordersData?.data);
         // Only reset to 0 if we don't have a valid count
         setOrdersCount((prevCount) => {
           if (prevCount === 0) {
-            console.log("Setting ordersCount to 0 (no valid data)");
+            // console.log("Setting ordersCount to 0 (no valid data)");
             return 0;
           }
-          console.log("Keeping previous ordersCount:", prevCount);
+          // console.log("Keeping previous ordersCount:", prevCount);
           return prevCount;
         });
       }
     } catch (orderErr: any) {
-      console.error("Error fetching orders count:", orderErr);
-      console.error("Error details:", orderErr?.response?.data || orderErr?.message);
+      // console.error("Error fetching orders count:", orderErr);
+      // console.error("Error details:", orderErr?.response?.data || orderErr?.message);
       // Only reset to 0 if we don't have a valid count
       setOrdersCount((prevCount) => {
         if (prevCount === 0) {
-          console.log("Setting ordersCount to 0 (error occurred)");
+          // console.log("Setting ordersCount to 0 (error occurred)");
           return 0;
         }
-        console.log("Keeping previous ordersCount after error:", prevCount);
+        // console.log("Keeping previous ordersCount after error:", prevCount);
         return prevCount;
       });
     }
@@ -160,6 +166,12 @@ const Profile = () => {
   }, [token]); // Only run when token changes
 
   React.useEffect(() => {
+    if (activeSection === "vault") {
+      navigate("/gold-investments");
+    }
+  }, [activeSection, navigate]);
+
+  React.useEffect(() => {
     (async () => {
       if (!token) return;
       try {
@@ -170,23 +182,6 @@ const Profile = () => {
         // noop
       } finally {
         setLoadingPlans(false);
-      }
-    })();
-    (async () => {
-      if (!token) return;
-      try {
-        setVaultLoading(true);
-        setVaultError(null);
-        const res = await getGoldInvestments(token);
-        if (res.success) {
-          setVaultSummary(res.data ?? null);
-        } else {
-          setVaultError(res.message || "Failed to load gold investments");
-        }
-      } catch (e: any) {
-        setVaultError(e?.response?.data?.message || e?.message || "Failed to load gold investments");
-      } finally {
-        setVaultLoading(false);
       }
     })();
     (async () => {
@@ -294,8 +289,8 @@ const Profile = () => {
               <div className="mt-1">
                 <Badge
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold ${profile?.data.status
-                      ? "bg-green-200/70 text-green-700 hover:bg-emerald-200"
-                      : "bg-red-200/70 text-red-700 hover:bg-red-200"
+                    ? "bg-green-200/70 text-green-700 hover:bg-emerald-200"
+                    : "bg-red-200/70 text-red-700 hover:bg-red-200"
                     }`}
                 >
                   {profile?.data.status ? "Active" : "Inactive"}
@@ -406,22 +401,22 @@ const Profile = () => {
                     </td>
 
                     <td className="px-4 py-3 whitespace-nowrap">
-  <Badge
-    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 cursor-default
+                      <Badge
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 cursor-default
       ${plan.status === "active"
-        ? "bg-emerald-200/70 text-emerald-900 border-emerald-200 hover:bg-emerald-200"
-        : plan.status === "pending"
-          ? "bg-amber-200/70 text-amber-900 border-amber-200 hover:bg-amber-200"
-          : plan.status === "disbursed"
-            ? "bg-sky-200/70 text-sky-900 border-sky-200 hover:bg-sky-200"
-            : plan.status === "cancelled"
-              ? "bg-rose-200/70 text-rose-900 border-rose-200 hover:bg-rose-200"
-              : "bg-slate-200/70 text-slate-900 border-slate-200 hover:bg-slate-200"
-      }`}
-  >
-    {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
-  </Badge>
-</td>
+                            ? "bg-emerald-200/70 text-emerald-900 border-emerald-200 hover:bg-emerald-200"
+                            : plan.status === "pending"
+                              ? "bg-amber-200/70 text-amber-900 border-amber-200 hover:bg-amber-200"
+                              : plan.status === "disbursed"
+                                ? "bg-sky-200/70 text-sky-900 border-sky-200 hover:bg-sky-200"
+                                : plan.status === "cancelled"
+                                  ? "bg-rose-200/70 text-rose-900 border-rose-200 hover:bg-rose-200"
+                                  : "bg-slate-200/70 text-slate-900 border-slate-200 hover:bg-slate-200"
+                          }`}
+                      >
+                        {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                      </Badge>
+                    </td>
 
 
 
@@ -461,151 +456,6 @@ const Profile = () => {
     </div>
   );
 
-  const renderGoldVault = () => (
-    <div className="space-y-6 border rounded-2xl p-4 lg:p-6 bg-gray-50/50">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold text-[#084526] flex items-center gap-2">
-          🪙 Gold Vault
-        </h2>
-        <span className="text-sm text-gray-500">
-          Your digital gold summary & transactions
-        </span>
-      </div>
-
-      {vaultLoading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#084526] border-t-transparent"></div>
-        </div>
-      ) : vaultError ? (
-        <div className="text-sm text-gray-600">{vaultError}</div>
-      ) : !vaultSummary ? (
-        <div className="text-sm text-gray-600">No data found.</div>
-      ) : (
-        <div className="space-y-8">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="relative bg-gradient-to-br from-yellow-50 to-amber-100 p-5 rounded-2xl shadow-md border border-amber-200">
-              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Gold (g)</div>
-              <div className="mt-2 text-2xl font-bold text-gray-800">
-                {Number(vaultSummary.total_gold_grams || 0).toFixed(4)} g
-              </div>
-              <div className="absolute top-2 right-3 text-yellow-400">🏆</div>
-            </div>
-
-            <div className="relative bg-gradient-to-br from-emerald-50 to-emerald-100 p-5 rounded-2xl shadow-md border border-emerald-200">
-              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Invested</div>
-              <div className="mt-2 text-2xl font-bold text-gray-800">
-                ₹ {Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}
-              </div>
-              <div className="absolute top-2 right-3 text-emerald-500">💰</div>
-            </div>
-
-            <div className="relative bg-gradient-to-br from-sky-50 to-blue-100 p-5 rounded-2xl shadow-md border border-blue-200">
-              <div className="text-xs uppercase text-gray-500 tracking-wide">Current Rate</div>
-              <div className="mt-2 text-2xl font-bold text-gray-800">
-                ₹ {Number(vaultSummary.current_gold_rate || 0)}
-              </div>
-              <div className="absolute top-2 right-3 text-sky-500">📈</div>
-            </div>
-
-            <div className="relative bg-gradient-to-br from-amber-50 to-yellow-100 p-5 rounded-2xl shadow-md border border-yellow-200">
-              <div className="text-xs uppercase text-gray-500 tracking-wide">Total Value</div>
-              <div className="mt-2 text-2xl font-bold text-gray-800">
-                ₹ {Number(vaultSummary.total_invested || 0).toLocaleString("en-IN")}
-              </div>
-              <div className="absolute top-2 right-3 text-yellow-500">🏅</div>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-5 border-b flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Gold Transactions</h3>
-                <p className="text-sm text-gray-500">
-                  Overview of all plan payments and gold accumulation
-                </p>
-              </div>
-              <div className="text-sm text-gray-500">
-                {vaultSummary?.plans?.length || 0} Plans
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Plan ID</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Gold (g)</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Rate</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Paid Amount</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Order ID</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Payment ID</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Transaction Date & Time</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y">
-                  {(vaultSummary.plans || []).map((plan) =>
-                    plan.payments && plan.payments.length > 0 ? (
-                      plan.payments.map((p) => (
-                        <tr key={p.payment_id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 font-medium text-[#084526]">#{plan.plan_id}</td>
-                          <td className="px-4 py-3">{plan.gold_grams} g</td>
-                          <td className="px-4 py-3">₹ {plan.gold_rate}</td>
-                          <td className="px-4 py-3 font-semibold text-emerald-700">
-                            ₹ {Number(p.amount).toLocaleString("en-IN")}
-                          </td>
-                          <td className="px-4 py-3 text-gray-700">{p.order_id}</td>
-                          <td className="px-4 py-3 text-gray-700">{p.payment_id}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border
-                                ${p.status === "success"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-rose-50 text-rose-700 border-rose-200"
-                                }`}
-                            >
-                              <span
-                                className={`w-2 h-2 rounded-full ${p.status === "success" ? "bg-emerald-500" : "bg-rose-500"}`}
-                              ></span>
-                              {p.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {new Date(p.start_date).toLocaleDateString()}
-                            <div className="text-xs text-gray-500">
-                              {new Date(p.start_date).toLocaleTimeString()}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr key={plan.plan_id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-[#084526]">#{plan.plan_id}</td>
-                        <td className="px-4 py-3">{plan.gold_grams} g</td>
-                        <td className="px-4 py-3">₹ {plan.gold_rate}</td>
-                        <td className="px-4 py-3 text-gray-400" colSpan={4}>
-                          No payments
-                        </td>
-                        <td className="px-4 py-3">
-                          {new Date(plan.created_at).toLocaleDateString()}
-                          <div className="text-xs text-gray-500">
-                            {new Date(plan.created_at).toLocaleTimeString()}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 
   const renderCustomOrders = () => (
     <div className="space-y-4 lg:space-y-6 border p-4 lg:p-6">
@@ -778,7 +628,6 @@ const Profile = () => {
         <div className="flex-1 min-w-0">
           {activeSection === "profile" && renderProfileSection()}
           {activeSection === "plans" && <div className="mt-0">{renderMyPlansTabular()}</div>}
-          {activeSection === "vault" && <div className="mt-0">{renderGoldVault()}</div>}
           {activeSection === "customOrders" && <div className="mt-0">{renderCustomOrders()}</div>}
         </div>
       )}

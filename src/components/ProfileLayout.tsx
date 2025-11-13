@@ -32,6 +32,10 @@ const ProfileLayout = ({
         navigate("/wallet");
         return;
       }
+      if (section === "vault") {
+        navigate("/gold-investments");
+        return;
+      }
       if (section === "orders") {
         navigate("/orders");
         return;

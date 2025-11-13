@@ -34,6 +34,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { getOrderById, updateOrderStatus } from "@/lib/api/ordersController";
+import { getImageUrl } from "@/config";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
@@ -85,6 +86,40 @@ const OrderDetails = () => {
     } catch {
       return dateString;
     }
+  };
+
+  const formatDateOnly = (dateString?: string) => {
+    if (!dateString) return "—";
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN");
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatCurrency = (value?: string | number | null) => {
+    const numericValue = Number(value ?? 0);
+    return `₹${numericValue.toLocaleString("en-IN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const parseProductImages = (image?: string | null) => {
+    if (!image) return [];
+    try {
+      const parsed = JSON.parse(image);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === "string") return [parsed];
+    } catch {
+      return [image];
+    }
+    return [];
+  };
+
+  const getPrimaryProductImage = (image?: string | null) => {
+    const images = parseProductImages(image);
+    return images.length > 0 ? images[0] : null;
   };
 
   const fetchOrderDetails = async () => {
@@ -443,6 +478,91 @@ const OrderDetails = () => {
             </CardContent>
           </Card>
 
+          {/* Order Items */}
+          {Array.isArray(order.items) && order.items.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Order Items
+                </CardTitle>
+                <CardDescription>Products included in this order</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Product</th>
+                      <th className="px-4 py-3 text-center font-semibold">Quantity</th>
+                      <th className="px-4 py-3 text-right font-semibold">Unit Price</th>
+                      <th className="px-4 py-3 text-right font-semibold">Line Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {order.items.map((item: any) => {
+                      const product = item.product || {};
+                      const primaryImage = getPrimaryProductImage(product.image);
+                      return (
+                        <tr key={item.id} className="bg-white">
+                          <td className="px-4 py-4 align-top">
+                            <div className="flex items-start gap-3">
+                              {primaryImage && (
+                                <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-muted">
+                                  <img
+                                    src={getImageUrl(primaryImage)}
+                                    alt={product.name || `Product ${product.id}`}
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              )}
+                              <div className="space-y-1">
+                                <div className="text-sm font-semibold text-foreground">
+                                  {product.name || `Product #${product.id}`}
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                  {product.metal_type && (
+                                    <span className="rounded-full bg-muted px-2 py-1">
+                                      {product.metal_type}
+                                    </span>
+                                  )}
+                                  {product.purity && (
+                                    <span className="rounded-full bg-muted px-2 py-1">
+                                      {product.purity}
+                                    </span>
+                                  )}
+                                  {product.weight && (
+                                    <span className="rounded-full bg-muted px-2 py-1">
+                                      {Number(product.weight).toFixed(2)} g
+                                    </span>
+                                  )}
+                                </div>
+                              <div className="text-xs text-muted-foreground">
+                                Product ID: #{product.id}
+                                {product.collection_id ? ` • Collection ${product.collection_id}` : ""}
+                                {product.category_id ? ` • Category ${product.category_id}` : ""}
+                              </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center font-medium">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-4 text-right text-muted-foreground">
+                            {formatCurrency(item.unit_price)}
+                          </td>
+                          <td className="px-4 py-4 text-right font-semibold text-foreground">
+                            {formatCurrency(item.total_price)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Delivery Address */}
           <Card>
             <CardHeader>
@@ -475,24 +595,6 @@ const OrderDetails = () => {
             </Card>
           )}
 
-          {/* Product Information */}
-          {order.product && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Product Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Product details will be displayed here
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar - 1 column */}
@@ -527,6 +629,78 @@ const OrderDetails = () => {
               </div>
             </CardContent>
           </Card>
+
+          {order.coupon && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Coupon Applied</CardTitle>
+                <CardDescription>Discount details for this order</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Coupon Code</span>
+                  <Badge variant="secondary" className="font-mono uppercase">
+                    {order.coupon.coupon_code}
+                  </Badge>
+                </div>
+                {order.coupon.description && (
+                  <div className="rounded-lg border border-muted bg-muted/20 p-3 text-xs text-muted-foreground">
+                    {order.coupon.description}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Discount Type
+                    </div>
+                    <div className="font-medium capitalize">
+                      {order.coupon.discount_type}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Discount Value
+                    </div>
+                    <div className="font-medium">
+                      {order.coupon.discount_type === "percentage"
+                        ? `${Number(order.coupon.value).toFixed(0)}%`
+                        : formatCurrency(order.coupon.value)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Min. Order Amount
+                    </div>
+                    <div className="font-medium">
+                      {formatCurrency(order.coupon.min_order_amount)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Usage Limit
+                    </div>
+                    <div className="font-medium">
+                      {order.coupon.usage_limit || "No limit"}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <div>
+                    Valid From:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatDateOnly(order.coupon.valid_from)}
+                    </span>
+                  </div>
+                  <div>
+                    Valid Until:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatDateOnly(order.coupon.valid_until)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Update Order Status */}
           <Card>
