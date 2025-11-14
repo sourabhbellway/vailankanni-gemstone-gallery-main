@@ -130,7 +130,7 @@ const GoldInvestments: React.FC = () => {
           const currentRate = Number(walletData?.current_gold_rate ?? res.data?.current_gold_rate ?? 0);
           const totalCurrentValue = Number(
             walletData?.total_current_value ??
-              (totalGold && currentRate ? totalGold * currentRate : 0)
+            (totalGold && currentRate ? totalGold * currentRate : 0)
           );
 
           setTotals({
@@ -314,15 +314,9 @@ const GoldInvestments: React.FC = () => {
                               <tr key={txn.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 py-3">
                                   {isCredit && planId ? (
-                                    <Button
-                                      variant="link"
-                                      className="p-0 h-auto font-semibold text-[#084526]"
-                                      onClick={() =>
-                                        navigate(`/my-plans/${planId}/details`)
-                                      }
-                                    >
-                                      #{planId}
-                                    </Button>
+                                    
+                                      planId
+                                   
                                   ) : (
                                     <span className="text-gray-400">—</span>
                                   )}
@@ -338,9 +332,8 @@ const GoldInvestments: React.FC = () => {
                                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${typeClass.badge}`}
                                     >
                                       <span
-                                        className={`inline-block w-2 h-2 rounded-full ${
-                                          isCredit ? "bg-emerald-500" : "bg-rose-500"
-                                        }`}
+                                        className={`inline-block w-2 h-2 rounded-full ${isCredit ? "bg-emerald-500" : "bg-rose-500"
+                                          }`}
                                       />
                                       {toTitleCase(txn.type)}
                                     </span>
@@ -367,32 +360,24 @@ const GoldInvestments: React.FC = () => {
                                 </td>
 
                                 <td className="px-4 py-3 text-center">
-                                  {isCredit && planId ? (
+                                  {attachments.length ? (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="text-[#084526] border-[#084526] hover:bg-[#084526] hover:text-white transition-colors"
-                                      onClick={() => navigate(`/my-plans/${planId}/details`)}
+                                      onClick={() => {
+                                        setPreviewImages(
+                                          attachments.map((att) => getImageUrl(att))
+                                        );
+                                        setPreviewOpen(true);
+                                      }}
                                     >
-                                      View Plan
+                                      <Eye className="h-4 w-4 mr-2" /> Preview
                                     </Button>
-                                  ) : attachments.length ? (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setPreviewImages(
-                                            attachments.map((att) => getImageUrl(att))
-                                          );
-                                          setPreviewOpen(true);
-                                        }}
-                                      >
-                                        <Eye className="h-4 w-4 mr-2" /> Preview
-                                      </Button>
-                                    ) : (
+                                  ) : (
                                     <span className="text-xs text-gray-400">—</span>
                                   )}
                                 </td>
+
                               </tr>
                             );
                           })}
@@ -476,8 +461,8 @@ const GoldInvestments: React.FC = () => {
                                 paymentStatus === "success"
                                   ? "bg-emerald-100 text-emerald-800"
                                   : paymentStatus === "failed"
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-amber-100 text-amber-800";
+                                    ? "bg-rose-100 text-rose-800"
+                                    : "bg-amber-100 text-amber-800";
                               return (
                                 <div
                                   key={payment.payment_id}
