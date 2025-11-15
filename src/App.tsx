@@ -57,6 +57,7 @@ import ScrollToTop from "./hooks/ScrollToTop";
 import ViewSchemeDetails from "./pages/admin/users/ViewSchemeDetails";
 import ViewCustomPlanDetails from "./pages/admin/users/ViewCustomPlanDetails";
 import MyPlanDetails from "./pages/MyPlanDetails";
+import AdminQueries from "./pages/admin/AdminQueries";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -359,6 +360,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <ReportsAnalytics />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/queries"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                  <AdminQueries/>
                   </AdminLayout>
                 </ProtectedRoute>
               }

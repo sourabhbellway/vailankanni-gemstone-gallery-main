@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
-
+import { useState } from "react";
+import { registerContactQuery } from "@/lib/api/queryController";
+import { toast } from "sonner"; // optional if you use sonner toast
 const contactInfo = [
   {
     icon: Phone,
@@ -32,6 +34,42 @@ const contactInfo = [
 ];
 
 const ContactSection = () => {
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    mobile: "",
+    subject: "",
+    message: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await registerContactQuery(formData);
+      toast.success("Message sent successfully!");
+      setFormData({
+        first_name: "",
+        last_name: "",
+        email: "",
+        mobile: "",
+        subject: "",
+        message: "",
+      });
+    } catch (err) {
+      toast.error("Failed to send message. Try again!");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <section id="contact" className="py-20 bg-gradient-subtle">
       <div className="container mx-auto px-4">
@@ -49,8 +87,8 @@ const ContactSection = () => {
           {/* Contact Info Cards */}
           <div className="lg:col-span-1 space-y-6">
             {contactInfo.map((info, index) => (
-              <Card 
-                key={index} 
+              <Card
+                key={index}
                 className="border-0 shadow-elegant hover:shadow-luxury transition-all duration-300 animate-scale-in group"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -77,45 +115,61 @@ const ContactSection = () => {
             <Card className="border-0 shadow-luxury animate-fade-in">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-serif text-primary mb-6">Send us a Message</h3>
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         First Name *
                       </label>
-                      <Input 
+                      <Input
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleChange}
                         placeholder="Your first name"
                         className="border-border focus:border-primary"
+                        required
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Last Name *
                       </label>
-                      <Input 
+                      <Input
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleChange}
                         placeholder="Your last name"
                         className="border-border focus:border-primary"
+                        required
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Email *
                       </label>
-                      <Input 
-                        type="email" 
+                      <Input
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
                         placeholder="your.email@example.com"
                         className="border-border focus:border-primary"
+                        required
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Phone Number
+                        Phone Number *
                       </label>
-                      <Input 
-                        type="tel" 
+                      <Input
+                        name="mobile"
+                        type="tel"
+                        value={formData.mobile}
+                        onChange={handleChange}
                         placeholder="+91 98765 43210"
                         className="border-border focus:border-primary"
                       />
@@ -126,9 +180,13 @@ const ContactSection = () => {
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Subject *
                     </label>
-                    <Input 
+                    <Input
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
                       placeholder="How can we help you?"
                       className="border-border focus:border-primary"
+                      required
                     />
                   </div>
 
@@ -136,21 +194,27 @@ const ContactSection = () => {
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Message *
                     </label>
-                    <Textarea 
+                    <Textarea
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
                       placeholder="Tell us about your requirements..."
                       rows={5}
                       className="border-border focus:border-primary resize-none"
+                      required
                     />
                   </div>
 
-                  <Button 
+                  <Button
                     type="submit"
                     size="lg"
                     className="w-full bg-gradient-gold hover:shadow-gold transition-all duration-300"
+                    disabled={loading}
                   >
-                    Send Message
+                    {loading ? "Sending..." : "Send Message"}
                   </Button>
                 </form>
+
               </CardContent>
             </Card>
           </div>

@@ -15,6 +15,7 @@ import {
   LogOut,
   TrendingUp,
   Workflow,
+  MessageCircle,
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -37,6 +38,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { name: "Scheme Management", href: "/admin/schemes", icon: Workflow },
     { name: "Reports & Analytics", href: "/admin/reports", icon: BarChart3 },
     { name: "Notifications", href: "/admin/notifications", icon: Bell },
+    { name: "Queries", href: "/admin/queries", icon:  MessageCircle },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 

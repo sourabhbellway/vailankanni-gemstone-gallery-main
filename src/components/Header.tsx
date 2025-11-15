@@ -13,6 +13,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { getPublicCollections } from "@/lib/api/publicController";
 import {getCartItems} from "@/lib/api/cartController"
+// import NotificationBell from "./NotificationBell";
 // Add shimmer animation styles
 const shimmerStyle = `
   .shimmer-btn::before {
@@ -348,6 +349,7 @@ const {token}= useUserAuth()
                       : "text-black"} hover:opacity-80 transition`}>
                 <User className="h-5 w-5" />
               </Link>
+              {/* <NotificationBell /> */}
             </div>
               )}
         
