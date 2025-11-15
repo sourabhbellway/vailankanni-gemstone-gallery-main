@@ -38,7 +38,8 @@ import { useEffect, useState } from "react";
 const AdminDashboard = () => {
   const { token } = useAuth();
   const [stats, setStats] = useState([]);
-  // const statsArray = Object.entries(stats);
+
+  const navigate = useNavigate();
   useEffect(() => {
     getAnalytics(token)
       .then((response) => {
@@ -214,51 +215,68 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest customer orders</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>{order.product}</TableCell>
-                    <TableCell>{order.amount}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          order.status === "Completed" ? "default" : "secondary"
-                        }
-                      >
-                        {order.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+       
+      {/* Recent Orders */}
+<Card>
+  <CardHeader>
+    <CardTitle>Recent Orders</CardTitle>
+    <CardDescription>Latest customer orders</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Order ID</TableHead>
+          <TableHead>Customer</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Payment</TableHead>
+          <TableHead>Order Date</TableHead>
+          <TableHead>Expected Delivery</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+  {stats.recent_orders?.map((order: any) => (
+    <TableRow key={order.id}>
+      <TableCell className="font-medium">{order.order_code}</TableCell>
+      <TableCell>
+        {order.customer?.name} <br />
+        <span className="text-xs text-gray-500">{order.customer?.email}</span>
+      </TableCell>
+      <TableCell>₹{parseFloat(order.final_amount).toLocaleString()}</TableCell>
+      <TableCell>
+        <Badge
+          variant={
+            order.status === "completed"
+              ? "default"
+              : order.status === "shipped"
+              ? "secondary"
+              : "destructive"
+          }
+        >
+          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+        </Badge>
+      </TableCell>
+      <TableCell className="capitalize">{order.payment_method}</TableCell>
+      <TableCell>{new Date(order.order_date).toLocaleDateString()}</TableCell>
+      <TableCell>{new Date(order.expected_delivery).toLocaleDateString()}</TableCell>
+      <TableCell>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/admin/orders/${order.id}`)}
+        >
+          View
+        </Button>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+    </Table>
+  </CardContent>
+</Card>
+
     </div>
   );
 };
