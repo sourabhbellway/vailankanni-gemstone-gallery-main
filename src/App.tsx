@@ -58,6 +58,10 @@ import ViewSchemeDetails from "./pages/admin/users/ViewSchemeDetails";
 import ViewCustomPlanDetails from "./pages/admin/users/ViewCustomPlanDetails";
 import MyPlanDetails from "./pages/MyPlanDetails";
 import AdminQueries from "./pages/admin/AdminQueries";
+import AboutSection from "./components/AboutSection";
+import ReviewsSection from "./components/ReviewsSection";
+import ContactSection from "./components/ContactSection";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -407,6 +411,15 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {/* <div id="about">
+        <AboutSection />
+      </div>
+      <div id="reviews">
+        <ReviewsSection />
+      </div>
+      <div id="contact">
+        <ContactSection />
+      </div> */}
           </BrowserRouter>
         </UserAuthProvider>
       </AuthProvider>

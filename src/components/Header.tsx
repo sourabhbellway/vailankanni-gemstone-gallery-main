@@ -1,444 +1,216 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Phone, Mail, MapPin, ChevronDown, ShoppingCart, Heart, User} from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, ChevronDown, ShoppingCart, Heart, User, Phone, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import logo from "@/assets/logo.jpg";
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context/UserAuthContext";
+import NotificationBell from "./NotificationBell";
 import { getPublicCollections } from "@/lib/api/publicController";
-import {getCartItems} from "@/lib/api/cartController"
-// import NotificationBell from "./NotificationBell";
-// Add shimmer animation styles
-const shimmerStyle = `
-  .shimmer-btn::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -75%;
-    width: 50%; height: 100%;
-    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-  .shimmer-btn:hover::before {
-    opacity: 1;
-    animation: shimmer-move 1s linear forwards;
-  }
-  @keyframes shimmer-move {
-    0% { left: -75%; }
-    100% { left: 125%; }
-  }
-  @keyframes slide-in-from-left {
-    from { transform: translateX(-200%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-  @keyframes slide-out-to-left {
-    from { transform: translateX(200%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-`;
+import { getCartItems } from "@/lib/api/cartController";
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [logoAnim, setLogoAnim] = useState(""); // '' | 'in' | 'out'
-  const [cartCount, setCartCount] = useState(0);
-  const [collections, setCollections] = useState<any[]>([]);
-  const prevScrolledRef = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { token, isAuthenticated } = useUserAuth();
+
   const isHome = location.pathname === "/";
-  const isSchemes = location.pathname === "/schemes";
-const {token}= useUserAuth()
-  // Helper for scroll or navigate+scroll
-  const handleMenuClick = (e, href) => {
-    if (href.startsWith("#")) {
-      e.preventDefault();
-      const sectionId = href.replace("#", "");
-      if (isHome) {
-        // Already on home, just scroll
-        const el = document.getElementById(sectionId);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth" });
-        }
-      } else {
-        // Not on home, navigate then scroll
-        navigate("/", { replace: false });
-        // Wait for navigation, then scroll
-        setTimeout(() => {
-          const el = document.getElementById(sectionId);
-          if (el) {
-            el.scrollIntoView({ behavior: "smooth" });
-          }
-        }, 100); // Delay to allow home to render
-      }
-      setIsMenuOpen(false);
-    }
-  };
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [collections, setCollections] = useState<any[]>([]);
 
+  // Handle scroll effect only on home route
   useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 0;
-      setIsScrolled(scrolled);
-      if (scrolled && !prevScrolledRef.current) {
-        setLogoAnim("in");
-      } else if (!scrolled && prevScrolledRef.current) {
-        setLogoAnim("out");
-      }
-      prevScrolledRef.current = scrolled;
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    if (!isHome) return;
+    const onScroll = () => setIsScrolled(window.scrollY > 0);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
 
-  // Fetch collections on component mount
+  // Fetch collections
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const response = await getPublicCollections();
-        if (response.data.success) {
-          setCollections(response.data.data || []);
-        }
-      } catch (error) {
-        // Error fetching collections - silently fail
-      }
+        const res = await getPublicCollections();
+        if (res.data.success) setCollections(res.data.data || []);
+      } catch {}
     };
-    const fetchCartCount = async () => {
-      try {
-        if (!token) {
-          setCartCount(0);
-          return;
-        }
-        const response = await getCartItems(token);
-        if (response?.success) {
-          setCartCount(response.data.items?.length || 0);
-        }
-      } catch (e) {
-        // ignore transient errors
-      }
-    };
-
     fetchCollections();
-    fetchCartCount();
+  }, []);
 
-    // Listen for global cart updates to keep badge in sync
-    const handleCartUpdated = () => {
-      fetchCartCount();
+  // Fetch cart
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (!token) return setCartCount(0);
+      try {
+        const res = await getCartItems(token);
+        if (res?.success) setCartCount(res.data.items?.length || 0);
+      } catch {}
     };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('cart:updated', handleCartUpdated);
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('cart:updated', handleCartUpdated);
-      }
-    };
+    fetchCart();
+    const handleCartUpdated = () => fetchCart();
+    window.addEventListener("cart:updated", handleCartUpdated);
+    return () => window.removeEventListener("cart:updated", handleCartUpdated);
   }, [token]);
 
+  // Main menu items
   const menuItems = [
-    { name: "Home", href: "/" },
-    { name: "About Us", href: "#about" },
-    // Schemes handled separately with dropdown
-    { name: "Reviews", href: "#reviews" },
-    { name: "Contact", href: "#contact" },
+    { name: "Home", path: "/" },
+    { name: "About Us", path: "#about" },
+    { name: "Reviews", path: "#reviews" },
+    { name: "Contact", path: "#contact" }
   ];
 
-  // Collections will be populated from API
+  const handleMenuClick = (path: string) => {
+    if (path.startsWith("#")) {
+      const section = document.getElementById(path.slice(1));
+      if (section) section.scrollIntoView({ behavior: "smooth" });
+    } else {
+      navigate(path);
+    }
+    setMenuOpen(false);
+  };
 
-  const { isAuthenticated, logout } = useUserAuth();
+  const textColor = isHome
+    ? isScrolled
+      ? "text-[#084526]"
+      : "text-black"
+    : "text-black";
 
-
+  const bgColor = isHome
+    ? isScrolled
+      ? "bg-white shadow-md"
+      : "bg-transparent"
+    : "bg-white shadow-md";
 
   return (
-    <>
-      <style>{shimmerStyle + "\nhtml { scroll-behavior: smooth; }"}</style>
-      {/* Top Bar */}
-      <div className="bg-primary text-primary-foreground py-2 px-4">
-        <div className=" mx-auto flex flex-wrap items-center justify-between text-sm">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Phone className="h-3 w-3" />
-              <span>+91 95451 11124</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Mail className="h-3 w-3" />
-              <span>vailankannijewellers89@gmail.com</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <MapPin className="h-3 w-3" />
-            <span>Panjim, Goa</span>
-          </div>
+    <header className={`sticky top-0 z-50 transition-all duration-300 ${bgColor}`}>
+      {/* Top bar */}
+      <div className="hidden md:flex justify-between items-center bg-primary text-primary-foreground text-sm px-6 py-2">
+        <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-1"><Phone className="w-3 h-3" /> +91 95451 11124</div>
+          <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> vailankannijewellers89@gmail.com</div>
         </div>
+        <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Panjim, Goa</div>
       </div>
 
-      {/* Main Header */}
-      <header
-        className={`  sticky top-0 z-50 transition-colors duration-300 ${isScrolled ? "bg-white" : "bg-transparent"
-          }`}
-      >
-        <div className={`${isScrolled ? "mx-auto px-4" : "mx-auto px-4"}`}>
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <div
-              className={`flex items-center space-x-2 ${logoAnim === "in"
-                ? "animate-[slide-in-from-left_0.5s_ease-in-out]"
-                : logoAnim === "out"
-                  ? "animate-[slide-out-to-left_0.5s_ease-in-out]"
-                  : ""
-                }`}
-              onAnimationEnd={() => setLogoAnim("")}
-            >
-              <div className="h-12 w-12 rounded-full flex items-center justify-center overflow-hidden bg-white">
-                <img
-                  src={logo}
-                  alt="Vailankanni Logo"
-                  className="object-cover h-12 w-12"
-                />
-              </div>
-              <div className="font-serif">
-                <h1
-                  className={`text-2xl  ${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"
-                    }
-                `}
-                >
-                  Vailankanni
-                </h1>
-                <p
-                  className={`text-xs ${isScrolled
-                    ? "text-[#8e6e00]"
-                    : isHome || isSchemes
-                      ? "text-[#fce56b]"
-                      : "text-black"
-                    } uppercase tracking-widest`}
-                >
-                  Jewellers
-                </p>
-              </div>
-            </div>
-
-            {/* Desktop Menu */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              {menuItems.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className={`transition-all duration-300 font-medium relative group ${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"
-                    }`}
-                  onClick={
-                    item.href.startsWith("#")
-                      ? (e) => handleMenuClick(e, item.href)
-                      : undefined
-                  }
-                >
-                  {item.name}
-                  <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-secondary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-                </a>
-              ))}
-
-              {/* Schemes Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"
-                    }`}
-                >
-                  <span>Schemes</span>
-                  <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
-                  <DropdownMenuItem asChild>
-                    <Link to="/schemes" className="w-full">Easy monthly installments</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/plan/custom" className="w-full">Gold saving scheme</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Categories Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className={`transition-all duration-300 font-medium flex items-center space-x-1 group  ${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"
-                    }`}
-                >
-                  <span>Collections</span>
-                  <ChevronDown className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-card border-border shadow-luxury animate-scale-in">
-                  {collections.map((collection) => (
-                    <DropdownMenuItem
-                      key={collection.id}
-                      className="hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
-                    >
-                      <Link to={`/collection/${collection.id}`} className="w-full">
-                        {collection.name}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </nav>
-
-            {/* Desktop Auth Buttons & Profile */}
-            <div className="hidden md:flex items-center gap-4">
-           
-              {!isAuthenticated && (
-                <Link
-                  to="/signin"
-                  className={`${isScrolled
-                    ? "bg-[#084526] text-white"
-                    : isHome || isSchemes
-                      ? "bg-white text-[#084526]"
-                      : "bg-white text-[#084526]"
-                    } font-semibold px-4 py-2 rounded-full transition-all duration-300 hover:opacity-80`}
-                  type="button"
-                >
-                  Sign In
-                </Link>
-              )}
-
-              {/* User Profile Avatar */}
-              {isAuthenticated && (
-              <div className="flex space-x-6 items-center">
-              {/* 🛒 Cart */}
-              <Link to="/cart" className={`${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"} hover:opacity-80 transition relative`}>
-                        <span className="text-white absolute -right-2 -top-2 text-[10px] bg-red-500 h-4 w-4 block flex items-center justify-center rounded-full">{cartCount}</span>
-                <ShoppingCart className="h-5 w-5" />
-              </Link>
-        
-              {/* ❤️ Wishlist */}
-              <Link to="/wishlist" className={`${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"} hover:opacity-80 transition`}>
-                <Heart className="h-5 w-5" />
-              </Link>
-        
-              {/* 👤 Profile */}
-              <Link to="/profile" className={`${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-black"} hover:opacity-80 transition`}>
-                <User className="h-5 w-5" />
-              </Link>
-              {/* <NotificationBell /> */}
-            </div>
-              )}
-        
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className={`lg:hidden p-2  transition-all duration-300 hover:scale-110 `}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? (
-                <X className="text-[#084526]" />
-              ) : (
-                <Menu
-                  className={`${isScrolled
-                    ? "text-[#084526]"
-                    : isHome || isSchemes
-                      ? "text-white"
-                      : "text-white"
-                    }`}
-                />
-              )}
-            </button>
+      {/* Main navbar */}
+      <div className="flex items-center justify-between h-20 px-6">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 overflow-hidden rounded-full bg-white flex items-center justify-center">
+            <img src={logo} alt="Logo" className="h-12 w-12 object-cover" />
           </div>
+          <div>
+            <h1 className={`font-serif text-2xl font-bold ${textColor}`}>Vailankanni</h1>
+            <p className={`text-xs uppercase tracking-widest ${textColor}`}>Jewellers</p>
+          </div>
+        </div>
 
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="lg:hidden py-4 border-t border-border animate-fade-in">
-              <nav className="flex flex-col space-y-4">
-                {menuItems.map((item) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    className="text-foreground hover:text-primary transition-all duration-300 font-medium py-2 hover:translate-x-2"
-                    onClick={
-                      item.href.startsWith("#")
-                        ? (e) => handleMenuClick(e, item.href)
-                        : () => setIsMenuOpen(false)
-                    }
-                  >
-                    {item.name}
-                  </a>
-                ))}
+        {/* Desktop Menu */}
+        <nav className="hidden lg:flex items-center gap-8">
+          {menuItems.map(item => (
+            <button
+              key={item.name}
+              onClick={() => handleMenuClick(item.path)}
+              className={`font-medium relative group ${textColor}`}
+            >
+              {item.name}
+              <span className="absolute bottom-0 left-0 h-[2px] w-0 bg-secondary group-hover:w-full transition-all duration-300"></span>
+            </button>
+          ))}
 
-                {/* Mobile Schemes */}
-                <div className="border-t border-border pt-4 mt-2">
-                  <h3 className="text-primary font-semibold mb-3">Schemes</h3>
-                  <Link
-                    to="/schemes"
-                    className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Plans
-                  </Link>
-                  <Link
-                    to="/plan/custom"
-                    className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Custom plan
-                  </Link>
-                </div>
+          {/* Schemes */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={`flex items-center gap-1 font-medium ${textColor}`}>
+              <span>Schemes</span> <ChevronDown className="w-4 h-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-white shadow-lg">
+              <DropdownMenuItem asChild><Link to="/schemes">Easy monthly installments</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/plan/custom">Gold saving scheme</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                {/* Mobile Collections */}
-                <div className="border-t border-border pt-4 mt-4">
-                  <h3 className="text-primary font-semibold mb-3">
-                    Collections
-                  </h3>
-                  {collections.map((collection) => (
-                    <Link
-                      key={collection.id}
-                      to={`/collection/${collection.id}`}
-                      className="block text-muted-foreground hover:text-primary transition-all duration-300 py-1 pl-4 hover:translate-x-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {collection.name}
-                    </Link>
-                  ))}
-                </div>
+          {/* Collections */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={`flex items-center gap-1 font-medium ${textColor}`}>
+              <span>Collections</span> <ChevronDown className="w-4 h-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-white shadow-lg">
+              {collections.map(col => (
+                <DropdownMenuItem key={col.id} asChild>
+                  <Link to={`/collection/${col.id}`}>{col.name}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </nav>
 
-                <Button className="bg-gradient-gold hover:shadow-gold transition-all duration-300 w-full mt-4 transform hover:scale-105">
-                  Get Quote
-                </Button>
-              </nav>
-            </div>
+        {/* Desktop Icons */}
+        <div className="hidden md:flex items-center gap-4">
+  {!isAuthenticated ? (
+    <Link to="/signin" className="bg-[#084526] text-white px-4 py-2 rounded-full hover:opacity-80 transition">Sign In</Link>
+  ) : (
+    <div className="flex items-center gap-4">
+      <Link to="/cart" className="relative flex items-center">
+        <ShoppingCart className={`w-5 h-5 ${textColor}`} />
+        <span className="absolute -top-2 -right-2 text-xs h-4 w-4 flex items-center justify-center rounded-full bg-red-500 text-white">{cartCount}</span>
+      </Link>
+      <Link to="/wishlist" className="flex items-center"><Heart className={`w-5 h-5 ${textColor}`} /></Link>
+      <Link to="/profile" className="flex items-center"><User className={`w-5 h-5 ${textColor}`} /></Link>
+      <div className={`flex items-center ${textColor}`}>
+        <NotificationBell className={`w-5 h-5 ${textColor}`} />
+      </div>
+    </div>
+  )}
+</div>
+
+
+        {/* Mobile Menu & Notification */}
+        <div className="lg:hidden flex items-center gap-4">
+  <div className={`flex items-center ${textColor}`}>
+    <NotificationBell className={`w-6 h-6 ${textColor}`} />
+  </div>
+  <button onClick={() => setMenuOpen(!menuOpen)}>
+    {menuOpen ? <X className={`${textColor} w-6 h-6`} /> : <Menu className={`${textColor} w-6 h-6`} />}
+  </button>
+</div>
+
+      </div>
+
+      {/* Mobile Dropdown */}
+      {menuOpen && (
+        <div className="lg:hidden px-6 py-4 border-t border-gray-200 flex flex-col gap-3 bg-white shadow-lg">
+          {menuItems.map(item => (
+            <button key={item.name} onClick={() => handleMenuClick(item.path)} className="text-left text-black font-medium py-2 hover:text-primary transition">
+              {item.name}
+            </button>
+          ))}
+          <div className="pt-2 border-t border-gray-200">
+            <h3 className="text-gray-700 font-semibold mb-2">Schemes</h3>
+            <Link to="/schemes" onClick={() => setMenuOpen(false)} className="block py-1 pl-4 hover:text-primary">Easy monthly installments</Link>
+            <Link to="/plan/custom" onClick={() => setMenuOpen(false)} className="block py-1 pl-4 hover:text-primary">Gold saving scheme</Link>
+          </div>
+          <div className="pt-2 border-t border-gray-200">
+            <h3 className="text-gray-700 font-semibold mb-2">Collections</h3>
+            {collections.map(col => (
+              <Link key={col.id} to={`/collection/${col.id}`} onClick={() => setMenuOpen(false)} className="block py-1 pl-4 hover:text-primary">
+                {col.name}
+              </Link>
+            ))}
+          </div>
+          {!isAuthenticated && (
+            <Link to="/signin" onClick={() => setMenuOpen(false)} className="mt-4 block bg-[#084526] text-white text-center px-4 py-2 rounded-full hover:opacity-80 transition">Sign In</Link>
           )}
         </div>
-      </header>
-    </>
+      )}
+    </header>
   );
 };
 
