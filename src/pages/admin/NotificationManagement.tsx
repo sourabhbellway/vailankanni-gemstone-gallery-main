@@ -1,392 +1,586 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Send, Bell, Mail, MessageSquare, Users, Calendar, Eye } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+import { getUserList } from "@/lib/api/adminUserController";
+import {
+  sendNotification,
+  getNotifications,
+  deleteNotification,
+} from "@/lib/api/notificationApi";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Upload, X, ChevronDown, Check } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
 const NotificationManagement = () => {
+  const { token } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Order Confirmation",
-      message: "Your order #ORD001 has been confirmed and is being processed.",
-      type: "order_update",
-      recipient: "customer",
-      status: "sent",
-      sentAt: "2024-01-20 10:30:00",
-      readAt: "2024-01-20 10:35:00"
-    },
-    {
-      id: 2,
-      title: "Gold Rate Alert",
-      message: "Gold rates have increased by 2.5% today. Current rate: ₹6420/gram",
-      type: "price_alert",
-      recipient: "all_users",
-      status: "sent",
-      sentAt: "2024-01-20 09:00:00",
-      readAt: null
-    },
-    {
-      id: 3,
-      title: "New Collection Launch",
-      message: "Discover our latest bridal collection with exclusive designs.",
-      type: "promotion",
-      recipient: "all_users",
-      status: "scheduled",
-      scheduledFor: "2024-01-25 08:00:00"
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState("promotion");
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const [notificationList, setNotificationList] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recipientDropdownOpen, setRecipientDropdownOpen] = useState(false);
+  const [recipientSearch, setRecipientSearch] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ------------------------------
+  // Fetch user list
+  // ------------------------------
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchUsers = async () => {
+      try {
+        const res = await getUserList(token);
+        setUsers(res.data || []);
+      } catch (err) {
+        console.log("Error fetching users:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load users",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchUsers();
+  }, [token, toast]);
+
+  // ------------------------------
+  // Fetch Notifications
+  // ------------------------------
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const res = await getNotifications(token);
+        setNotificationList(res.data?.data || []);
+      } catch (err) {
+        console.error("Error loading notifications", err);
+        toast({
+          title: "Error",
+          description: "Failed to load notifications",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchNotifications();
+  }, [token, toast]);
+
+  // ------------------------------
+  // Handle Image Upload
+  // ------------------------------
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast({
+        title: "Invalid file",
+        description: "Please select image files only",
+        variant: "destructive",
+      });
+      return;
     }
-  ]);
 
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: "Order Confirmation",
-      subject: "Order Confirmed - #{order_id}",
-      message: "Dear {customer_name}, your order #{order_id} has been confirmed and is being processed.",
-      type: "order_update",
-      isActive: true
-    },
-    {
-      id: 2,
-      name: "Price Drop Alert",
-      subject: "Price Drop Alert - {product_name}",
-      message: "Great news! The price of {product_name} has dropped by {discount}%.",
-      type: "price_alert",
-      isActive: true
-    },
-    {
-      id: 3,
-      name: "Welcome Message",
-      subject: "Welcome to Vailankanni Jewellers",
-      message: "Welcome {customer_name}! Thank you for joining our jewelry family.",
-      type: "welcome",
-      isActive: true
-    }
-  ]);
+    setImages((prev) => [...prev, ...imageFiles]);
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("send");
-
-  const handleSendNotification = () => {
-    toast({
-      title: "Notification Sent",
-      description: "Your notification has been sent successfully to selected recipients."
+    // Create previews
+    imageFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
     });
-    setIsDialogOpen(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "sent": return "default";
-      case "scheduled": return "secondary";
-      case "draft": return "outline";
-      default: return "secondary";
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ------------------------------
+  // Handle User Selection
+  // ------------------------------
+  const handleUserToggle = (userId: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const selectAllUsers = () => {
+    if (selectedUserIds.length === users.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(users.map((u) => String(u.id)));
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "order_update": return <MessageSquare className="h-4 w-4" />;
-      case "price_alert": return <Bell className="h-4 w-4" />;
-      case "promotion": return <Mail className="h-4 w-4" />;
-      default: return <Bell className="h-4 w-4" />;
+  // Filter users based on search
+  const filteredUsers = users.filter((user) => {
+    const searchLower = recipientSearch.toLowerCase();
+    return (
+      user.name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Get selected users for display
+  const selectedUsers = users.filter((user) =>
+    selectedUserIds.includes(String(user.id))
+  );
+
+  // ------------------------------
+  // Handle Send Notification
+  // ------------------------------
+  const handleSend = async () => {
+    if (!title.trim() || !message.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in title and message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedUserIds.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one recipient",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("message", message);
+      formData.append("type", type);
+
+      // Append recipient IDs
+      selectedUserIds.forEach((userId) => {
+        formData.append("recipient_ids[]", userId);
+      });
+
+      // Append schedule_at if provided
+      if (scheduleAt) {
+        formData.append("schedule_at", scheduleAt);
+      }
+
+      // Append images
+      images.forEach((image) => {
+        formData.append("images[]", image);
+      });
+
+      await sendNotification(formData, token);
+
+      toast({
+        title: "Success",
+        description: "Notification sent successfully!",
+      });
+
+      // Reset form
+      setTitle("");
+      setMessage("");
+      setType("promotion");
+      setScheduleAt("");
+      setSelectedUserIds([]);
+      setImages([]);
+      setImagePreviews([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      // Refresh notifications list
+      const res = await getNotifications(token);
+      setNotificationList(res.data?.data || []);
+    } catch (err: any) {
+      console.error("Error sending notification", err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to send notification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notification Management</h1>
-          <p className="text-muted-foreground">
-            Send notifications and manage communication with users
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Notification
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create New Notification</DialogTitle>
-              <DialogDescription>
-                Send a notification to your users
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
+    <div className="p-6 space-y-6">
+      {/* Title and Description */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Notification Management
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Send custom notifications to users with scheduling and image support
+        </p>
+      </div>
+
+      {/* Form Card */}
+      <Card>
+        <CardContent className="pt-6">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="space-y-6"
+          >
+            {/* Grid 4 Columns - Top Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Title */}
+              <div className="lg:col-span-2">
+                <Label htmlFor="title">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  placeholder="Enter notification title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Type */}
               <div>
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="Notification title" />
+                <Label htmlFor="type">Type</Label>
+                <Select onValueChange={setType} value={type}>
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="promotion">Promotion</SelectItem>
+                    <SelectItem value="order">Order</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="alert">Alert</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Schedule At */}
               <div>
-                <Label htmlFor="message">Message</Label>
-                <Textarea id="message" placeholder="Your notification message" rows={4} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="type">Type</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="order_update">Order Update</SelectItem>
-                      <SelectItem value="price_alert">Price Alert</SelectItem>
-                      <SelectItem value="promotion">Promotion</SelectItem>
-                      <SelectItem value="announcement">Announcement</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="recipient">Recipients</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select recipients" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all_users">All Users</SelectItem>
-                      <SelectItem value="premium_users">Premium Users</SelectItem>
-                      <SelectItem value="recent_customers">Recent Customers</SelectItem>
-                      <SelectItem value="custom">Custom Selection</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="schedule">Schedule (Optional)</Label>
-                <Input id="schedule" type="datetime-local" />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSendNotification}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Notification
-                </Button>
+                <Label htmlFor="schedule_at">Schedule At</Label>
+                <Input
+                  id="schedule_at"
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                />
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sent</CardTitle>
-            <Send className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
-            <p className="text-xs text-muted-foreground">
-              +12% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Rate</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">78.5%</div>
-            <p className="text-xs text-muted-foreground">
-              +2.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">15</div>
-            <p className="text-xs text-muted-foreground">
-              Upcoming notifications
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,341</div>
-            <p className="text-xs text-muted-foreground">
-              Notification subscribers
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList>
-          <TabsTrigger value="send">Recent Notifications</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="send" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification History</CardTitle>
-              <CardDescription>
-                View and manage sent notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Recipient</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Sent At</TableHead>
-                    <TableHead>Read Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {notifications.map((notification) => (
-                    <TableRow key={notification.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          {getTypeIcon(notification.type)}
-                          <span className="font-medium">{notification.title}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {notification.type.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{notification.recipient.replace('_', ' ')}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(notification.status) as any}>
-                          {notification.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {notification.sentAt || notification.scheduledFor || "Not scheduled"}
-                      </TableCell>
-                      <TableCell>
-                        {notification.readAt ? (
-                          <Badge variant="default">Read</Badge>
-                        ) : (
-                          <Badge variant="secondary">Unread</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
+            {/* Recipients - Custom Dropdown with Search */}
+            <div>
+              <Label>
+                Recipients <span className="text-red-500">*</span>
+              </Label>
+              <Popover open={recipientDropdownOpen} onOpenChange={setRecipientDropdownOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={recipientDropdownOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedUserIds.length > 0
+                      ? `${selectedUserIds.length} user(s) selected`
+                      : "Select recipients..."}
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search users..."
+                      value={recipientSearch}
+                      onValueChange={setRecipientSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No users found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            selectAllUsers();
+                          }}
+                          className="font-semibold"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedUserIds.length === users.length && users.length > 0
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          Select All ({users.length} users)
+                        </CommandItem>
+                        {filteredUsers.map((user) => (
+                          <CommandItem
+                            key={user.id}
+                            onSelect={() => {
+                              handleUserToggle(String(user.id));
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedUserIds.includes(String(user.id))
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {user.name} ({user.email})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedUsers.map((user) => (
+                    <span
+                      key={user.id}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                    >
+                      {user.name}
+                      <button
+                        type="button"
+                        onClick={() => handleUserToggle(String(user.id))}
+                        className="hover:bg-primary/20 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
                   ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </div>
+              )}
+            </div>
 
-        <TabsContent value="templates" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Templates</CardTitle>
-              <CardDescription>
-                Manage reusable notification templates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {templates.map((template) => (
-                  <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h4 className="font-medium">{template.name}</h4>
-                        <Badge variant="outline">{template.type}</Badge>
+            {/* Grid 2 Columns - Bottom Fields (Textarea and Images) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Message Textarea */}
+              <div>
+                <Label htmlFor="message">
+                  Message <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="message"
+                  placeholder="Enter notification message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={6}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Images */}
+              <div>
+                <Label>Images (Optional)</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary transition-colors">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <div
+                    className="flex flex-col items-center justify-center cursor-pointer min-h-[120px]"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Click to upload images
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, WEBP up to 5MB each
+                    </p>
+                  </div>
+                </div>
+
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{template.subject}</p>
-                      <p className="text-sm mt-2 text-ellipsis overflow-hidden">{template.message}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch checked={template.isActive} />
-                      <Button variant="outline" size="sm">Edit</Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
 
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>
-                Configure notification preferences and delivery methods
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                {/* <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Email Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Send notifications via email</p>
+            {/* Submit Button */}
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Sending..." : "Send Notification"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Notification History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Notification History</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          {notificationList.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-8">
+              No notifications found.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {notificationList.map((n: any) => (
+                <div
+                  key={n.id}
+                  className="border rounded-lg p-4 flex justify-between items-start hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-lg">{n.title}</h3>
+                      {n.type && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full capitalize">
+                          {n.type}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {n.message || n.body}
+                    </p>
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-400">
+                      <span>
+                        Created:{" "}
+                        {new Date(n.created_at || n.createdAt).toLocaleString()}
+                      </span>
+                      {n.schedule_at && (
+                        <span>
+                          Scheduled: {new Date(n.schedule_at).toLocaleString()}
+                        </span>
+                      )}
+                      {n.recipient_count && (
+                        <span>Recipients: {n.recipient_count}</span>
+                      )}
+                    </div>
+                    {n.images && n.images.length > 0 && (
+                      <div className="flex gap-2 mt-3">
+                        {n.images.map((img: string, idx: number) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`Notification ${n.id} image ${idx + 1}`}
+                            className="w-16 h-16 object-cover rounded border"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Switch defaultChecked />
-                </div> */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">SMS Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Send notifications via SMS</p>
-                  </div>
-                  <Switch defaultChecked />
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      if (
+                        !confirm(
+                          "Are you sure you want to delete this notification?"
+                        )
+                      ) {
+                        return;
+                      }
+                      try {
+                        await deleteNotification(n.id, token);
+                        setNotificationList((prev) =>
+                          prev.filter((i: any) => i.id !== n.id)
+                        );
+                        toast({
+                          title: "Success",
+                          description: "Notification deleted successfully",
+                        });
+                      } catch (err: any) {
+                        console.error("Error deleting notification", err);
+                        toast({
+                          title: "Error",
+                          description:
+                            err.response?.data?.message ||
+                            "Failed to delete notification",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
                 </div>
-                {/* <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Push Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Send browser push notifications</p>
-                  </div>
-                  <Switch />
-                </div> */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">WhatsApp Integration</h4>
-                    <p className="text-sm text-muted-foreground">Send notifications via WhatsApp</p>
-                  </div>
-                  <Switch />
-                </div>
-              </div>
-              
-              {/* <div className="border-t pt-6">
-                <h4 className="font-medium mb-4">Delivery Settings</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="batchSize">Batch Size</Label>
-                    <Input id="batchSize" type="number" defaultValue="100" />
-                  </div>
-                  <div>
-                    <Label htmlFor="delay">Delay Between Batches (seconds)</Label>
-                    <Input id="delay" type="number" defaultValue="30" />
-                  </div>
-                </div>
-              </div> */}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

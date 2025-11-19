@@ -5,10 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { getAnalytics } from "@/lib/api/dashboardController";
 import {
   Table,
@@ -18,18 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
 import { ShoppingBag, TrendingUp, DollarSign, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -41,60 +27,17 @@ const AdminDashboard = () => {
 
   const navigate = useNavigate();
   useEffect(() => {
+    if (!token) return;
+    
     getAnalytics(token)
       .then((response) => {
         const data = response;
-        console.log(data);
         setStats(data.data.data);
       })
       .catch((error) => {
         console.log(error);
       });
-  }, []);
-  const salesData = [
-    { month: "Jan", sales: 65000 },
-    { month: "Feb", sales: 59000 },
-    { month: "Mar", sales: 80000 },
-    { month: "Apr", sales: 81000 },
-    { month: "May", sales: 96000 },
-    { month: "Jun", sales: 105000 },
-  ];
-
-  const categoryData = [
-    { name: "Gold Jewelry", value: 45, color: "#FFD700" },
-    { name: "Diamond", value: 30, color: "#B9F2FF" },
-    { name: "Silver", value: 15, color: "#C0C0C0" },
-    { name: "Gemstone", value: 10, color: "#FF6B6B" },
-  ];
-
-  const recentOrders = [
-    {
-      id: "ORD001",
-      customer: "Priya Sharma",
-      product: "Diamond Necklace",
-      amount: "₹45,000",
-      status: "Pending",
-    },
-    {
-      id: "ORD002",
-      customer: "Rajesh Kumar",
-      product: "Gold Ring Set",
-      amount: "₹28,000",
-      status: "Processing",
-    },
-    {
-      id: "ORD003",
-      customer: "Anita Desai",
-      product: "Silver Bangles",
-      amount: "₹12,000",
-      status: "Completed",
-    },
-  ];
-
-  const currentRates = {
-    gold: { rate: 6245, change: "+0.5%" },
-    silver: { rate: 78, change: "-0.2%" },
-  };
+  }, [token]);
 
   return (
     <div className="p-6">
@@ -168,56 +111,8 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Charts and Analytics */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales Overview</CardTitle>
-              <CardDescription>Monthly sales performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="sales" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Distribution</CardTitle>
-              <CardDescription>Sales by jewelry category</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}%`}
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-       
       {/* Recent Orders */}
-<Card>
+      <Card>
   <CardHeader>
     <CardTitle>Recent Orders</CardTitle>
     <CardDescription>Latest customer orders</CardDescription>
