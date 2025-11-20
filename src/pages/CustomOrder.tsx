@@ -44,7 +44,7 @@ const CustomOrder = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const metalOptions = ["Gold", "Silver", "Platinum", "Diamond"];
-  const purityOptions = ["24k", "22k", "18k", "14k", "925", "999"];
+  const purityOptions = ["24k","20k", "22k", "18k", "14k", "9k"];
 
   useEffect(() => {
     if (!isAuthenticated) {

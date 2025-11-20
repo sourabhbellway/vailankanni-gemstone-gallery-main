@@ -180,7 +180,7 @@ const ProductManagement = () => {
       if (num === "24") return "24k";
       if (num === "22") return "22k";
       if (num === "18") return "18k";
-      if (num === "925") return "925";
+ 
     }
     return "";
   };
@@ -767,8 +767,10 @@ const ProductManagement = () => {
                       <SelectContent>
                         <SelectItem value="24k">24K</SelectItem>
                         <SelectItem value="22k">22K</SelectItem>
+                        <SelectItem value="22k">20K</SelectItem>
                         <SelectItem value="18k">18K</SelectItem>
-                        <SelectItem value="925">925 Silver</SelectItem>
+                        <SelectItem value="18k">14K</SelectItem>
+                        <SelectItem value="18k">9K</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -829,7 +831,7 @@ const ProductManagement = () => {
 
                   {/* Right column intentionally left for other fields */}
                   <div className="grid gap-2">
-                    <Label htmlFor="makingCharges">Making Charges (₹)</Label>
+                    <Label htmlFor="makingCharges">Making Charges (%)</Label>
                     <Input
                       id="makingCharges"
                       type="number"
@@ -1068,8 +1070,10 @@ const ProductManagement = () => {
                       <SelectContent>
                         <SelectItem value="24k">24K</SelectItem>
                         <SelectItem value="22k">22K</SelectItem>
+                        <SelectItem value="22k">20K</SelectItem>
                         <SelectItem value="18k">18K</SelectItem>
-                        <SelectItem value="925">925 Silver</SelectItem>
+                        <SelectItem value="18k">14K</SelectItem>
+                        <SelectItem value="18k">9K</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1259,7 +1263,7 @@ const ProductManagement = () => {
 
                   <div className="grid gap-2">
                     <Label htmlFor="editMakingCharges">
-                      Making Charges (₹)
+                      Making Charges (%)
                     </Label>
                     <Input
                       id="editMakingCharges"

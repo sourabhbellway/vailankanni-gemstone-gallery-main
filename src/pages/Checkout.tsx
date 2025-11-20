@@ -353,7 +353,8 @@ const Checkout = () => {
                 {/* Product Details */}
                 <div className="space-y-3 mb-5">
                   {cartItems.map((item) => (
-                    <div
+                    <>
+                      <div
                       key={`${item.id}-${item.size ?? ""}`}
                       className="flex justify-between text-sm text-gray-700 border-b pb-2"
                     >
@@ -376,6 +377,13 @@ const Checkout = () => {
                         {(Number(item.unit_price) * item.quantity).toFixed(2)}
                       </div>
                     </div>
+                    <div className="flex justify-between text-gray-700 text-sm">
+                          <div>  <span>Making Charges</span> {item.making_percentage && <span className="text-xs text-primary font-sans">({item.making_percentage}%)</span>}</div>
+                          <span className="font-semibold">
+                            ₹{item.product.making_charges ?? "0.00"}
+                          </span>
+                        </div>
+                    </>
                   ))}
                 </div>
 

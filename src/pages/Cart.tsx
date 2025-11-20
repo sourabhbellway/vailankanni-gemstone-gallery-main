@@ -536,34 +536,47 @@ const Cart = () => {
                   {/* Product Details */}
                   <div className="space-y-3 mb-5">
                     {cartItems.map((item) => (
-                      <div
-                        key={`${item.id}-${item.size ?? ""}-${item.color ?? ""}`}
-                        className="flex justify-between text-sm text-gray-700 border-b pb-2"
-                      >
-                        <div className="flex-1 pr-3">
-                          <p className="font-medium text-gray-800">
-                            {item.product?.name}
-                          </p>
-
-                          {/* Show variant details if available */}
-                          {(item.size || item.color) && (
-                            <p className="text-xs text-gray-500">
-                              {item.size && <>Size: {item.size}</>}
-                              {item.size && item.color && " • "}
-                              {item.color && <>Color: {item.color}</>}
+                      <>
+                        <div
+                          key={`${item.id}-${item.size ?? ""}-${item.color ?? ""}`}
+                          className="flex justify-between text-sm text-gray-700 border-b pb-2"
+                        >
+                          <div className="flex-1 pr-3 w-full ">
+                            <p className="font-medium text-gray-800">
+                              {item.product?.name}
                             </p>
-                          )}
 
-                          {/* Price × Qty */}
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            ₹{Number(item.unit_price).toFixed(2)} × {item.quantity}
-                          </p>
-                        </div>
+                            {/* Show variant details if available */}
+                            {(item.size || item.color) && (
+                              <p className="text-xs text-gray-500">
+                                {item.size && <>Size: {item.size}</>}
+                                {item.size && item.color && " • "}
+                                {item.color && <>Color: {item.color}</>}
+                              </p>
+                            )}
 
-                        <div className="text-right font-semibold text-[#084526]">
-                          ₹{(Number(item.unit_price) * item.quantity).toFixed(2)}
+                            {/* Price × Qty */}
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              ₹{Number(item.unit_price).toFixed(2)} × {item.quantity}
+                            </p>
+
+                            {/* <p className="text-xs text-gray-500 mt-0.5">
+                            ₹{Number(item.unit_price).toFixed(2)} 
+                          </p> */}
+                          </div>
+
+                          <div className="text-right font-semibold text-[#084526]">
+                            ₹{(Number(item.unit_price) * item.quantity).toFixed(2)}
+                          </div>
                         </div>
-                      </div>
+                        <div className="flex justify-between text-gray-700 text-sm">
+                          <div>  <span>Making Charges</span> {item.making_percentage && <span className="text-xs text-primary font-sans">({item.making_percentage}%)</span>}</div>
+                          <span className="font-semibold">
+                            ₹{item.product.making_charges ?? "0.00"}
+                          </span>
+                        </div>
+                      </>
+
                     ))}
                   </div>
 
@@ -575,6 +588,12 @@ const Cart = () => {
                         ₹{cartSummary.total_amount ?? "0.00"}
                       </span>
                     </div>
+                    {/* <div className="flex justify-between">
+                      <span>Making Charges</span>
+                      <span className="font-semibold">
+                        ₹{cartSummary.total_amount ?? "0.00"}
+                      </span>
+                    </div> */}
 
                     {appliedCoupon && (
                       <div className="flex justify-between text-green-600 font-medium">
